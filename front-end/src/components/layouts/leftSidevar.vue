@@ -67,11 +67,63 @@ export default {
       showTitle: true,
       is_superuser: false,
       menuItems: [
+
+ 
+
+    
+
+    
+
+
+   
+
+
+    
         { name: "Dashboard", route: "first-dash", icon: "fas fa-chart-line" },
-        { name: "Users", route: "Users-view", icon: "fas fa-user", permission: "" },
-        { name: "Roles", route: "Role-view", icon: "fas fa-id-badge", permission: "" },
+          {
+          name: "Users",
+          route: "Users-view",
+          icon: "fas fa-folder",
+          color: "#22c55e"
+        },
+          {
+          name: "Roles",
+          route: "Role-view",
+          icon: "fas fa-folder",
+          color: "#22c55e"
+        },
         { name: "Permissions", route: "Permission-view", icon: "fas fa-key", permission: "" },
-          ],
+       
+        {
+        name: "KYC Managements",
+        route: "KycManagement-view",
+        icon: "fas fa-folder",
+        color: "#22c55e"
+        },
+        {
+          name: "Transactions",
+          route: "Transactions-view",
+          icon: "fas fa-folder",
+          color: "#22c55e"
+        },
+
+      {
+        name: "Integration Settings",
+        route: "IntegrationSettings-view",
+        icon: "fas fa-folder",
+        color: "#22c55e"
+        },
+
+
+        {
+        name: "AuditLogs",
+        route: "AuditLogs-view",
+        icon: "fas fa-folder",
+        color: "#22c55e"
+        },
+     
+      
+      ],
     };
   },
   computed: {
