@@ -1,0 +1,18 @@
+/* src/assets/css/darkmode.css */
+@tailwind base; /* Ensure base styles are applied */
+@tailwind components; /* Optional: if you are using custom components */
+@tailwind utilities; /* Optional: if you are using custom utilities */
+
+@layer base {
+  /* Light Mode styles (default) */
+  body {
+    background-color: #ffffff; /* Light background */
+    color: #000000; /* Light text */
+  }
+
+  /* Dark Mode styles */
+  .dark body {
+    background-color: #1a202c; /* Dark background */
+    color: #ffffff; /* Dark text */
+  }
+}
