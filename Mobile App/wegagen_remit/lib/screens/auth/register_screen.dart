@@ -16,10 +16,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  final _pinController = TextEditingController();
+  final _confirmPinController = TextEditingController();
+  bool _obscurePin = true;
+  bool _obscureConfirmPin = true;
   bool _acceptTerms = false;
 
   @override
@@ -28,21 +28,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _pinController.dispose();
+    _confirmPinController.dispose();
     super.dispose();
   }
 
   Future<void> _register() async {
     if (_formKey.currentState!.validate() && _acceptTerms) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       final success = await authProvider.register(
-        _firstNameController.text.trim(),
-        _lastNameController.text.trim(),
-        _emailController.text.trim(),
-        _phoneController.text.trim(),
-        _passwordController.text,
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: _emailController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        pin: _pinController.text,
+        confirmPin: _confirmPinController.text,
       );
 
       if (success && mounted) {
@@ -125,10 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'Join Wegagen Remit today',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 30),
@@ -145,7 +143,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFF37021)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFF37021),
+                              ),
                             ),
                           ),
                           validator: (value) {
@@ -168,7 +168,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFF37021)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFF37021),
+                              ),
                             ),
                           ),
                           validator: (value) {
@@ -200,7 +202,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      if (!RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      ).hasMatch(value)) {
                         return 'Please enter a valid email';
                       }
                       return null;
@@ -230,16 +234,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
+                    controller: _pinController,
+                    obscureText: _obscurePin,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
                     decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outlined),
+                      labelText: 'PIN (4-6 digits)',
+                      prefixIcon: const Icon(Icons.pin_outlined),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                        icon: Icon(
+                          _obscurePin
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
                         onPressed: () {
                           setState(() {
-                            _obscurePassword = !_obscurePassword;
+                            _obscurePin = !_obscurePin;
                           });
                         },
                       ),
@@ -250,29 +260,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Color(0xFFF37021)),
                       ),
+                      counterText: '',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
+                        return 'Please enter your PIN';
                       }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                      if (value.length < 4) {
+                        return 'PIN must be at least 4 digits';
+                      }
+                      if (!RegExp(r'^\d+$').hasMatch(value)) {
+                        return 'PIN must contain only numbers';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: _obscureConfirmPassword,
+                    controller: _confirmPinController,
+                    obscureText: _obscureConfirmPin,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
                     decoration: InputDecoration(
-                      labelText: 'Confirm Password',
-                      prefixIcon: const Icon(Icons.lock_outlined),
+                      labelText: 'Confirm PIN',
+                      prefixIcon: const Icon(Icons.pin_outlined),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                        icon: Icon(
+                          _obscureConfirmPin
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
                         onPressed: () {
                           setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                            _obscureConfirmPin = !_obscureConfirmPin;
                           });
                         },
                       ),
@@ -283,13 +303,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Color(0xFFF37021)),
                       ),
+                      counterText: '',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please confirm your password';
+                        return 'Please confirm your PIN';
                       }
-                      if (value != _passwordController.text) {
-                        return 'Passwords do not match';
+                      if (value != _pinController.text) {
+                        return 'PINs do not match';
                       }
                       return null;
                     },
@@ -340,10 +361,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         child: authProvider.isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
                             : const Text(
                                 'Create Account',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                       );
                     },

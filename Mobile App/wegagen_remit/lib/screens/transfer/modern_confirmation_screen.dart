@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../main_navigation_screen.dart';
-import 'transfer_success_screen.dart';
+import 'payment_details_screen.dart';
 
 class ModernConfirmationScreen extends StatefulWidget {
   final String transferType;
@@ -60,51 +59,20 @@ class _ModernConfirmationScreenState extends State<ModernConfirmationScreen> {
   }
 
   Future<void> _processTransfer() async {
-    setState(() {
-      _isProcessing = true;
-    });
-
-    // Simulate processing time
-    await Future.delayed(const Duration(seconds: 3));
-
-    if (mounted) {
-      // Generate transaction ID and pickup code
-      final transactionId = 'WR${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-      final pickupCode = widget.transferType == 'cash_pickup' 
-          ? '${DateTime.now().millisecondsSinceEpoch.toString().substring(8, 12)}'
-          : null;
-
-      // Get recipient name
-      String recipientName = '';
-      switch (widget.transferType) {
-        case 'wegagen_bank':
-          recipientName = widget.recipientData['accountHolderName'] ?? 'Unknown';
-          break;
-        case 'wegagen_ebirr':
-          recipientName = widget.recipientData['holderName'] ?? 'Unknown';
-          break;
-        case 'cash_pickup':
-          recipientName = widget.recipientData['fullName'] ?? 'Unknown';
-          break;
-        default:
-          recipientName = 'Unknown';
-      }
-
-      // Navigate to success screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => TransferSuccessScreen(
-            transferType: widget.transferType,
-            amount: widget.amount,
-            currency: widget.currency,
-            etbAmount: widget.etbAmount,
-            recipientName: recipientName,
-            pickupCode: pickupCode,
-            transactionId: transactionId,
-          ),
+    // Navigate to payment details screen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PaymentDetailsScreen(
+          transferType: widget.transferType,
+          amount: widget.amount,
+          currency: widget.currency,
+          etbAmount: widget.etbAmount,
+          fee: widget.fee,
+          exchangeRate: widget.exchangeRate,
+          recipientData: widget.recipientData,
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override

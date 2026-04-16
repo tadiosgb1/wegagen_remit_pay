@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/exchange_rate_provider.dart';
+import '../../widgets/auth_guard.dart';
 import 'recipient_details_screen.dart';
 
 class AmountEntryScreen extends StatefulWidget {
@@ -144,7 +145,9 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AuthGuard(
+      redirectMessage: 'Please login to continue with your transfer',
+      child: Scaffold(
       backgroundColor: Colors.grey.shade50,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -428,6 +431,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -3,10 +3,17 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
 import 'providers/exchange_rate_provider.dart';
+import 'services/api_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/auth/login_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize API service
+  await ApiService().initialize();
+  
   runApp(const MyApp());
 }
 
@@ -26,45 +33,70 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF37021)),
           useMaterial3: true,
         ),
-        home: const SplashScreen(),
+        home: const AuthWrapper(),
         debugShowCheckedModeBanner: false,
       ),
     );
   }
 }
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    _checkOnboardingStatus();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Check authentication status first
+    await context.read<AuthProvider>().checkAuthStatus();
+    
+    // Then check onboarding status
+    await _checkOnboardingStatus();
   }
 
   Future<void> _checkOnboardingStatus() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 2)); // Splash delay
     
     final prefs = await SharedPreferences.getInstance();
     final hasSeenOnboarding = prefs.getBool('onboarding_completed') ?? false;
     
     if (mounted) {
-      if (hasSeenOnboarding) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        );
-      } else {
+      if (!hasSeenOnboarding) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const OnboardingScreen()),
         );
+      } else {
+        // Check if user is authenticated
+        final authProvider = context.read<AuthProvider>();
+        if (authProvider.isAuthenticated) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
       }
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return const SplashScreen();
+  }
+}
+
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

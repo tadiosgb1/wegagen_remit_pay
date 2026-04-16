@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../main_navigation_screen.dart';
-import 'register_screen.dart';
+import 'create_account_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? message;
+  
+  const LoginScreen({super.key, this.message});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -14,13 +16,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _pinController = TextEditingController();
+  bool _obscurePin = true;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
+    _pinController.dispose();
     super.dispose();
   }
 
@@ -30,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       final success = await authProvider.login(
         _emailController.text.trim(),
-        _passwordController.text,
+        _pinController.text,
       );
 
       if (success && mounted) {
@@ -107,6 +109,39 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  
+                  // Show message if provided
+                  if (widget.message != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFF37021).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Color(0xFFF37021),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.message!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFFF37021),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  
                   const SizedBox(height: 40),
                   TextFormField(
                     controller: _emailController,
@@ -134,16 +169,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
+                    controller: _pinController,
+                    obscureText: _obscurePin,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
                     decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outlined),
+                      labelText: 'PIN',
+                      prefixIcon: const Icon(Icons.pin_outlined),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                        icon: Icon(_obscurePin ? Icons.visibility : Icons.visibility_off),
                         onPressed: () {
                           setState(() {
-                            _obscurePassword = !_obscurePassword;
+                            _obscurePin = !_obscurePin;
                           });
                         },
                       ),
@@ -154,13 +191,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Color(0xFFF37021)),
                       ),
+                      counterText: '',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
+                        return 'Please enter your PIN';
                       }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                      if (value.length < 4) {
+                        return 'PIN must be at least 4 digits';
                       }
                       return null;
                     },
@@ -217,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                            MaterialPageRoute(builder: (context) => const CreateAccountScreen()),
                           );
                         },
                         child: const Text(
