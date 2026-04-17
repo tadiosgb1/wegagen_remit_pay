@@ -1,39 +1,76 @@
-
 <template>
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-sm">
-      <div class="flex justify-between items-center mb-4 border-b pb-2">
-        <h2 class="text-lg font-semibold text-gray-800 ">Add Users </h2>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">&times;</button>
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+
+    <!-- Modal -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 text-sm">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-5 border-b pb-3">
+        <h2 class="text-lg font-semibold text-gray-800">
+          Add User
+        </h2>
+
+        <button
+          @click="$emit('close')"
+          class="text-gray-400 hover:text-dprimary text-xl"
+        >
+          &times;
+        </button>
       </div>
 
+      <!-- Form -->
       <form @submit.prevent="submitForm" class="space-y-4">
-        
+
+        <!-- First Name -->
         <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Full_name</label>
-          <input v-model="form.full_name" type="text" required class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full sm:max-w-xs focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition duration-150" />
-        </div>
-        <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Email</label>
-          <input v-model="form.email" type="text" required class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full sm:max-w-xs focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition duration-150" />
-        </div>
-        <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Role_id</label>
-          <input v-model="form.role_id" type="text" required class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full sm:max-w-xs focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition duration-150" />
-        </div>
-        <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Is_active</label>
-          <input v-model="form.is_active" type="text" required class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full sm:max-w-xs focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition duration-150" />
-        </div>
-        <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Last_login</label>
-          <input v-model="form.last_login" type="text" required class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full sm:max-w-xs focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition duration-150" />
+          <label class="label">First Name</label>
+          <input v-model="form.first_name" type="text" required class="input" />
         </div>
 
-        <div class="flex justify-end gap-3 pt-2">
-          <button type="button" @click="$emit('close')" class="px-4 py-2 border rounded-lg">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg">Add</button>
+        <!-- Last Name -->
+        <div>
+          <label class="label">Last Name</label>
+          <input v-model="form.last_name" type="text" required class="input" />
         </div>
+
+        <!-- Email -->
+        <div>
+          <label class="label">Email</label>
+          <input v-model="form.email" type="email" required class="input" />
+        </div>
+
+        <!-- Phone -->
+        <div>
+          <label class="label">Phone Number</label>
+          <input v-model="form.phone_number" type="text" required class="input" />
+        </div>
+
+        <!-- PIN -->
+        <div>
+          <label class="label">PIN</label>
+          <input v-model="form.pin" type="password" required class="input" />
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 pt-4">
+
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="px-4 py-2 bg-primary hover:bg-dprimary text-white rounded-lg shadow-md transition"
+          >
+            Add
+          </button>
+
+        </div>
+
       </form>
     </div>
   </div>
@@ -42,36 +79,58 @@
 <script>
 export default {
   props: { data: Object },
+
   data() {
     return {
       form: {
-        full_name: this.data?.full_name || '',
-email: this.data?.email || '',
-role_id: this.data?.role_id || '',
-is_active: this.data?.is_active || '',
-last_login: this.data?.last_login || ''
-      }
+        first_name: this.data?.first_name || "",
+        last_name: this.data?.last_name || "",
+        email: this.data?.email || "",
+        phone_number: this.data?.phone_number || "",
+        pin: this.data?.pin || "",
+      },
     };
   },
+
   methods: {
     async submitForm() {
       try {
-        if ("Add" === "Add") {
-        const res= await this.$apiPost("/users", this.form);
-        if(res){
-           this.$root.$refs.toast.showToast('Added successfully', 'success');
-         }
+        let res;
 
+        if (!this.data) {
+          res = await this.$apiPost("/users", this.form);
+          if (res) {
+            this.$root.$refs.toast.showToast("User added successfully", "success");
+          }
         } else {
-         const res= await this.$apiPut("/users",this.data.id ,this.form);
-         if(res){
-           this.$root.$refs.toast.showToast('Edited successfully', 'success');
-         }
+          res = await this.$apiPut("/users", this.data.id, this.form);
+          if (res) {
+            this.$root.$refs.toast.showToast("User updated successfully", "success");
+          }
         }
+
         this.$emit("saved");
         this.$emit("close");
-      } catch (e) { console.error(e); }
-    }
-  }
-}
+
+      } catch (e) {
+        console.error(e);
+        this.$root.$refs.toast.showToast("Something went wrong", "error");
+      }
+    },
+  },
+};
 </script>
+
+<style scoped>
+/* 🔹 Reusable Input Style */
+.input {
+  @apply w-full border border-gray-300 rounded-lg px-4 py-2 text-sm
+         focus:outline-none focus:ring-2 focus:ring-primary
+         focus:border-primary transition;
+}
+
+/* 🔹 Label Style */
+.label {
+  @apply block mb-1 text-sm font-medium text-gray-700;
+}
+</style>

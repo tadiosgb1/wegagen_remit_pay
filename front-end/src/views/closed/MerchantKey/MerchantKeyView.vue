@@ -2,31 +2,31 @@
 <template>
   <div class="p-6 bg-gray-50 min-h-screen text-sm text-gray-800 relative">
     <!-- Loading -->
-    <Loading :visible="loading" message="Loading auditLogs..." />
+    <Loading :visible="loading" message="Loading MerchantKey..." />
 
     <!-- Page Header -->
     <div class="flex items-center justify-between mb-6 border-b pb-4 border-gray-200">
-      <h1 class="text-lg font-bold text-gray-800">AuditLogs</h1>
-      <button @click="openAddModal" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium shadow-md flex items-center space-x-1 text-sm">
+      <h1 class="text-lg font-bold text-gray-800">Remitance Key</h1>
+      <!-- <button @click="openAddModal" class="bg-primary hover:bg-dprimary text-white px-4 py-2 rounded-lg font-medium shadow-md flex items-center space-x-1 text-sm">
         <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        <span>Add AuditLogs</span>
-      </button>
+        <span>Add MerchantKey</span>
+      </button> -->
     </div>
 
     <!-- Search + Page Size -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <!-- <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
       <input v-model="searchQuery" @input="fetchItems(1)" type="text" placeholder="Search..."
-        class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full sm:max-w-xs focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition duration-150" />
+        class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full sm:max-w-xs focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition duration-150" />
       <div class="flex items-center gap-2 text-sm text-gray-600">
         <label>Show</label>
-        <select v-model="pageSize" @change="fetchItems(1)" class="border border-gray-300 rounded-lg px-2 py-1 text-sm bg-white focus:ring-green-500 focus:border-green-500">
+        <select v-model="pageSize" @change="fetchItems(1)" class="border border-gray-300 rounded-lg px-2 py-1 text-sm bg-white focus:ring-primary focus:border-primary">
           <option v-for="size in [5,10,20,50,100]" :key="size" :value="size">{{ size }}</option>
         </select>
         <span>entries</span>
       </div>
-    </div>
+    </div> -->
 
     <!-- Desktop Table -->
     <div class="bg-white overflow-hidden rounded-xl border border-gray-200 hidden md:block">
@@ -35,14 +35,14 @@
           <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-semibold">
             <tr>
               <th class="px-6 py-3 text-left">#</th>
-              <th class="px-6 py-3 text-left">Admin_id</th><th class="px-6 py-3 text-left">Action_type</th><th class="px-6 py-3 text-left">Module_affected</th><th class="px-6 py-3 text-left">Description</th><th class="px-6 py-3 text-left">Ip_address</th><th class="px-6 py-3 text-left">Created_at</th>
+              <th class="px-6 py-3 text-left">Merchant_id</th><th class="px-6 py-3 text-left">Merchant_name</th><th class="px-6 py-3 text-left">Secret_key</th><th class="px-6 py-3 text-left">Access_key</th>
               <th class="px-6 py-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="(item, index) in items" :key="item.id" class="hover:bg-green-50 transition duration-150">
               <td class="px-6 py-4">{{ index + 1 }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ item.admin_id }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.action_type }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.module_affected }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.description }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.ip_address }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.created_at }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ item.merchant_id }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.merchant_name }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.secret_key }}</td><td class="px-6 py-4 whitespace-nowrap">{{ item.access_key }}</td>
               <td class="px-6 py-4 text-center space-x-3">
                 <button @click="viewDetails(item.id)" class="text-green-500 hover:text-green-700"><i class="fas fa-eye"></i></button>
                 <button @click="editItem(item)" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
@@ -50,7 +50,7 @@
               </td>
             </tr>
             <tr v-if="items.length === 0">
-              <td colspan="8" class="text-center py-6 text-gray-400 italic">No data found.</td>
+              <td colspan="6" class="text-center py-6 text-gray-400 italic">No data found.</td>
             </tr>
           </tbody>
         </table>
@@ -61,7 +61,7 @@
     <div class="md:hidden space-y-4">
       <div v-for="(item, index) in items" :key="item.id" class="bg-white border border-gray-200 rounded-xl shadow p-4">
         <div class="flex justify-between mb-3">
-          <h2 class="font-bold text-gray-800">AuditLogs #{{ index + 1 }}</h2>
+          <h2 class="font-bold text-gray-800">MerchantKey #{{ index + 1 }}</h2>
           <div class="flex gap-3 text-sm">
             <button @click="viewDetails(item.id)" class="text-green-500 hover:text-green-700"><i class="fas fa-eye"></i></button>
             <button @click="editItem(item)" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
@@ -71,28 +71,20 @@
         <div class="grid grid-cols-2 gap-y-1 text-sm text-gray-700">
           
             <div class="col-span-2">
-              <span class="font-medium text-gray-600">Admin_id:</span>
-              {{ item.admin_id }}
+              <span class="font-medium text-gray-600">Merchant_id:</span>
+              {{ item.merchant_id }}
             </div>
             <div class="col-span-2">
-              <span class="font-medium text-gray-600">Action_type:</span>
-              {{ item.action_type }}
+              <span class="font-medium text-gray-600">Merchant_name:</span>
+              {{ item.merchant_name }}
             </div>
             <div class="col-span-2">
-              <span class="font-medium text-gray-600">Module_affected:</span>
-              {{ item.module_affected }}
+              <span class="font-medium text-gray-600">Secret_key:</span>
+              {{ item.secret_key }}
             </div>
             <div class="col-span-2">
-              <span class="font-medium text-gray-600">Description:</span>
-              {{ item.description }}
-            </div>
-            <div class="col-span-2">
-              <span class="font-medium text-gray-600">Ip_address:</span>
-              {{ item.ip_address }}
-            </div>
-            <div class="col-span-2">
-              <span class="font-medium text-gray-600">Created_at:</span>
-              {{ item.created_at }}
+              <span class="font-medium text-gray-600">Access_key:</span>
+              {{ item.access_key }}
             </div>
         </div>
       </div>
@@ -100,7 +92,7 @@
     </div>
 
     <!-- Pagination -->
-    <div class="flex items-center justify-between mt-6 text-sm text-gray-600">
+    <!-- <div class="flex items-center justify-between mt-6 text-sm text-gray-600">
       <span>
         Showing {{ (currentPage - 1) * pageSize + 1 }} 
         to {{ Math.min(currentPage * pageSize, count) }} 
@@ -109,21 +101,21 @@
       <div class="flex items-center gap-2">
         <button @click="fetchItems(currentPage - 1)" :disabled="!previousPage"
           class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150">← Previous</button>
-        <span class="px-3 py-1 bg-green-600 text-white rounded-lg font-medium">{{ currentPage }}</span>
+        <span class="px-3 py-1 bg-primary text-white rounded-lg font-medium">{{ currentPage }}</span>
         <button @click="fetchItems(currentPage + 1)" :disabled="!nextPage"
           class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150">Next →</button>
       </div>
-    </div>
+    </div> -->
 
     <!-- Add/Edit Modal -->
-    <AddAuditLogs v-if="showModal && !editMode" :data="selectedItem" @close="showModal=false" @saved="fetchItems"/>
-    <EditAuditLogs v-if="showModal && editMode" :data="selectedItem" @close="showModal=false" @saved="fetchItems"/>
+    <AddMerchantKey v-if="showModal && !editMode" :data="selectedItem" @close="showModal=false" @saved="fetchItems"/>
+    <EditMerchantKey v-if="showModal && editMode" :data="selectedItem" @close="showModal=false" @saved="fetchItems"/>
 
     <!-- Delete Confirmation Modal -->
     <delete-confirm-modal 
       :visible="deleteModalVisible"
-      title="Delete AuditLogs"
-      message="Are you sure you want to delete this auditLogs?"
+      title="Delete MerchantKey"
+      message="Are you sure you want to delete this MerchantKey?"
       @confirm="confirmDelete"
       @cancel="deleteModalVisible=false"
     />
@@ -131,13 +123,13 @@
 </template>
 
 <script>
-import AddAuditLogs from "./AddAuditLogs.vue";
-import EditAuditLogs from "./EditAuditLogs.vue";
+import AddMerchantKey from "./AddMerchantKey.vue";
+import EditMerchantKey from "./EditMerchantKey.vue";
 import Loading from "@/components/Loading.vue";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal.vue";
 
 export default {
-  components: { AddAuditLogs, EditAuditLogs, Loading, DeleteConfirmModal },
+  components: { AddMerchantKey, EditMerchantKey, Loading, DeleteConfirmModal },
 
   data() {
     return {
@@ -163,7 +155,7 @@ export default {
       this.currentPage = page;
       const params = { page: this.currentPage, page_size: this.pageSize, search: this.searchQuery };
       try {
-        const response = await this.$apiGet('/auditlogs', params);
+        const response = await this.$apiGet('/merchant-keys', params);
         this.items = response.data;
         this.count = response.count || 0;
         this.nextPage = response.next || null;
@@ -177,16 +169,16 @@ export default {
     
     // Navigate using static route name
     viewDetails(id) { 
-      this.$router.push({ name: 'AuditLogs-detail', params: { id } });
+      this.$router.push({ name: 'MerchantKey-detail', params: { id } });
     },
 
     openDeleteModal(id) { this.deleteId = id; this.deleteModalVisible = true; },
 
     // Delete with toast
     async confirmDelete() {
-      const res = await this.$apiDelete('/auditlogs', this.deleteId);
+      const res = await this.$apiDelete('/merchantkey', this.deleteId);
       if(res) {
-        this.$root.$refs.toast.showToast('AuditLogs deleted successfully', 'success');
+        this.$root.$refs.toast.showToast('MerchantKey deleted successfully', 'success');
       }
       this.deleteModalVisible = false;
       this.fetchItems(this.currentPage);

@@ -55,11 +55,12 @@ export default {
         darkBackground: '#1a202c', // Example of a dark background color
         darkText: '#ffffff', // White text for dark mode
         icon:'#FF6B00',
-        // primary: '#FA7118',
+         dprimary:'#FF6B00',
+         primary: '#FA7118',
           secondary: '#FF6B00',
           
-          dprimary:'#3730A3',
-          primary: '#4F46E5',
+          // dprimary:'#3730A3',
+          // primary: '#4F46E5',
           // dprimary:'#5f5ffc',
           // primary: '#5f5ffc',
 
