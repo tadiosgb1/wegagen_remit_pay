@@ -58,48 +58,71 @@ const routes = [
       { requiresGuest: true },
       children: [
       {
-        path: "apicredentials",
-        name: "IntegrationSettings-view",
-        component: () => import('../views/closed/ApiCredentials/IntegrationSettingsView.vue'),
+        path: "merchantkey",
+        name: "MerchantKey-view",
+        component: () => import('../views/closed/MerchantKey/MerchantKeyView.vue'),
       },
       {
-        path: "apicredentials/add",
-        name: "IntegrationSettings-add",
-        component: () => import('../views/closed/ApiCredentials/AddIntegrationSettings.vue'),
+        path: "merchantkey/add",
+        name: "MerchantKey-add",
+        component: () => import('../views/closed/MerchantKey/AddMerchantKey.vue'),
       },
       {
-        path: "apicredentials/edit/:id",
-        name: "IntegrationSettings-edit",
-        component: () => import('../views/closed/ApiCredentials/EditIntegrationSettings.vue'),
+        path: "merchantkey/edit/:id",
+        name: "MerchantKey-edit",
+        component: () => import('../views/closed/MerchantKey/EditMerchantKey.vue'),
         props: true,
       },
       {
-        path: "apicredentials/detail/:id",
-        name: "IntegrationSettings-detail",
-        component: () => import('../views/closed/ApiCredentials/IntegrationSettingsDetail.vue'),
+        path: "merchantkey/detail/:id",
+        name: "MerchantKey-detail",
+        component: () => import('../views/closed/MerchantKey/MerchantKeyDetail.vue'),
         props: true,
       },
 
       {
-        path: "remittances",
-        name: "Transactions-view",
-        component: () => import('../views/closed/Remittances/TransactionsView.vue'),
+        path: "merchantkey",
+        name: "MerchantKey-view",
+        component: () => import('../views/closed/MerchantKey/MerchantKeyView.vue'),
       },
       {
-        path: "remittances/add",
-        name: "Transactions-add",
-        component: () => import('../views/closed/Remittances/AddTransactions.vue'),
+        path: "merchantkey/add",
+        name: "MerchantKey-add",
+        component: () => import('../views/closed/MerchantKey/AddMerchantKey.vue'),
       },
       {
-        path: "remittances/edit/:id",
-        name: "Transactions-edit",
-        component: () => import('../views/closed/Remittances/EditTransactions.vue'),
+        path: "merchantkey/edit/:id",
+        name: "MerchantKey-edit",
+        component: () => import('../views/closed/MerchantKey/EditMerchantKey.vue'),
         props: true,
       },
       {
-        path: "remittances/detail/:id",
-        name: "Transactions-detail",
-        component: () => import('../views/closed/Remittances/TransactionsDetail.vue'),
+        path: "merchantkey/detail/:id",
+        name: "MerchantKey-detail",
+        component: () => import('../views/closed/MerchantKey/MerchantKeyDetail.vue'),
+        props: true,
+      },
+
+      {
+        path: "kyc",
+        name: "KYC-view",
+        component: () => import('../views/closed/kyc/KYCView.vue'),
+      },
+      {
+        path: "kyc/add",
+        name: "KYC-add",
+        component: () => import('../views/closed/kyc/AddKYC.vue'),
+      },
+      {
+        path: "kyc/edit/:id",
+        name: "KYC-edit",
+        component: () => import('../views/closed/kyc/EditKYC.vue'),
+        props: true,
+      },
+      {
+        path: "kyc/detail/:id",
+        name: "KYC-detail",
+        component: () => import('../views/closed/kyc/KYCDetail.vue'),
         props: true,
       },
 
@@ -148,53 +171,6 @@ const routes = [
         component: () => import('../views/closed/Roles/RoleDetail.vue'),
         props: true,
       },
-
-      {
-        path: "audittrails",
-        name: "AuditLogs-view",
-        component: () => import('../views/closed/AuditTrails/AuditLogsView.vue'),
-      },
-      {
-        path: "audittrails/add",
-        name: "AuditLogs-add",
-        component: () => import('../views/closed/AuditTrails/AddAuditLogs.vue'),
-      },
-      {
-        path: "audittrails/edit/:id",
-        name: "AuditLogs-edit",
-        component: () => import('../views/closed/AuditTrails/EditAuditLogs.vue'),
-        props: true,
-      },
-      {
-        path: "audittrails/detail/:id",
-        name: "AuditLogs-detail",
-        component: () => import('../views/closed/AuditTrails/AuditLogsDetail.vue'),
-        props: true,
-      },
-
-      {
-        path: "kycapplications",
-        name: "KycManagement-view",
-        component: () => import('../views/closed/KYCApplications/KycManagementView.vue'),
-      },
-      {
-        path: "kycapplications/add",
-        name: "KycManagement-add",
-        component: () => import('../views/closed/KYCApplications/AddKycManagement.vue'),
-      },
-      {
-        path: "kycapplications/edit/:id",
-        name: "KycManagement-edit",
-        component: () => import('../views/closed/KYCApplications/EditKycManagement.vue'),
-        props: true,
-      },
-      {
-        path: "kycapplications/detail/:id",
-        name: "KycManagement-detail",
-        component: () => import('../views/closed/KYCApplications/KycManagementDetail.vue'),
-        props: true,
-      },
-
       {
         path: "permissions",
         name: "Permission-view",

@@ -12,7 +12,7 @@
           <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md">
             <img src="../../assets/img/logo1.jpg" alt="Logo" class="h-7 w-7 rounded-lg" />
           </div>
-          <p class="tracking-tighter">Alpha GYZ</p>
+          <p class="tracking-tighter">Wegagen Remit</p>
         </div>
 
         <!-- Menu Items -->
@@ -24,33 +24,33 @@
 
             <ul class="space-y-1.5">
              <li 
-  v-for="item in group.items" 
-  :key="item.route" 
-  v-if="!item?.permission || $hasPermission(item?.permission)"
->
-  <router-link
-    :to="{ name: item.route }"
-    class="group flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 relative overflow-hidden"
-    :class="[
-      $route.name === item.route
-        ? 'bg-primary text-white shadow-xl shadow-primary/25'
-        : 'text-slate-500 hover:bg-slate-50 hover:text-primary'
-    ]"
-  >
-    <i
-      :class="[
-        item.icon,
-        'w-6 text-lg mr-3 transition-transform duration-300 group-hover:scale-110',
-        $route.name === item.route ? 'text-white' : 'text-slate-400 group-hover:text-primary'
-      ]"
-    ></i>
-    <span class="whitespace-nowrap tracking-tight">{{ item.name }}</span>
-    <div
-      v-if="$route.name === item.route"
-      class="absolute right-0 w-1.5 h-6 bg-white/40 rounded-l-full animate-pulse"
-    ></div>
-  </router-link>
-</li>
+                v-for="item in group.items" 
+                :key="item.route" 
+                v-if="!item?.permission || $hasPermission(item?.permission)"
+              >
+                <router-link
+                  :to="{ name: item.route }"
+                  class="group flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 relative overflow-hidden"
+                  :class="[
+                    $route.name === item.route
+                      ? 'bg-primary text-white shadow-xl shadow-primary/25'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-primary'
+                  ]"
+                >
+                  <i
+                    :class="[
+                      item.icon,
+                      'w-6 text-lg mr-3 transition-transform duration-300 group-hover:scale-110',
+                      $route.name === item.route ? 'text-white' : 'text-slate-400 group-hover:text-primary'
+                    ]"
+                  ></i>
+                  <span class="whitespace-nowrap tracking-tight">{{ item.name }}</span>
+                  <div
+                    v-if="$route.name === item.route"
+                    class="absolute right-0 w-1.5 h-6 bg-white/40 rounded-l-full animate-pulse"
+                  ></div>
+                </router-link>
+              </li>
             </ul>
           </div>
           <div class="h-10"></div>
@@ -67,6 +67,10 @@ export default {
       showTitle: true,
       is_superuser: false,
       menuItems: [
+
+  
+
+   
 
  
 
@@ -86,6 +90,8 @@ export default {
           icon: "fas fa-folder",
           color: "#22c55e"
         },
+
+        
           {
           name: "Roles",
           route: "Role-view",
@@ -94,34 +100,22 @@ export default {
         },
         { name: "Permissions", route: "Permission-view", icon: "fas fa-key", permission: "" },
        
-        {
-        name: "KYC Managements",
-        route: "KycManagement-view",
-        icon: "fas fa-folder",
-        color: "#22c55e"
-        },
-        {
-          name: "Transactions",
-          route: "Transactions-view",
-          icon: "fas fa-folder",
-          color: "#22c55e"
-        },
-
       {
-        name: "Integration Settings",
-        route: "IntegrationSettings-view",
-        icon: "fas fa-folder",
-        color: "#22c55e"
-        },
+      name: "Merchant Key",
+      route: "MerchantKey-view",
+      icon: "fas fa-folder",
+      color: "#22c55e"
+    },
+    
+      {
+      name: "KYC",
+      route: "KYC-view",
+      icon: "fas fa-folder",
+      color: "#22c55e"
+    },
 
 
-        {
-        name: "AuditLogs",
-        route: "AuditLogs-view",
-        icon: "fas fa-folder",
-        color: "#22c55e"
-        },
-     
+
       
       ],
     };
