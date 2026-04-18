@@ -109,6 +109,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           width: 60,
                           height: 60,
                           fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF37021),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(
+                                Icons.account_balance,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

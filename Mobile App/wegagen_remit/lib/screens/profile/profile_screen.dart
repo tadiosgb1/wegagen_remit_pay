@@ -44,8 +44,8 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            user != null
-                                ? '${user.firstName[0]}${user.lastName[0]}'
+                            user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
+                                ? '${user.firstName[0].toUpperCase()}${user.lastName[0].toUpperCase()}'
                                 : 'TG',
                             style: const TextStyle(
                               color: Colors.white,
@@ -66,6 +66,9 @@ class ProfileScreen extends StatelessWidget {
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                       const SizedBox(height: 8),
                       // User Email
@@ -75,6 +78,9 @@ class ProfileScreen extends StatelessWidget {
                           color: Colors.white70,
                           fontSize: 16,
                         ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                       const SizedBox(height: 16),
                       // Verification Status
@@ -93,12 +99,16 @@ class ProfileScreen extends StatelessWidget {
                               size: 16,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              user?.isVerified == true ? 'Verified Account' : 'Pending Verification',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                            Flexible(
+                              child: Text(
+                                user?.isVerified == true ? 'Verified Account' : 'Pending Verification',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ),
                           ],
@@ -338,11 +348,15 @@ class ProfileScreen extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
                 ],
               ),

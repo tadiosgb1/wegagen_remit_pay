@@ -43,7 +43,7 @@ class UrlContainer {
   
   // KYC endpoints
   static String get kycStatus => '$baseUrl/kyc/status';
-  static String get submitKyc => '$baseUrl/kyc/submit';
+  static String get submitKyc => '$baseUrl/kyc';
   static String get kycDocuments => '$baseUrl/kyc/documents';
   
   // Notifications endpoints

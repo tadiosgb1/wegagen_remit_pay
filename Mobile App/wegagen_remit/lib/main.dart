@@ -127,6 +127,21 @@ class SplashScreen extends StatelessWidget {
                   width: 100,
                   height: 100,
                   fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF37021),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(
+                        Icons.account_balance,
+                        color: Colors.white,
+                        size: 50,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

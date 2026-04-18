@@ -104,8 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Consumer<AuthProvider>(
                           builder: (context, authProvider, child) {
                             final user = authProvider.user;
-                            final initials = user != null
-                                ? '${user.firstName[0]}${user.lastName[0]}'
+                            final initials = user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
+                                ? '${user.firstName[0].toUpperCase()}${user.lastName[0].toUpperCase()}'
                                 : 'TG';
                             return Center(
                               child: Text(
@@ -148,6 +148,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ],
                             );

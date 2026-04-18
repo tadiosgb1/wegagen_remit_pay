@@ -52,7 +52,6 @@ class AuthService {
           'email': email,
           'phone_number': phoneNumber,
           'pin': pin,
-          'pin_confirmation': confirmPin,
           if (referralCode != null) 'referral_code': referralCode,
         },
         includeAuth: false,

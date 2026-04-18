@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../main_navigation_screen.dart';
-import 'create_account_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? message;
@@ -86,6 +86,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: 60,
                           height: 60,
                           fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF37021),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(
+                                Icons.account_balance,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -255,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const CreateAccountScreen()),
+                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
                           );
                         },
                         child: const Text(

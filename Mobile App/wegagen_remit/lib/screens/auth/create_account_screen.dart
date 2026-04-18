@@ -20,7 +20,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _pinController = TextEditingController();
   final _confirmPinController = TextEditingController();
   final _referralCodeController = TextEditingController();
-  
+
   bool _obscurePin = true;
   bool _obscureConfirmPin = true;
   bool _agreeToTerms = false;
@@ -46,7 +46,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     if (!_agreeToTerms || !_agreeToPrivacy) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please agree to Terms & Conditions and Privacy Policy'),
+          content: Text(
+            'Please agree to Terms & Conditions and Privacy Policy',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -54,7 +56,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     final success = await authProvider.register(
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
@@ -62,8 +64,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       phoneNumber: _phoneController.text.trim(),
       pin: _pinController.text,
       confirmPin: _confirmPinController.text,
-      referralCode: _referralCodeController.text.trim().isEmpty 
-          ? null 
+      referralCode: _referralCodeController.text.trim().isEmpty
+          ? null
           : _referralCodeController.text.trim(),
     );
 
@@ -173,12 +175,27 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         width: 60,
                         height: 60,
                         fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF37021),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.account_balance,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 30),
-                
+
                 // Header
                 const Text(
                   'Create Account',
@@ -192,10 +209,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   'Join Wegagen Remit and start sending money worldwide',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
@@ -215,10 +229,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFF37021)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFF37021),
+                            ),
                           ),
                         ),
-                        validator: (value) => _validateName(value, 'First name'),
+                        validator: (value) =>
+                            _validateName(value, 'First name'),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -234,7 +251,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFF37021)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFF37021),
+                            ),
                           ),
                         ),
                         validator: (value) => _validateName(value, 'Last name'),
@@ -293,7 +312,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     labelText: 'PIN (4-6 digits)',
                     prefixIcon: const Icon(Icons.pin_outlined),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePin ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(
+                        _obscurePin ? Icons.visibility : Icons.visibility_off,
+                      ),
                       onPressed: () {
                         setState(() {
                           _obscurePin = !_obscurePin;
@@ -323,7 +344,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     labelText: 'Confirm PIN',
                     prefixIcon: const Icon(Icons.pin_outlined),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirmPin ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(
+                        _obscureConfirmPin
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
                       onPressed: () {
                         setState(() {
                           _obscureConfirmPin = !_obscureConfirmPin;
@@ -423,7 +448,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               'Create Account',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     );
                   },
@@ -438,7 +466,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     TextButton(
                       onPressed: () {
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
                         );
                       },
                       child: const Text(

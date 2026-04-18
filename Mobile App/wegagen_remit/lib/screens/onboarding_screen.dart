@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'auth/login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({Key? key}) : super(key: key);
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -14,21 +14,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingPage> _pages = [
-    OnboardingPage(
-      title: "Welcome to Wegagen Remit",
-      description: "Send money quickly and securely to your loved ones anywhere in the world.",
-      icon: Icons.account_balance,
+  final List<OnboardingData> _onboardingData = [
+    OnboardingData(
+      image: 'assets/images/onboard/1.jpg',
+      title: 'Welcome to Wegagen Remit',
+      description: 'Send money safely and securely to your loved ones worldwide.',
     ),
-    OnboardingPage(
-      title: "Fast & Secure",
-      description: "Experience lightning-fast transfers with bank-level security for your peace of mind.",
-      icon: Icons.security,
+    OnboardingData(
+      image: 'assets/images/onboard/2.png',
+      title: 'Fast & Secure Transfers',
+      description: 'Experience lightning-fast money transfers with bank-level security.',
     ),
-    OnboardingPage(
-      title: "Easy to Use",
-      description: "Simple interface designed for everyone. Send money in just a few taps.",
-      icon: Icons.touch_app,
+    OnboardingData(
+      image: 'assets/images/onboard/3.png',
+      title: 'Easy KYC Verification',
+      description: 'Complete your verification quickly with our simple KYC process.',
+    ),
+    OnboardingData(
+      image: 'assets/images/onboard/4.jpg',
+      title: 'Start Sending Money',
+      description: 'You\'re all set! Start sending money to your family and friends.',
     ),
   ];
 
@@ -40,21 +45,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           children: [
             // Skip button
-            Align(
-              alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: _completeOnboarding,
-                child: const Text(
-                  'Skip',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _completeOnboarding,
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             
-            // Page view
+            // PageView
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -63,101 +73,122 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     _currentPage = index;
                   });
                 },
-                itemCount: _pages.length,
+                itemCount: _onboardingData.length,
                 itemBuilder: (context, index) {
-                  return _buildPage(_pages[index]);
+                  return _buildOnboardingPage(_onboardingData[index]);
                 },
               ),
             ),
             
             // Page indicator
-            SmoothPageIndicator(
-              controller: _pageController,
-              count: _pages.length,
-              effect: const WormEffect(
-                dotColor: Colors.grey,
-                activeDotColor: Color(0xFFF37021),
-                dotHeight: 8,
-                dotWidth: 8,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: SmoothPageIndicator(
+                controller: _pageController,
+                count: _onboardingData.length,
+                effect: const WormEffect(
+                  dotColor: Colors.grey,
+                  activeDotColor: Color(0xFFFF6B35), // Wegagen orange
+                  dotHeight: 8,
+                  dotWidth: 8,
+                  spacing: 16,
+                ),
               ),
             ),
             
-            const SizedBox(height: 40),
-            
             // Next/Get Started button
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.all(24.0),
               child: SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _currentPage == _pages.length - 1
+                  onPressed: _currentPage == _onboardingData.length - 1
                       ? _completeOnboarding
                       : _nextPage,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF37021),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFFFF6B35), // Wegagen orange
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
                   child: Text(
-                    _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
+                    _currentPage == _onboardingData.length - 1
+                        ? 'Get Started'
+                        : 'Next',
                     style: const TextStyle(
+                      color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
             ),
-            
-            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPage(OnboardingPage page) {
+  Widget _buildOnboardingPage(OnboardingData data) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon
+          // Image
           Container(
-            height: 200,
-            width: 200,
+            height: 300,
+            width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: const Color(0xFFF37021).withValues(alpha: 0.1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 2,
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-            child: Icon(
-              page.icon,
-              size: 100,
-              color: const Color(0xFFF37021),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                data.image,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      Icons.image,
+                      size: 100,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           
-          const SizedBox(height: 60),
+          const SizedBox(height: 40),
           
           // Title
           Text(
-            page.title,
+            data.title,
             style: const TextStyle(
-              fontSize: 28,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Color(0xFF2C3E50),
             ),
             textAlign: TextAlign.center,
           ),
           
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           
           // Description
           Text(
-            page.description,
+            data.description,
             style: const TextStyle(
               fontSize: 16,
               color: Colors.grey,
@@ -195,14 +226,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class OnboardingPage {
+class OnboardingData {
+  final String image;
   final String title;
   final String description;
-  final IconData icon;
 
-  OnboardingPage({
+  OnboardingData({
+    required this.image,
     required this.title,
     required this.description,
-    required this.icon,
   });
 }
