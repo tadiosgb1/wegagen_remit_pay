@@ -55,8 +55,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _initializeApp() async {
+    print('DEBUG: AuthWrapper - Starting app initialization...');
+    
     // Check authentication status first
     await context.read<AuthProvider>().checkAuthStatus();
+    
+    final authProvider = context.read<AuthProvider>();
+    print('DEBUG: AuthWrapper - After checkAuthStatus: isAuthenticated=${authProvider.isAuthenticated}, user=${authProvider.user}');
     
     // Then check onboarding status
     await _checkOnboardingStatus();

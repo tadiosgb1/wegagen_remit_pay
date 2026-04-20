@@ -253,88 +253,90 @@ class _KycScreenState extends State<KycScreen> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          // Progress Indicator
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: List.generate(4, (index) {
-                return Expanded(
-                  child: Container(
-                    margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: index <= _currentStep
-                          ? const Color(0xFFF37021)
-                          : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Progress Indicator
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: List.generate(4, (index) {
+                  return Expanded(
+                    child: Container(
+                      margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: index <= _currentStep
+                            ? const Color(0xFFF37021)
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
-          ),
 
-          // Page Content
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _buildWelcomeStep(),
-                _buildPersonalInfoStep(),
-                _buildDocumentUploadStep(),
-                _buildLivenessStep(),
-              ],
+            // Page Content
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _buildWelcomeStep(),
+                  _buildPersonalInfoStep(),
+                  _buildDocumentUploadStep(),
+                  _buildLivenessStep(),
+                ],
+              ),
             ),
-          ),
 
-          // Navigation Buttons
-          Container(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                if (_currentStep > 0)
+            // Navigation Buttons
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  if (_currentStep > 0)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _previousStep,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Back'),
+                      ),
+                    ),
+                  if (_currentStep > 0) const SizedBox(width: 16),
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _previousStep,
-                      style: OutlinedButton.styleFrom(
+                    child: ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : _currentStep == 3
+                          ? _submitKyc
+                          : _nextStep,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF37021),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.grey.shade300),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Back'),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(_currentStep == 3 ? 'Submit KYC' : 'Continue'),
                     ),
                   ),
-                if (_currentStep > 0) const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isLoading
-                        ? null
-                        : _currentStep == 3
-                        ? _submitKyc
-                        : _nextStep,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF37021),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(_currentStep == 3 ? 'Submit KYC' : 'Continue'),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -450,7 +452,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: _selectedIdType,
+              value: _selectedIdType,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -595,7 +597,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              initialValue: _selectedCountry,
+              value: _selectedCountry,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),

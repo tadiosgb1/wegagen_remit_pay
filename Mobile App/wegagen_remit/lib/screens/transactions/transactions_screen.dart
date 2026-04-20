@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/transfer.dart';
+import '../../widgets/activity_tracker.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -101,54 +102,57 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         backgroundColor: const Color(0xFFF37021),
         foregroundColor: Colors.white,
       ),
-      body: Column(
-        children: [
-          // Filter Tabs
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filters.map((filter) {
-                  final isSelected = filter == _selectedFilter;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(filter),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
-                      },
-                      selectedColor: const Color(0xFFF37021).withValues(alpha: 0.2),
-                      checkmarkColor: const Color(0xFFF37021),
-                      labelStyle: TextStyle(
-                        color: isSelected ? const Color(0xFFF37021) : Colors.grey.shade600,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      body: ActivityTracker(
+        interactionType: 'transactions_screen',
+        child: Column(
+          children: [
+            // Filter Tabs
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _filters.map((filter) {
+                    final isSelected = filter == _selectedFilter;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(filter),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedFilter = filter;
+                          });
+                        },
+                        selectedColor: const Color(0xFFF37021).withValues(alpha: 0.2),
+                        checkmarkColor: const Color(0xFFF37021),
+                        labelStyle: TextStyle(
+                          color: isSelected ? const Color(0xFFF37021) : Colors.grey.shade600,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-          ),
-          
-          // Transactions List
-          Expanded(
-            child: _filteredTransactions.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredTransactions.length,
-                    itemBuilder: (context, index) {
-                      final transaction = _filteredTransactions[index];
-                      return _buildTransactionCard(transaction);
-                    },
-                  ),
-          ),
-        ],
+            
+            // Transactions List
+            Expanded(
+              child: _filteredTransactions.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredTransactions.length,
+                      itemBuilder: (context, index) {
+                        final transaction = _filteredTransactions[index];
+                        return _buildTransactionCard(transaction);
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

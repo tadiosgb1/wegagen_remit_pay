@@ -44,26 +44,34 @@ class AuthService {
     String? referralCode,
   }) async {
     try {
+      print('DEBUG: Making registration API call to ${UrlContainer.register}');
+      final requestData = {
+        'first_name': firstName,
+        'last_name': lastName,
+        'email': email,
+        'phone_number': phoneNumber,
+        'pin': pin,
+        if (referralCode != null) 'referral_code': referralCode,
+      };
+      print('DEBUG: Request data: $requestData');
+      
       final response = await _apiService.post(
         UrlContainer.register,
-        {
-          'first_name': firstName,
-          'last_name': lastName,
-          'email': email,
-          'phone_number': phoneNumber,
-          'pin': pin,
-          if (referralCode != null) 'referral_code': referralCode,
-        },
+        requestData,
         includeAuth: false,
       );
 
+      print('DEBUG: API Response: $response');
+      
       final authResponse = AuthResponse.fromJson(response);
+      print('DEBUG: Parsed AuthResponse - User: ${authResponse.user}');
       
       // Store token and user data
       await _storeAuthData(authResponse);
       
       return authResponse;
     } catch (e) {
+      print('DEBUG: Registration error: $e');
       throw _handleAuthError(e);
     }
   }
@@ -168,12 +176,18 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       final userJson = prefs.getString('user_data');
       
+      print('DEBUG: getCurrentUser - stored userJson: $userJson');
+      
       if (userJson != null) {
-        return User.fromJson(userJson);
+        final user = User.fromJson(userJson);
+        print('DEBUG: getCurrentUser - parsed user: $user');
+        return user;
       }
       
+      print('DEBUG: getCurrentUser - no user data found');
       return null;
     } catch (e) {
+      print('DEBUG: getCurrentUser - error: $e');
       return null;
     }
   }
@@ -182,12 +196,22 @@ class AuthService {
   Future<bool> isAuthenticated() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-    return token != null;
+    final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    
+    // Consider user authenticated if they have a token OR if they're marked as logged in
+    // This handles cases where registration doesn't return tokens immediately
+    return token != null || isLoggedIn;
   }
 
   // Store auth data
   Future<void> _storeAuthData(AuthResponse authResponse) async {
     final prefs = await SharedPreferences.getInstance();
+    
+    print('DEBUG: Storing auth data...');
+    print('DEBUG: Access token: ${authResponse.accessToken}');
+    print('DEBUG: Refresh token: ${authResponse.refreshToken}');
+    print('DEBUG: User to store: ${authResponse.user}');
+    print('DEBUG: User JSON to store: ${authResponse.user.toJson()}');
     
     await prefs.setString('auth_token', authResponse.accessToken);
     await prefs.setString('refresh_token', authResponse.refreshToken);
@@ -196,6 +220,8 @@ class AuthService {
     
     // Set token in API service
     _apiService.setAuthToken(authResponse.accessToken);
+    
+    print('DEBUG: Auth data stored successfully');
   }
 
   // Clear auth data
@@ -236,12 +262,46 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    // Handle different response structures
+    Map<String, dynamic> userData;
+    String accessToken = '';
+    String refreshToken = '';
+    
+    if (json['data'] != null) {
+      // Check if this is a login response with tokens
+      if (json['data']['access_token'] != null && json['data']['user'] != null) {
+        // Login response structure: {status: success, data: {access_token: ..., user: {...}}}
+        accessToken = json['data']['access_token'] ?? '';
+        refreshToken = json['data']['refresh_token'] ?? '';
+        userData = json['data']['user'];
+      } else if (json['data']['data'] != null) {
+        // Registration response structure: {status: success, data: {status: success, data: {...}}}
+        userData = json['data']['data'];
+        accessToken = json['data']['access_token'] ?? '';
+        refreshToken = json['data']['refresh_token'] ?? '';
+      } else {
+        userData = json['data'];
+        accessToken = json['data']['access_token'] ?? '';
+        refreshToken = json['data']['refresh_token'] ?? '';
+      }
+    } else if (json['user'] != null) {
+      // Direct user structure
+      userData = json['user'];
+      accessToken = json['access_token'] ?? '';
+      refreshToken = json['refresh_token'] ?? '';
+    } else {
+      // Fallback
+      userData = json;
+      accessToken = json['access_token'] ?? '';
+      refreshToken = json['refresh_token'] ?? '';
+    }
+    
     return AuthResponse(
-      accessToken: json['access_token'] ?? '',
-      refreshToken: json['refresh_token'] ?? '',
-      user: User.fromMap(json['user'] ?? {}),
-      tokenType: json['token_type'] ?? 'Bearer',
-      expiresIn: json['expires_in'] ?? 3600,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      user: User.fromMap(userData),
+      tokenType: json['token_type'] ?? json['data']?['token_type'] ?? 'Bearer',
+      expiresIn: json['expires_in'] ?? json['data']?['expires_in'] ?? 3600,
     );
   }
 }

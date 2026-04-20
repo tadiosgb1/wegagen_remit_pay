@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
-import '../main_navigation_screen.dart';
-import 'register_screen.dart';
+import 'enter_pin_screen.dart';
+import 'create_account_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? message;
@@ -16,31 +14,36 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _pinController = TextEditingController();
-  bool _obscurePin = true;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _pinController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
-      final success = await authProvider.login(
-        _emailController.text.trim(),
-        _pinController.text,
-      );
-
-      if (success && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        );
-      }
+  void _continueToPin() {
+    if (!_formKey.currentState!.validate()) {
+      return;
     }
+
+    // Navigate to PIN entry screen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EnterPinScreen(
+          email: _emailController.text.trim(),
+        ),
+      ),
+    );
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your email';
+    }
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+      return 'Please enter a valid email';
+    }
+    return null;
   }
 
   @override
@@ -117,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Sign in to your account',
+                    'Enter your email to continue',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
@@ -157,12 +160,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                   
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 60),
+
+                  // Email Field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Email',
+                      labelText: 'Email Address',
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -172,97 +177,46 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: const BorderSide(color: Color(0xFFF37021)),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
+                    validator: _validateEmail,
                   ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _pinController,
-                    obscureText: _obscurePin,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: InputDecoration(
-                      labelText: 'PIN',
-                      prefixIcon: const Icon(Icons.pin_outlined),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePin ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePin = !_obscurePin;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
+                  const SizedBox(height: 40),
+
+                  // Continue Button
+                  ElevatedButton(
+                    onPressed: _continueToPin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF37021),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFF37021)),
-                      ),
-                      counterText: '',
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your PIN';
-                      }
-                      if (value.length < 4) {
-                        return 'PIN must be at least 4 digits';
-                      }
-                      return null;
-                    },
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(height: 30),
-                  Consumer<AuthProvider>(
-                    builder: (context, authProvider, child) {
-                      if (authProvider.error != null) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(authProvider.error!),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          authProvider.clearError();
-                        });
-                      }
 
-                      return ElevatedButton(
-                        onPressed: authProvider.isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF37021),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: authProvider.isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text(
-                                'Sign In',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
+                  // Forgot Password Link
                   TextButton(
                     onPressed: () {
                       // TODO: Implement forgot password
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Forgot password functionality coming soon'),
+                        ),
+                      );
                     },
                     child: const Text(
                       'Forgot Password?',
                       style: TextStyle(color: Color(0xFFF37021)),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 60),
+
+                  // Sign Up Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -270,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                            MaterialPageRoute(builder: (context) => const CreateAccountScreen()),
                           );
                         },
                         child: const Text(

@@ -126,13 +126,15 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
   }
 
   void _startFaceDetectionSimulation() {
-    // Simulate face detection with random intervals
+    // TODO: Replace with real ML face detection
+    // For now, simulate face detection with better logic
     _faceDetectionTimer = Timer.periodic(const Duration(milliseconds: 500), (
       timer,
     ) {
       if (mounted) {
         setState(() {
-          _faceDetected = Random().nextBool();
+          // Simulate more realistic face detection (80% success rate)
+          _faceDetected = Random().nextDouble() > 0.2;
         });
       }
     });

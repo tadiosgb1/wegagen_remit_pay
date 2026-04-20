@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
-import '../main_navigation_screen.dart';
+import 'create_pin_screen.dart';
 import 'login_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -17,12 +15,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _pinController = TextEditingController();
-  final _confirmPinController = TextEditingController();
   final _referralCodeController = TextEditingController();
 
-  bool _obscurePin = true;
-  bool _obscureConfirmPin = true;
   bool _agreeToTerms = false;
   bool _agreeToPrivacy = false;
 
@@ -32,13 +26,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _pinController.dispose();
-    _confirmPinController.dispose();
     _referralCodeController.dispose();
     super.dispose();
   }
 
-  Future<void> _createAccount() async {
+  void _continueToPin() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -55,25 +47,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       return;
     }
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    final success = await authProvider.register(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      email: _emailController.text.trim(),
-      phoneNumber: _phoneController.text.trim(),
-      pin: _pinController.text,
-      confirmPin: _confirmPinController.text,
-      referralCode: _referralCodeController.text.trim().isEmpty
-          ? null
-          : _referralCodeController.text.trim(),
+    // Navigate to PIN creation screen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CreatePinScreen(
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          email: _emailController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+          referralCode: _referralCodeController.text.trim().isEmpty
+              ? null
+              : _referralCodeController.text.trim(),
+        ),
+      ),
     );
-
-    if (success && mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-      );
-    }
   }
 
   String? _validateName(String? value, String fieldName) {
@@ -105,29 +92,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
     if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value.replaceAll(' ', ''))) {
       return 'Please enter a valid phone number';
-    }
-    return null;
-  }
-
-  String? _validatePin(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter a PIN';
-    }
-    if (value.length < 4) {
-      return 'PIN must be at least 4 characters';
-    }
-    if (!RegExp(r'^\d+$').hasMatch(value)) {
-      return 'PIN must contain only numbers';
-    }
-    return null;
-  }
-
-  String? _validateConfirmPin(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please confirm your PIN';
-    }
-    if (value != _pinController.text) {
-      return 'PINs do not match';
     }
     return null;
   }
@@ -302,72 +266,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // PIN
-                TextFormField(
-                  controller: _pinController,
-                  obscureText: _obscurePin,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: InputDecoration(
-                    labelText: 'PIN (4-6 digits)',
-                    prefixIcon: const Icon(Icons.pin_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePin ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePin = !_obscurePin;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFF37021)),
-                    ),
-                    counterText: '',
-                  ),
-                  validator: _validatePin,
-                ),
-                const SizedBox(height: 20),
-
-                // Confirm PIN
-                TextFormField(
-                  controller: _confirmPinController,
-                  obscureText: _obscureConfirmPin,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm PIN',
-                    prefixIcon: const Icon(Icons.pin_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPin
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmPin = !_obscureConfirmPin;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFF37021)),
-                    ),
-                    counterText: '',
-                  ),
-                  validator: _validateConfirmPin,
-                ),
-                const SizedBox(height: 20),
-
                 // Referral Code (Optional)
                 TextFormField(
                   controller: _referralCodeController,
@@ -419,42 +317,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 ),
                 const SizedBox(height: 30),
 
-                // Create Account Button
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    if (authProvider.error != null) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(authProvider.error!),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        authProvider.clearError();
-                      });
-                    }
-
-                    return ElevatedButton(
-                      onPressed: authProvider.isLoading ? null : _createAccount,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF37021),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: authProvider.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'Create Account',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    );
-                  },
+                // Continue Button
+                ElevatedButton(
+                  onPressed: _continueToPin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF37021),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const SizedBox(height: 20),
 

@@ -89,13 +89,23 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> checkAuthStatus() async {
     try {
+      print('DEBUG: Checking auth status...');
       final isAuth = await _authService.isAuthenticated();
+      print('DEBUG: isAuthenticated from service: $isAuth');
+      
       if (isAuth) {
         _user = await _authService.getCurrentUser();
+        print('DEBUG: getCurrentUser returned: $_user');
+        notifyListeners();
+      } else {
+        print('DEBUG: Not authenticated, clearing user');
+        _user = null;
         notifyListeners();
       }
     } catch (e) {
-      // Handle silently
+      print('DEBUG: Error in checkAuthStatus: $e');
+      _user = null;
+      notifyListeners();
     }
   }
 

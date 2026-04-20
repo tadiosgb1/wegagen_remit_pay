@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/pin_input_field.dart';
 import 'kyc_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -16,11 +17,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _pinController = TextEditingController();
-  final _confirmPinController = TextEditingController();
+  final _pinController = PinInputController();
+  final _confirmPinController = PinInputController();
   bool _obscurePin = true;
   bool _obscureConfirmPin = true;
   bool _acceptTerms = false;
+  String? _pinError;
+  String? _confirmPinError;
 
   @override
   void dispose() {
@@ -28,13 +31,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _pinController.dispose();
-    _confirmPinController.dispose();
     super.dispose();
   }
 
   Future<void> _register() async {
-    if (_formKey.currentState!.validate() && _acceptTerms) {
+    bool isValid = true;
+    
+    // Validate PIN
+    if (!_pinController.validate()) {
+      setState(() {
+        _pinError = _pinController.errorText;
+      });
+      _pinController.shake();
+      isValid = false;
+    } else {
+      setState(() {
+        _pinError = null;
+      });
+    }
+    
+    // Validate Confirm PIN
+    if (!_confirmPinController.validate()) {
+      setState(() {
+        _confirmPinError = _confirmPinController.errorText;
+      });
+      _confirmPinController.shake();
+      isValid = false;
+    } else if (_pinController.pin != _confirmPinController.pin) {
+      setState(() {
+        _confirmPinError = 'PINs do not match';
+      });
+      _confirmPinController.shake();
+      isValid = false;
+    } else {
+      setState(() {
+        _confirmPinError = null;
+      });
+    }
+    
+    if (isValid && _formKey.currentState!.validate() && _acceptTerms) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       final success = await authProvider.register(
@@ -42,8 +77,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
-        pin: _pinController.text,
-        confirmPin: _confirmPinController.text,
+        pin: _pinController.pin,
+        confirmPin: _confirmPinController.pin,
       );
 
       if (success && mounted) {
@@ -247,88 +282,94 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _pinController,
-                    obscureText: _obscurePin,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: InputDecoration(
-                      labelText: 'PIN (4-6 digits)',
-                      prefixIcon: const Icon(Icons.pin_outlined),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePin
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                  const SizedBox(height: 30),
+                  
+                  // PIN Input Section
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Create your 4-digit PIN',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePin = !_obscurePin;
-                          });
+                      ),
+                      const SizedBox(height: 16),
+                      PinInputField(
+                        key: _pinController.key,
+                        length: 4,
+                        obscureText: _obscurePin,
+                        errorText: _pinError,
+                        onChanged: (pin) {
+                          _pinController.updatePin(pin);
+                          if (_pinError != null) {
+                            setState(() {
+                              _pinError = null;
+                            });
+                          }
                         },
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFF37021)),
-                      ),
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your PIN';
-                      }
-                      if (value.length < 4) {
-                        return 'PIN must be at least 4 digits';
-                      }
-                      if (!RegExp(r'^\d+$').hasMatch(value)) {
-                        return 'PIN must contain only numbers';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _confirmPinController,
-                    obscureText: _obscureConfirmPin,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: InputDecoration(
-                      labelText: 'Confirm PIN',
-                      prefixIcon: const Icon(Icons.pin_outlined),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPin
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Confirm your 4-digit PIN',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPin = !_obscureConfirmPin;
-                          });
+                      ),
+                      const SizedBox(height: 16),
+                      PinInputField(
+                        key: _confirmPinController.key,
+                        length: 4,
+                        obscureText: _obscureConfirmPin,
+                        errorText: _confirmPinError,
+                        onChanged: (pin) {
+                          _confirmPinController.updatePin(pin);
+                          if (_confirmPinError != null) {
+                            setState(() {
+                              _confirmPinError = null;
+                            });
+                          }
                         },
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _obscurePin ? 'Show PIN' : 'Hide PIN',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _obscurePin = !_obscurePin;
+                                _obscureConfirmPin = !_obscureConfirmPin;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                _obscurePin ? Icons.visibility : Icons.visibility_off,
+                                size: 18,
+                                color: const Color(0xFFF37021),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFF37021)),
-                      ),
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please confirm your PIN';
-                      }
-                      if (value != _pinController.text) {
-                        return 'PINs do not match';
-                      }
-                      return null;
-                    },
+                    ],
                   ),
                   const SizedBox(height: 20),
                   Row(
