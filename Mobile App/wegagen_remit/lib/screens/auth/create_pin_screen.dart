@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/pin_input_field.dart';
-import '../main_navigation_screen.dart';
+import 'login_screen.dart';
 
 class CreatePinScreen extends StatefulWidget {
   final String firstName;
@@ -57,9 +57,19 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
     print('DEBUG: Auth provider error: ${authProvider.error}');
 
     if (success && mounted) {
-      print('DEBUG: Navigating to MainNavigationScreen...');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+      // Clear the authentication state after successful registration
+      await authProvider.logout();
+      
+      print('DEBUG: Navigating to LoginScreen after successful registration...');
+      
+      // Show success message and navigate to login
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(
+            message: 'Account created successfully! Please login to continue.',
+          ),
+        ),
+        (route) => false, // Remove all previous routes
       );
     } else if (mounted && authProvider.error != null) {
       print('DEBUG: Registration failed with error: ${authProvider.error}');

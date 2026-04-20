@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:country_picker/country_picker.dart';
 import 'create_pin_screen.dart';
 import 'login_screen.dart';
 
@@ -19,6 +20,16 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   bool _agreeToTerms = false;
   bool _agreeToPrivacy = false;
+
+  // Simpg Country object from country_picker library - Default to Ethiopia
+  Country? _selectedCountry;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with Ethiopia as default - we'll use a fallback approach
+    _selectedCountry = null; // Will be set in the first build
+  }
 
   @override
   void dispose() {
@@ -47,6 +58,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       return;
     }
 
+    // Use default Ethiopia phone code if no country selected
+    final phoneCode = _selectedCountry?.phoneCode ?? '251';
+    final fullPhoneNumber = '+$phoneCode${_phoneController.text.trim()}';
+
     // Navigate to PIN creation screen
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -54,7 +69,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           firstName: _firstNameController.text.trim(),
           lastName: _lastNameController.text.trim(),
           email: _emailController.text.trim(),
-          phoneNumber: _phoneController.text.trim(),
+          phoneNumber: fullPhoneNumber,
           referralCode: _referralCodeController.text.trim().isEmpty
               ? null
               : _referralCodeController.text.trim(),
@@ -90,7 +105,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     if (value == null || value.isEmpty) {
       return 'Please enter your phone number';
     }
-    if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value.replaceAll(' ', ''))) {
+    // Remove any spaces and validate digits only (without country code)
+    final cleanPhone = value.replaceAll(' ', '');
+    if (!RegExp(r'^\d{7,15}$').hasMatch(cleanPhone)) {
       return 'Please enter a valid phone number';
     }
     return null;
@@ -246,23 +263,104 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Phone Number
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: const Icon(Icons.phone_outlined),
-                    hintText: '+251911234567',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                // Phone Number with Country Picker
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Country Picker Button with Flag
+                    GestureDetector(
+                      onTap: () {
+                        showCountryPicker(
+                          context: context,
+                          showPhoneCode: true,
+                          onSelect: (Country country) {
+                            setState(() {
+                              _selectedCountry = country;
+                            });
+                          },
+                          // Optional: Customize the picker
+                          countryListTheme: CountryListThemeData(
+                            flagSize: 25,
+                            backgroundColor: Colors.white,
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.blueGrey,
+                            ),
+                            bottomSheetHeight: 500,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(20.0),
+                              topRight: Radius.circular(20.0),
+                            ),
+                            inputDecoration: InputDecoration(
+                              labelText: 'Search',
+                              hintText: 'Start typing to search',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: const Color(
+                                    0xFFF37021,
+                                  ).withValues(alpha: 0.2),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 120,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _selectedCountry?.flagEmoji ?? '🇪🇹',
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '+${_selectedCountry?.phoneCode ?? '251'}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_drop_down, size: 20),
+                          ],
+                        ),
+                      ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFF37021)),
+                    const SizedBox(width: 12),
+                    // Phone Number Field
+                    Expanded(
+                      child: TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Phone Number',
+                          prefixIcon: const Icon(Icons.phone_outlined),
+                          hintText: '911234567',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFF37021),
+                            ),
+                          ),
+                        ),
+                        validator: _validatePhone,
+                      ),
                     ),
-                  ),
-                  validator: _validatePhone,
+                  ],
                 ),
                 const SizedBox(height: 20),
 
