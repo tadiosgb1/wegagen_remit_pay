@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/pin_input_field.dart';
 import '../main_navigation_screen.dart';
+import 'forgot_pin_screen.dart';
 
 class EnterPinScreen extends StatefulWidget {
   final String email;
@@ -232,10 +233,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                   // Forgot PIN Link
                   TextButton(
                     onPressed: () {
-                      // TODO: Implement forgot PIN functionality
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Forgot PIN functionality coming soon'),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPinScreen(),
                         ),
                       );
                     },

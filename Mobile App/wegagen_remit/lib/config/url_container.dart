@@ -12,6 +12,9 @@ class UrlContainer {
   static String get resetPassword => '$baseUrl/auth/reset-password';
   static String get verifyEmail => '$baseUrl/auth/verify-email';
   static String get resendVerification => '$baseUrl/auth/resend-verification';
+  static String get forgotPin => '$baseUrl/users/forgot-pin';
+  static String get verifyOtp => '$baseUrl/users/verify-otp';
+  static String get resetPin => '$baseUrl/users/reset-pin';
 
   // User endpoints
   static String get profile => '$baseUrl/user/profile';
@@ -26,6 +29,7 @@ class UrlContainer {
   static String getTransferById(String id) => '$baseUrl/transfers/$id';
   static String get cancelTransfer => '$baseUrl/transfers/cancel';
   static String get transferStatus => '$baseUrl/transfers/status';
+  static String get accountInfo => '$baseUrl/internal-transfer/account-info';
 
   // Exchange rate endpoints
   static String get exchangeRates => '$baseUrl/exchange-rates';

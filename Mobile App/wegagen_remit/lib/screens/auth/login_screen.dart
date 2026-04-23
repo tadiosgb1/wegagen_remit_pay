@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'enter_pin_screen.dart';
 import 'create_account_screen.dart';
+import 'forgot_pin_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? message;
@@ -199,20 +200,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Forgot Password Link
-                  TextButton(
-                    onPressed: () {
-                      // TODO: Implement forgot password
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Forgot password functionality coming soon'),
+                  // Forgot Password and PIN Links
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                     
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const ForgotPinScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Forgot PIN?',
+                          style: TextStyle(color: Color(0xFFF37021)),
                         ),
-                      );
-                    },
-                    child: const Text(
-                      'Forgot Password?',
-                      style: TextStyle(color: Color(0xFFF37021)),
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 60),
 

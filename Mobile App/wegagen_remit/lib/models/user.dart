@@ -25,6 +25,19 @@ class User {
     this.permissions,
   });
 
+  // Empty constructor for temporary responses
+  factory User.empty() {
+    return User(
+      id: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      isVerified: false,
+      createdAt: DateTime.now(),
+    );
+  }
+
   // Check if user needs KYC verification
   bool get needsKycVerification {
     return kyc == null || (kyc != null && !kyc!.verified);

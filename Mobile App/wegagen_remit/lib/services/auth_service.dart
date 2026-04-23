@@ -170,6 +170,57 @@ class AuthService {
     }
   }
 
+  // Forgot PIN
+  Future<ApiResponse> forgotPin(String email) async {
+    try {
+      final response = await _apiService.post(
+        UrlContainer.forgotPin,
+        {'email': email},
+        includeAuth: false,
+      );
+      
+      return ApiResponse.fromJson(response);
+    } catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
+
+  // Verify OTP
+  Future<ApiResponse> verifyOtp(String email, String otp) async {
+    try {
+      final response = await _apiService.post(
+        UrlContainer.verifyOtp,
+        {
+          'email': email,
+          'otp': otp,
+        },
+        includeAuth: false,
+      );
+      
+      return ApiResponse.fromJson(response);
+    } catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
+
+  // Reset PIN
+  Future<ApiResponse> resetPin(String email, String newPin) async {
+    try {
+      final response = await _apiService.post(
+        UrlContainer.resetPin,
+        {
+          'email': email,
+          'newPin': newPin,
+        },
+        includeAuth: false,
+      );
+      
+      return ApiResponse.fromJson(response);
+    } catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
+
   // Get current user
   Future<User?> getCurrentUser() async {
     try {
@@ -302,6 +353,26 @@ class AuthResponse {
       user: User.fromMap(userData),
       tokenType: json['token_type'] ?? json['data']?['token_type'] ?? 'Bearer',
       expiresIn: json['expires_in'] ?? json['data']?['expires_in'] ?? 3600,
+    );
+  }
+}
+
+class ApiResponse {
+  final bool success;
+  final String message;
+  final Map<String, dynamic>? data;
+
+  ApiResponse({
+    required this.success,
+    required this.message,
+    this.data,
+  });
+
+  factory ApiResponse.fromJson(Map<String, dynamic> json) {
+    return ApiResponse(
+      success: json['status'] == 'success' || json['success'] == true,
+      message: json['message'] ?? json['msg'] ?? 'Operation completed',
+      data: json['data'],
     );
   }
 }

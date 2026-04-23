@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'modern_confirmation_screen.dart';
+import '../../services/transfer_service.dart';
 
 class RecipientDetailsScreen extends StatefulWidget {
   final String transferType;
@@ -37,7 +38,8 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   bool _isPhoneVerified = false;
   String _ebirrHolderName = '';
 
-  // Cash pickup fields
+  final TransferService _transferService = TransferService();
+  bool _isVerifying = false;
   final _recipientPhoneController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -137,15 +139,61 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     );
   }
 
-  void _verifyAccount() {
-    // Simulate account verification
-    if (_accountNumberController.text.isNotEmpty) {
-      setState(() {
-        _isAccountVerified = true;
-        _accountHolderName = 'TADESSE GEBREMICHEL BERHE';
-        _accountType = 'Savings Account';
-      });
+  Future<void> _verifyAccount() async {
+    if (_accountNumberController.text.isEmpty) return;
+
+    setState(() {
+      _isVerifying = true;
+      _isAccountVerified = false;
+    });
+
+    try {
+      final response = await _transferService.getAccountInfo(
+        _accountNumberController.text,
+      );
+
+      if (mounted) {
+        if (response.success && response.data != null) {
+          setState(() {
+            _isAccountVerified = true;
+            _accountHolderName = response.data!.accountHolderName;
+            _accountType = response.data!.accountType ?? 'Savings Account';
+            _isVerifying = false;
+          });
+        } else {
+          setState(() {
+            _isAccountVerified = false;
+            _isVerifying = false;
+          });
+          _showErrorMessage(response.message);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isAccountVerified = false;
+          _isVerifying = false;
+        });
+        _showErrorMessage('Failed to verify account. Please try again.');
+      }
     }
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   void _verifyPhone() {
@@ -257,7 +305,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
           children: [
             // Progress Indicator
             _buildProgressIndicator(),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
@@ -284,9 +331,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                         'Enter the recipient\'s information',
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
-
                       const SizedBox(height: 32),
-
                       // Dynamic content based on transfer type
                       ..._buildTransferSpecificFields(),
                     ],
@@ -294,7 +339,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                 ),
               ),
             ),
-
             // Continue Button
             Container(
               padding: const EdgeInsets.all(24),
@@ -348,7 +392,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         ),
       ),
       const SizedBox(height: 12),
-
       Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -368,7 +411,19 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             hintText: '1000000099839',
             hintStyle: TextStyle(color: Colors.grey.shade400),
             prefixIcon: Icon(Icons.credit_card, color: Colors.grey.shade400),
-            suffixIcon: _isAccountVerified
+            suffixIcon: _isVerifying
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFFF37021),
+                      ),
+                    ),
+                  )
+                : _isAccountVerified
                 ? const Icon(Icons.check_circle, color: Colors.green)
                 : null,
             border: OutlineInputBorder(
@@ -395,9 +450,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
           },
         ),
       ),
-
       const SizedBox(height: 24),
-
       if (_isAccountVerified) ...[
         Container(
           padding: const EdgeInsets.all(20),
@@ -459,7 +512,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         ),
       ),
       const SizedBox(height: 12),
-
       Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -506,9 +558,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
           },
         ),
       ),
-
       const SizedBox(height: 24),
-
       if (_isPhoneVerified) ...[
         Container(
           padding: const EdgeInsets.all(20),
@@ -566,16 +616,13 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         ),
       ),
       const SizedBox(height: 12),
-
       _buildInputField(
         controller: _recipientPhoneController,
         hintText: '09XXXXXXXX',
         prefixIcon: Icons.phone,
         keyboardType: TextInputType.phone,
       ),
-
       const SizedBox(height: 24),
-
       // Full Name
       const Text(
         'Full Name',
@@ -586,15 +633,12 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         ),
       ),
       const SizedBox(height: 12),
-
       _buildInputField(
         controller: _fullNameController,
         hintText: 'Enter recipient\'s full name',
         prefixIcon: Icons.person,
       ),
-
       const SizedBox(height: 24),
-
       // Address
       const Text(
         'Address',
@@ -605,15 +649,12 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         ),
       ),
       const SizedBox(height: 12),
-
       _buildInputField(
         controller: _addressController,
         hintText: 'Ethiopia',
         prefixIcon: Icons.location_on,
       ),
-
       const SizedBox(height: 24),
-
       // City and Region
       Row(
         children: [
