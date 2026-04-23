@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -230,14 +231,14 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
     try {
       final XFile photo = await _cameraController!.takePicture();
 
-      // Show success dialog
-      _showSuccessDialog();
+      // Show success dialog and return the selfie XFile
+      _showSuccessDialog(photo);
     } catch (e) {
       _showErrorDialog('Failed to take selfie: $e');
     }
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialog(XFile selfieFile) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -258,7 +259,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pop(context, true); // Return success
+              Navigator.pop(context, selfieFile); // Return the selfie XFile
             },
             child: const Text('Continue'),
           ),

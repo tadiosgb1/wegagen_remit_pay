@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../main_navigation_screen.dart';
 import '../../models/kyc_data.dart';
 import '../../services/kyc_service.dart';
@@ -30,8 +31,8 @@ class _KycScreenState extends State<KycScreen> {
   // Form data
   String _selectedIdType = 'passport';
   String _selectedCountry = 'Ethiopia';
-  File? _idPhoto;
-  File? _selfiePhoto;
+  XFile? _idPhoto;
+  XFile? _selfiePhoto;
   bool _livenessVerified = false;
 
   final List<String> _idTypes = ['passport', 'national_id', 'driving_license'];
@@ -58,10 +59,37 @@ class _KycScreenState extends State<KycScreen> {
     super.dispose();
   }
 
+  // Helper method to display images that works on both web and mobile
+  Widget _buildImageWidget(XFile? imageFile, {BoxFit fit = BoxFit.cover}) {
+    if (imageFile == null) return const SizedBox.shrink();
+
+    if (kIsWeb) {
+      // For web, show success indicator since we can't easily display XFile images
+      return Container(
+        color: Colors.green.shade100,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 32),
+            const SizedBox(height: 8),
+            const Text(
+              'Image uploaded successfully',
+              style: TextStyle(color: Colors.green, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    } else {
+      // For mobile/desktop, use Image.file with File conversion
+      return Image.file(File(imageFile.path), fit: fit);
+    }
+  }
+
   Future<void> _pickImage(ImageSource source, bool isIdPhoto) async {
     try {
       // Request camera permission
-      if (source == ImageSource.camera) {
+      if (source == ImageSource.camera && !kIsWeb) {
         final status = await Permission.camera.request();
         if (!status.isGranted) {
           _showErrorDialog('Camera permission is required to take photos');
@@ -80,9 +108,13 @@ class _KycScreenState extends State<KycScreen> {
       if (image != null) {
         setState(() {
           if (isIdPhoto) {
-            _idPhoto = File(image.path);
+            _idPhoto = image;
           } else {
-            _selfiePhoto = File(image.path);
+            _selfiePhoto = image;
+            // On web, mark liveness as verified when selfie is uploaded
+            if (kIsWeb) {
+              _livenessVerified = true;
+            }
           }
         });
       }
@@ -138,36 +170,62 @@ class _KycScreenState extends State<KycScreen> {
   }
 
   Future<void> _submitKyc() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_idPhoto == null) {
-      _showErrorDialog('Please upload your ID document photo');
-      return;
-    }
-
-    if (_selfiePhoto == null || !_livenessVerified) {
-      _showErrorDialog('Please complete the liveness verification');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
+      // Only validate form if we're on a step that has form fields (step 1 - personal info)
+      // The liveness step (step 3) doesn't have form fields, so skip validation
+      if (_currentStep == 1) {
+        // Check if form key and form state are valid
+        if (_formKey.currentState == null) {
+          _showErrorDialog('Form validation error. Please try again.');
+          return;
+        }
+
+        if (!_formKey.currentState!.validate()) {
+          _showErrorDialog('Please fill in all required fields correctly.');
+          return;
+        }
+      }
+
+      if (_idPhoto == null) {
+        _showErrorDialog('Please upload your ID document photo');
+        return;
+      }
+
+      if (_selfiePhoto == null || !_livenessVerified) {
+        _showErrorDialog('Please complete the liveness verification');
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Validate text controllers
+      final dob = _dobController.text.trim();
+      final address = _addressController.text.trim();
+      final city = _cityController.text.trim();
+
+      if (dob.isEmpty || address.isEmpty || city.isEmpty) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('Please fill in all personal information fields.');
+        return;
+      }
+
       final kycData = KycData(
         idType: _selectedIdType,
-        dob: _dobController.text,
-        address: _addressController.text,
-        city: _cityController.text,
+        dob: dob,
+        address: address,
+        city: city,
         country: _selectedCountry,
         idPhoto: _idPhoto,
         selfie: _selfiePhoto,
       );
 
+      print('Submitting KYC data...');
       final response = await _kycService.submitKyc(kycData);
+      print('KYC response: ${response.success}, ${response.message}');
 
       if (response.success) {
         _showSuccessDialog();
@@ -175,11 +233,14 @@ class _KycScreenState extends State<KycScreen> {
         _showErrorDialog(response.message);
       }
     } catch (e) {
+      print('KYC submission error in screen: $e');
       _showErrorDialog('Failed to submit KYC: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -212,6 +273,20 @@ class _KycScreenState extends State<KycScreen> {
   }
 
   void _nextStep() {
+    // Validate current step before proceeding
+    if (_currentStep == 1) {
+      // Validate personal information step
+      if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
+        return;
+      }
+    } else if (_currentStep == 2) {
+      // Validate document upload step
+      if (_idPhoto == null) {
+        _showErrorDialog('Please upload your ID document photo');
+        return;
+      }
+    }
+
     if (_currentStep < 3) {
       setState(() {
         _currentStep++;
@@ -441,39 +516,6 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 32),
 
-            // ID Type
-            const Text(
-              'ID Document Type',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedIdType,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFF37021)),
-                ),
-              ),
-              items: _idTypes.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(_formatIdType(type)),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedIdType = value!;
-                });
-              },
-            ),
             const SizedBox(height: 20),
 
             // Date of Birth
@@ -643,6 +685,41 @@ class _KycScreenState extends State<KycScreen> {
           ),
           const SizedBox(height: 32),
 
+          // ID Type
+          const Text(
+            'ID Document Type',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _selectedIdType,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFF37021)),
+              ),
+            ),
+            items: _idTypes.map((type) {
+              return DropdownMenuItem(
+                value: type,
+                child: Text(_formatIdType(type)),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedIdType = value!;
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+
           // ID Document Upload
           const Text(
             'ID Document Photo',
@@ -666,7 +743,7 @@ class _KycScreenState extends State<KycScreen> {
               child: _idPhoto != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(_idPhoto!, fit: BoxFit.cover),
+                      child: _buildImageWidget(_idPhoto, fit: BoxFit.cover),
                     )
                   : const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -767,11 +844,26 @@ class _KycScreenState extends State<KycScreen> {
             ),
             child: Column(
               children: [
-                Icon(
-                  _livenessVerified ? Icons.check_circle : Icons.face,
-                  size: 64,
-                  color: _livenessVerified ? Colors.green : Colors.grey,
-                ),
+                // Show captured selfie if available
+                if (_livenessVerified && _selfiePhoto != null)
+                  Container(
+                    width: 120,
+                    height: 120,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.green, width: 3),
+                    ),
+                    child: ClipOval(
+                      child: _buildImageWidget(_selfiePhoto, fit: BoxFit.cover),
+                    ),
+                  )
+                else
+                  Icon(
+                    _livenessVerified ? Icons.check_circle : Icons.face,
+                    size: 64,
+                    color: _livenessVerified ? Colors.green : Colors.grey,
+                  ),
                 const SizedBox(height: 16),
                 Text(
                   _livenessVerified
@@ -789,7 +881,7 @@ class _KycScreenState extends State<KycScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _livenessVerified
-                      ? 'Your identity has been successfully verified'
+                      ? 'Your identity has been successfully verified and selfie captured'
                       : 'Please complete the liveness check to continue',
                   style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
@@ -805,21 +897,31 @@ class _KycScreenState extends State<KycScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final result = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LivenessDetectionScreen(),
-                    ),
-                  );
+                  if (kIsWeb) {
+                    // On web, just show image picker instead of liveness detection
+                    _showImageSourceDialog(false); // false = selfie photo
+                  } else {
+                    // On mobile, run actual liveness detection
+                    final result = await Navigator.push<XFile>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LivenessDetectionScreen(),
+                      ),
+                    );
 
-                  if (result == true) {
-                    setState(() {
-                      _livenessVerified = true;
-                    });
+                    if (result != null) {
+                      setState(() {
+                        _livenessVerified = true;
+                        _selfiePhoto =
+                            result; // Store the captured selfie XFile
+                      });
+                    }
                   }
                 },
-                icon: const Icon(Icons.camera_front),
-                label: const Text('Start Liveness Check'),
+                icon: Icon(kIsWeb ? Icons.photo_camera : Icons.camera_front),
+                label: Text(
+                  kIsWeb ? 'Upload Selfie Photo' : 'Start Liveness Check',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF37021),
                   foregroundColor: Colors.white,
@@ -848,9 +950,11 @@ class _KycScreenState extends State<KycScreen> {
                   children: [
                     Icon(Icons.info, color: Colors.blue.shade700, size: 20),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Liveness Check Instructions:',
-                      style: TextStyle(
+                    Text(
+                      kIsWeb
+                          ? 'Selfie Upload Instructions:'
+                          : 'Liveness Check Instructions:',
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -858,14 +962,23 @@ class _KycScreenState extends State<KycScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('• Position your face in the center of the screen'),
-                    Text('• Follow the on-screen instructions'),
-                    Text('• Ensure good lighting on your face'),
-                    Text('• Complete all requested actions'),
-                  ],
+                  children: kIsWeb
+                      ? [
+                          const Text('• Upload a clear selfie photo'),
+                          const Text('• Ensure good lighting on your face'),
+                          const Text('• Look directly at the camera'),
+                          const Text('• Remove glasses or hats if possible'),
+                        ]
+                      : [
+                          const Text(
+                            '• Position your face in the center of the screen',
+                          ),
+                          const Text('• Follow the on-screen instructions'),
+                          const Text('• Ensure good lighting on your face'),
+                          const Text('• Complete all requested actions'),
+                        ],
                 ),
               ],
             ),

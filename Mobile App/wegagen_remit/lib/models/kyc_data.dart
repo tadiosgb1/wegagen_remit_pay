@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class KycData {
   final String idType;
@@ -6,8 +6,8 @@ class KycData {
   final String address;
   final String city;
   final String country;
-  final File? idPhoto;
-  final File? selfie;
+  final XFile? idPhoto;
+  final XFile? selfie;
 
   KycData({
     required this.idType,
