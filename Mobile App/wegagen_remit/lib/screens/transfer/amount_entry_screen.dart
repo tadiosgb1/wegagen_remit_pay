@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/exchange_rate_provider.dart';
 import '../../widgets/auth_guard.dart';
+import '../../services/kyc_service.dart';
+import '../../models/kyc_data.dart';
+import '../kyc_requirement_screen.dart';
 import 'recipient_details_screen.dart';
 
 class AmountEntryScreen extends StatefulWidget {
@@ -123,22 +126,85 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
     );
   }
 
-  void _proceedToRecipientDetails() {
+  final KycService _kycService = KycService();
+
+  Future<void> _proceedToRecipientDetails() async {
     if (_amountController.text.isNotEmpty && _etbAmount > 0) {
       final amount = double.parse(_amountController.text);
       if (amount >= 10) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => RecipientDetailsScreen(
-              transferType: widget.transferType,
-              amount: amount,
-              currency: widget.selectedCurrency,
-              etbAmount: _etbAmount,
-              fee: _fee,
-              exchangeRate: _exchangeRate,
-            ),
-          ),
-        );
+        // Check KYC status before proceeding
+        try {
+          final kycStatus = await _kycService.getKycStatus();
+          
+          if (mounted) {
+            if (kycStatus == KycStatus.approved) {
+              // KYC is approved, proceed to recipient details
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => RecipientDetailsScreen(
+                    transferType: widget.transferType,
+                    amount: amount,
+                    currency: widget.selectedCurrency,
+                    etbAmount: _etbAmount,
+                    fee: _fee,
+                    exchangeRate: _exchangeRate,
+                  ),
+                ),
+              );
+            } else {
+              // KYC not approved, show KYC requirement screen
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => KycRequirementScreen(
+                    transferType: widget.transferType,
+                    amount: amount,
+                    currency: widget.selectedCurrency,
+                    etbAmount: _etbAmount,
+                    fee: _fee,
+                    exchangeRate: _exchangeRate,
+                    kycStatus: kycStatus,
+                  ),
+                ),
+              );
+              
+              // If user completed KYC, check status again and proceed
+              if (result == true) {
+                final newKycStatus = await _kycService.getKycStatus();
+                if (newKycStatus == KycStatus.approved && mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => RecipientDetailsScreen(
+                        transferType: widget.transferType,
+                        amount: amount,
+                        currency: widget.selectedCurrency,
+                        etbAmount: _etbAmount,
+                        fee: _fee,
+                        exchangeRate: _exchangeRate,
+                      ),
+                    ),
+                  );
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // If KYC status check fails, assume KYC is required
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => KycRequirementScreen(
+                  transferType: widget.transferType,
+                  amount: amount,
+                  currency: widget.selectedCurrency,
+                  etbAmount: _etbAmount,
+                  fee: _fee,
+                  exchangeRate: _exchangeRate,
+                  kycStatus: KycStatus.notStarted,
+                ),
+              ),
+            );
+          }
+        }
       }
     }
   }

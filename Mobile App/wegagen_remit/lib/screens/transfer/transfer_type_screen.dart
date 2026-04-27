@@ -5,10 +5,7 @@ import 'amount_entry_screen.dart';
 class TransferTypeScreen extends StatefulWidget {
   final String transferType;
 
-  const TransferTypeScreen({
-    super.key,
-    required this.transferType,
-  });
+  const TransferTypeScreen({super.key, required this.transferType});
 
   @override
   State<TransferTypeScreen> createState() => _TransferTypeScreenState();
@@ -18,36 +15,11 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
   String _selectedCurrency = 'USD';
 
   final List<Map<String, dynamic>> _currencies = [
-    {
-      'code': 'USD',
-      'name': 'US Dollar',
-      'flag': '🇺🇸',
-      'rate': 154.60,
-    },
-    {
-      'code': 'EUR',
-      'name': 'Euro',
-      'flag': '🇪🇺',
-      'rate': 168.45,
-    },
-    {
-      'code': 'GBP',
-      'name': 'British Pound',
-      'flag': '🇬🇧',
-      'rate': 195.20,
-    },
-    {
-      'code': 'SAR',
-      'name': 'Saudi Riyal',
-      'flag': '🇸🇦',
-      'rate': 41.23,
-    },
-    {
-      'code': 'AED',
-      'name': 'UAE Dirham',
-      'flag': '🇦🇪',
-      'rate': 42.10,
-    },
+    {'code': 'USD', 'name': 'US Dollar', 'flag': '🇺🇸', 'rate': 154.60},
+    {'code': 'EUR', 'name': 'Euro', 'flag': '🇪🇺', 'rate': 168.45},
+    {'code': 'GBP', 'name': 'British Pound', 'flag': '🇬🇧', 'rate': 195.20},
+    {'code': 'SAR', 'name': 'Saudi Riyal', 'flag': '🇸🇦', 'rate': 41.23},
+    {'code': 'AED', 'name': 'UAE Dirham', 'flag': '🇦🇪', 'rate': 42.10},
   ];
 
   String get _transferTitle {
@@ -147,10 +119,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _transferDescription,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -171,8 +140,8 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected 
-                            ? const Color(0xFFF37021) 
+                        color: isSelected
+                            ? const Color(0xFFF37021)
                             : Colors.grey.shade200,
                         width: isSelected ? 2 : 1,
                       ),
@@ -190,7 +159,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
-                          color: isSelected 
+                          color: isSelected
                               ? const Color(0xFFF37021).withValues(alpha: 0.1)
                               : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(12),
@@ -207,7 +176,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isSelected 
+                          color: isSelected
                               ? const Color(0xFFF37021)
                               : Colors.black87,
                         ),

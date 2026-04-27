@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/exchange_rate_provider.dart';
 import '../../widgets/activity_tracker.dart';
+import '../../widgets/kyc_status_widget.dart';
+import '../../services/kyc_service.dart';
+import '../../models/kyc_data.dart';
 import '../transfer/transfer_type_screen.dart';
 import '../auth/login_screen.dart';
 import '../transactions/transactions_screen.dart';
@@ -18,6 +21,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final KycService _kycService = KycService();
+  KycStatus _kycStatus = KycStatus.notStarted;
+  bool _isLoadingKyc = true;
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +33,32 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         listen: false,
       ).loadExchangeRates();
+      _loadKycStatus();
     });
+  }
+
+  Future<void> _loadKycStatus() async {
+    try {
+      final status = await _kycService.getKycStatus();
+      if (mounted) {
+        setState(() {
+          _kycStatus = status;
+          _isLoadingKyc = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _kycStatus = KycStatus.notStarted;
+          _isLoadingKyc = false;
+        });
+      }
+    }
+  }
+
+  void _onKycStatusChanged() {
+    // Reload KYC status when user returns from KYC screen
+    _loadKycStatus();
   }
 
   @override
@@ -254,6 +286,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+
+              // KYC Status Section
+              if (!_isLoadingKyc && _kycStatus != KycStatus.approved)
+                KycStatusWidget(
+                  status: _kycStatus,
+                  onKycComplete: _onKycStatusChanged,
+                ),
 
               // Services Section
               Padding(
