@@ -71,27 +71,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           );
         }
 
-        // Check if user needs KYC verification
-        if (authProvider.user != null && authProvider.user!.needsKycVerification) {
-          print('DEBUG: MainNavigationScreen - Redirecting to KYC screen');
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const KycScreen()),
-            );
-          });
-          return const Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Checking KYC status...'),
-                ],
-              ),
-            ),
-          );
-        }
+        // Check if user needs KYC verification - REMOVED AUTOMATIC REDIRECT
+        // KYC is now handled in the transfer flow and profile screen
+        // if (authProvider.user != null && authProvider.user!.needsKycVerification) {
+        //   print('DEBUG: MainNavigationScreen - Redirecting to KYC screen');
+        //   WidgetsBinding.instance.addPostFrameCallback((_) {
+        //     Navigator.of(context).pushReplacement(
+        //       MaterialPageRoute(builder: (context) => const KycScreen()),
+        //     );
+        //   });
+        //   return const Scaffold(
+        //     body: Center(
+        //       child: Column(
+        //         mainAxisAlignment: MainAxisAlignment.center,
+        //         children: [
+        //           CircularProgressIndicator(),
+        //           SizedBox(height: 16),
+        //           Text('Checking KYC status...'),
+        //         ],
+        //       ),
+        //     ),
+        //   );
+        // }
 
         print('DEBUG: MainNavigationScreen - Showing main navigation');
         return SessionTimeoutWrapper(

@@ -1,84 +1,91 @@
 import 'package:flutter/material.dart';
 import '../../widgets/auth_guard.dart';
-import 'amount_entry_screen.dart';
+import 'transfer_type_screen.dart';
 
-class TransferTypeScreen extends StatefulWidget {
-  final String transferType;
-  final String? selectedBank;
-
-  const TransferTypeScreen({
-    super.key, 
-    required this.transferType,
-    this.selectedBank,
-  });
+class BankSelectionScreen extends StatefulWidget {
+  const BankSelectionScreen({super.key});
 
   @override
-  State<TransferTypeScreen> createState() => _TransferTypeScreenState();
+  State<BankSelectionScreen> createState() => _BankSelectionScreenState();
 }
 
-class _TransferTypeScreenState extends State<TransferTypeScreen> {
-  String _selectedCurrency = 'USD';
+class _BankSelectionScreenState extends State<BankSelectionScreen> {
+  String? _selectedBank;
 
-  final List<Map<String, dynamic>> _currencies = [
-    {'code': 'USD', 'name': 'US Dollar', 'flag': '🇺🇸', 'rate': 154.60},
-    {'code': 'EUR', 'name': 'Euro', 'flag': '🇪🇺', 'rate': 168.45},
-    {'code': 'GBP', 'name': 'British Pound', 'flag': '🇬🇧', 'rate': 195.20},
-    {'code': 'SAR', 'name': 'Saudi Riyal', 'flag': '🇸🇦', 'rate': 41.23},
-    {'code': 'AED', 'name': 'UAE Dirham', 'flag': '🇦🇪', 'rate': 42.10},
+  final List<Map<String, dynamic>> _ethiopianBanks = [
+    {
+      'name': 'Commercial Bank of Ethiopia',
+      'code': 'CBE',
+      'logo': '🏦',
+      'color': Color(0xFF1976D2)
+    },
+    {
+      'name': 'Dashen Bank',
+      'code': 'DASH',
+      'logo': '🏛️',
+      'color': Color(0xFF2E7D32)
+    },
+    {
+      'name': 'Bank of Abyssinia',
+      'code': 'BOA',
+      'logo': '🏦',
+      'color': Color(0xFF7B1FA2)
+    },
+    {
+      'name': 'Awash International Bank',
+      'code': 'AIB',
+      'logo': '🏛️',
+      'color': Color(0xFFD32F2F)
+    },
+    {
+      'name': 'Nib International Bank',
+      'code': 'NIB',
+      'logo': '🏦',
+      'color': Color(0xFF388E3C)
+    },
+    {
+      'name': 'United Bank',
+      'code': 'UB',
+      'logo': '🏛️',
+      'color': Color(0xFF1565C0)
+    },
+    {
+      'name': 'Cooperative Bank of Oromia',
+      'code': 'CBO',
+      'logo': '🏦',
+      'color': Color(0xFF5D4037)
+    },
+    {
+      'name': 'Lion International Bank',
+      'code': 'LIB',
+      'logo': '🏛️',
+      'color': Color(0xFFE65100)
+    },
+    {
+      'name': 'Zemen Bank',
+      'code': 'ZB',
+      'logo': '🏦',
+      'color': Color(0xFF6A1B9A)
+    },
+    {
+      'name': 'Bunna International Bank',
+      'code': 'BIB',
+      'logo': '🏛️',
+      'color': Color(0xFF00695C)
+    },
+    {
+      'name': 'Berhan International Bank',
+      'code': 'BERHAN',
+      'logo': '🏦',
+      'color': Color(0xFF4527A0)
+    },
+    {
+      'name': 'Abay Bank',
+      'code': 'ABAY',
+      'logo': '🏛️',
+      'color': Color(0xFF2E7D32)
+    },
   ];
-
-  String get _transferTitle {
-    switch (widget.transferType) {
-      case 'wegagen_bank':
-        return 'Bank Account Transfer';
-      case 'wegagen_ebirr':
-        return 'Wegagen E-birr Transfer';
-      case 'cash_pickup':
-        return 'Cash Pickup Transfer';
-      case 'other_banks':
-        return 'Other Banks Transfer';
-      case 'school_pay':
-        return 'School Payment';
-      default:
-        return 'Money Transfer';
-    }
-  }
-
-  IconData get _transferIcon {
-    switch (widget.transferType) {
-      case 'wegagen_bank':
-        return Icons.account_balance;
-      case 'wegagen_ebirr':
-        return Icons.phone_android;
-      case 'cash_pickup':
-        return Icons.send;
-      case 'other_banks':
-        return Icons.account_balance_outlined;
-      case 'school_pay':
-        return Icons.school;
-      default:
-        return Icons.send;
-    }
-  }
-
-  String get _transferDescription {
-    switch (widget.transferType) {
-      case 'wegagen_bank':
-        return 'Send money directly to Wegagen Bank accounts in Ethiopia';
-      case 'wegagen_ebirr':
-        return 'Send money to Wegagen E-birr mobile wallets';
-      case 'cash_pickup':
-        return 'Send money for cash pickup at authorized locations';
-      case 'other_banks':
-        return widget.selectedBank != null 
-            ? 'Send money to ${widget.selectedBank} bank accounts'
-            : 'Send money to Ethiopian bank accounts';
-      case 'school_pay':
-        return 'Pay school fees and educational expenses';
-      default:
-        return 'Send money securely and quickly';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,14 +101,14 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: Row(
+          title: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_transferIcon, size: 20, color: Colors.black87),
-              const SizedBox(width: 8),
+              Icon(Icons.account_balance_outlined, size: 20, color: Colors.black87),
+              SizedBox(width: 8),
               Text(
-                _transferTitle,
-                style: const TextStyle(
+                'Select Bank',
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -121,9 +128,9 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Select Currency',
-                    style: const TextStyle(
+                  const Text(
+                    'Choose Ethiopian Bank',
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
@@ -131,21 +138,21 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _transferDescription,
+                    'Select the bank where you want to send money',
                     style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                   ),
                 ],
               ),
             ),
 
-            // Currency List
+            // Bank List
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(24),
-                itemCount: _currencies.length,
+                itemCount: _ethiopianBanks.length,
                 itemBuilder: (context, index) {
-                  final currency = _currencies[index];
-                  final isSelected = currency['code'] == _selectedCurrency;
+                  final bank = _ethiopianBanks[index];
+                  final isSelected = bank['code'] == _selectedBank;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -174,60 +181,46 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? const Color(0xFFF37021).withValues(alpha: 0.1)
-                              : Colors.grey.shade100,
+                              : bank['color'].withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
                           child: Text(
-                            currency['flag'],
+                            bank['logo'],
                             style: const TextStyle(fontSize: 24),
                           ),
                         ),
                       ),
                       title: Text(
-                        currency['name'],
+                        bank['name'],
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: isSelected
                               ? const Color(0xFFF37021)
                               : Colors.black87,
                         ),
                       ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(
-                            currency['code'],
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '1 ${currency['code']} = ${currency['rate'].toStringAsFixed(2)} ETB',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
+                      subtitle: Text(
+                        bank['code'],
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                       trailing: Radio<String>(
-                        value: currency['code'],
-                        groupValue: _selectedCurrency,
+                        value: bank['code'],
+                        groupValue: _selectedBank,
                         onChanged: (value) {
                           setState(() {
-                            _selectedCurrency = value!;
+                            _selectedBank = value;
                           });
                         },
                         activeColor: const Color(0xFFF37021),
                       ),
                       onTap: () {
                         setState(() {
-                          _selectedCurrency = currency['code'];
+                          _selectedBank = bank['code'];
                         });
                       },
                     ),
@@ -243,17 +236,18 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AmountEntryScreen(
-                          transferType: widget.transferType,
-                          selectedCurrency: _selectedCurrency,
-                          selectedBank: widget.selectedBank,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _selectedBank != null
+                      ? () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => TransferTypeScreen(
+                                transferType: 'other_banks',
+                                selectedBank: _selectedBank,
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF37021),
                     foregroundColor: Colors.white,

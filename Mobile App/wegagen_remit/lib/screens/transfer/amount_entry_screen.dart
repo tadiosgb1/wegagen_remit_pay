@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/exchange_rate_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/auth_guard.dart';
-import '../../services/kyc_service.dart';
 import '../../models/kyc_data.dart';
 import '../kyc_requirement_screen.dart';
 import 'recipient_details_screen.dart';
@@ -10,11 +10,13 @@ import 'recipient_details_screen.dart';
 class AmountEntryScreen extends StatefulWidget {
   final String transferType;
   final String selectedCurrency;
+  final String? selectedBank;
 
   const AmountEntryScreen({
     super.key,
     required this.transferType,
     required this.selectedCurrency,
+    this.selectedBank,
   });
 
   @override
@@ -84,6 +86,8 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
         return 'Wegagen E-birr Transfer';
       case 'cash_pickup':
         return 'Cash Pickup Transfer';
+      case 'other_banks':
+        return 'Other Banks Transfer';
       case 'school_pay':
         return 'School Payment';
       default:
@@ -99,6 +103,8 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
         return Icons.phone_android;
       case 'cash_pickup':
         return Icons.send;
+      case 'other_banks':
+        return Icons.account_balance_outlined;
       case 'school_pay':
         return Icons.school;
       default:
@@ -126,71 +132,43 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
     );
   }
 
-  final KycService _kycService = KycService();
-
   Future<void> _proceedToRecipientDetails() async {
     if (_amountController.text.isNotEmpty && _etbAmount > 0) {
       final amount = double.parse(_amountController.text);
       if (amount >= 10) {
-        // Check KYC status before proceeding
-        try {
-          final kycStatus = await _kycService.getKycStatus();
-          
-          if (mounted) {
-            if (kycStatus == KycStatus.approved) {
-              // KYC is approved, proceed to recipient details
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => RecipientDetailsScreen(
-                    transferType: widget.transferType,
-                    amount: amount,
-                    currency: widget.selectedCurrency,
-                    etbAmount: _etbAmount,
-                    fee: _fee,
-                    exchangeRate: _exchangeRate,
-                  ),
-                ),
-              );
-            } else {
-              // KYC not approved, show KYC requirement screen
-              final result = await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => KycRequirementScreen(
-                    transferType: widget.transferType,
-                    amount: amount,
-                    currency: widget.selectedCurrency,
-                    etbAmount: _etbAmount,
-                    fee: _fee,
-                    exchangeRate: _exchangeRate,
-                    kycStatus: kycStatus,
-                  ),
-                ),
-              );
-              
-              // If user completed KYC, check status again and proceed
-              if (result == true) {
-                final newKycStatus = await _kycService.getKycStatus();
-                if (newKycStatus == KycStatus.approved && mounted) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => RecipientDetailsScreen(
-                        transferType: widget.transferType,
-                        amount: amount,
-                        currency: widget.selectedCurrency,
-                        etbAmount: _etbAmount,
-                        fee: _fee,
-                        exchangeRate: _exchangeRate,
-                      ),
-                    ),
-                  );
-                }
-              }
-            }
-          }
-        } catch (e) {
-          // If KYC status check fails, assume KYC is required
-          if (mounted) {
+        // Get user's KYC status from AuthProvider
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final user = authProvider.user;
+        
+        if (mounted) {
+          if (user?.kyc != null && user!.kyc!.verified) {
+            // KYC is verified, proceed to recipient details
             Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => RecipientDetailsScreen(
+                  transferType: widget.transferType,
+                  amount: amount,
+                  currency: widget.selectedCurrency,
+                  etbAmount: _etbAmount,
+                  fee: _fee,
+                  exchangeRate: _exchangeRate,
+                  selectedBank: widget.selectedBank,
+                ),
+              ),
+            );
+          } else {
+            // KYC not verified, show KYC requirement screen
+            // Determine KYC status from user data
+            KycStatus kycStatus;
+            if (user?.kyc == null) {
+              kycStatus = KycStatus.notStarted;
+            } else if (!user!.kyc!.verified) {
+              kycStatus = KycStatus.underReview;
+            } else {
+              kycStatus = KycStatus.approved;
+            }
+            
+            final result = await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => KycRequirementScreen(
                   transferType: widget.transferType,
@@ -199,10 +177,31 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                   etbAmount: _etbAmount,
                   fee: _fee,
                   exchangeRate: _exchangeRate,
-                  kycStatus: KycStatus.notStarted,
+                  kycStatus: kycStatus,
                 ),
               ),
             );
+            
+            // If user completed KYC, check updated user data and proceed
+            if (result == true) {
+              // Refresh user data from AuthProvider
+              final updatedUser = authProvider.user;
+              if (updatedUser?.kyc != null && updatedUser!.kyc!.verified && mounted) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => RecipientDetailsScreen(
+                      transferType: widget.transferType,
+                      amount: amount,
+                      currency: widget.selectedCurrency,
+                      etbAmount: _etbAmount,
+                      fee: _fee,
+                      exchangeRate: _exchangeRate,
+                      selectedBank: widget.selectedBank,
+                    ),
+                  ),
+                );
+              }
+            }
           }
         }
       }

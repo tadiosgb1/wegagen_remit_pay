@@ -9,6 +9,7 @@ class RecipientDetailsScreen extends StatefulWidget {
   final double etbAmount;
   final double fee;
   final double exchangeRate;
+  final String? selectedBank;
 
   const RecipientDetailsScreen({
     super.key,
@@ -18,6 +19,7 @@ class RecipientDetailsScreen extends StatefulWidget {
     required this.etbAmount,
     required this.fee,
     required this.exchangeRate,
+    this.selectedBank,
   });
 
   @override
@@ -66,6 +68,8 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         return 'Wegagen E-birr Transfer';
       case 'cash_pickup':
         return 'Cash Pickup Transfer';
+      case 'other_banks':
+        return 'Other Banks Transfer';
       case 'school_pay':
         return 'School Payment';
       default:
@@ -81,6 +85,8 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         return Icons.phone_android;
       case 'cash_pickup':
         return Icons.send;
+      case 'other_banks':
+        return Icons.account_balance_outlined;
       case 'school_pay':
         return Icons.school;
       default:
@@ -234,6 +240,15 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             'region': _regionController.text,
           };
           break;
+        case 'other_banks':
+          if (!_isAccountVerified) return;
+          recipientData = {
+            'accountNumber': _accountNumberController.text,
+            'accountHolderName': _accountHolderName,
+            'accountType': _accountType,
+            'bankName': widget.selectedBank,
+          };
+          break;
       }
 
       Navigator.of(context).push(
@@ -264,6 +279,8 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             _addressController.text.isNotEmpty &&
             _cityController.text.isNotEmpty &&
             _regionController.text.isNotEmpty;
+      case 'other_banks':
+        return _isAccountVerified;
       default:
         return false;
     }
@@ -376,6 +393,8 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         return _buildEbirrTransferFields();
       case 'cash_pickup':
         return _buildCashPickupFields();
+      case 'other_banks':
+        return _buildOtherBankTransferFields();
       default:
         return [];
     }
@@ -703,6 +722,165 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
           ),
         ],
       ),
+    ];
+  }
+
+  List<Widget> _buildOtherBankTransferFields() {
+    return [
+      // Selected Bank Info
+      if (widget.selectedBank != null) ...[
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.account_balance_outlined,
+                color: Colors.blue.shade600,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Sending to: ${widget.selectedBank}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+      
+      // Account Number Field
+      Text(
+        '${widget.selectedBank ?? "Bank"} Account Number',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      const SizedBox(height: 12),
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextFormField(
+          controller: _accountNumberController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: 'Enter account number',
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            prefixIcon: Icon(Icons.credit_card, color: Colors.grey.shade400),
+            suffixIcon: _isVerifying
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFFF37021),
+                      ),
+                    ),
+                  )
+                : _isAccountVerified
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter account number';
+            }
+            return null;
+          },
+          onChanged: (value) {
+            setState(() {
+              _isAccountVerified = false;
+            });
+            if (value.length >= 10) {
+              _verifyAccount();
+            }
+          },
+        ),
+      ),
+      const SizedBox(height: 24),
+      if (_isAccountVerified) ...[
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Account Verified',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Name: $_accountHolderName',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Type: $_accountType',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Bank: ${widget.selectedBank}',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      ],
     ];
   }
 

@@ -3,13 +3,14 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/exchange_rate_provider.dart';
 import '../../widgets/activity_tracker.dart';
-import '../../widgets/kyc_status_widget.dart';
-import '../../services/kyc_service.dart';
-import '../../models/kyc_data.dart';
+import '../../models/user.dart';
 import '../transfer/transfer_type_screen.dart';
+import '../transfer/bank_selection_screen.dart';
 import '../auth/login_screen.dart';
 import '../transactions/transactions_screen.dart';
 import '../exchange_rates_screen.dart';
+import '../profile/profile_screen.dart';
+import '../auth/kyc_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
@@ -21,10 +22,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final KycService _kycService = KycService();
-  KycStatus _kycStatus = KycStatus.notStarted;
-  bool _isLoadingKyc = true;
-
   @override
   void initState() {
     super.initState();
@@ -33,32 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         listen: false,
       ).loadExchangeRates();
-      _loadKycStatus();
     });
-  }
-
-  Future<void> _loadKycStatus() async {
-    try {
-      final status = await _kycService.getKycStatus();
-      if (mounted) {
-        setState(() {
-          _kycStatus = status;
-          _isLoadingKyc = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _kycStatus = KycStatus.notStarted;
-          _isLoadingKyc = false;
-        });
-      }
-    }
-  }
-
-  void _onKycStatusChanged() {
-    // Reload KYC status when user returns from KYC screen
-    _loadKycStatus();
   }
 
   @override
@@ -73,7 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
               actions: [
                 PopupMenuButton<String>(
                   onSelected: (value) async {
-                    if (value == 'logout') {
+                    if (value == 'profile') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileScreen(),
+                        ),
+                      );
+                    } else if (value == 'logout') {
                       final authProvider = Provider.of<AuthProvider>(
                         context,
                         listen: false,
@@ -140,7 +118,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Consumer<AuthProvider>(
                             builder: (context, authProvider, child) {
                               final user = authProvider.user;
-                              final initials = user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
+                              final initials =
+                                  user != null &&
+                                      user.firstName.isNotEmpty &&
+                                      user.lastName.isNotEmpty
                                   ? '${user.firstName[0].toUpperCase()}${user.lastName[0].toUpperCase()}'
                                   : 'TG';
                               return Center(
@@ -287,12 +268,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // KYC Status Section
-              if (!_isLoadingKyc && _kycStatus != KycStatus.approved)
-                KycStatusWidget(
-                  status: _kycStatus,
-                  onKycComplete: _onKycStatusChanged,
-                ),
+              // KYC Information Banner
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final user = authProvider.user;
+                  if (user != null) {
+                    return _buildKycBanner(user);
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
 
               // Services Section
               Padding(
@@ -313,11 +298,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       () => _navigateToTransfer('wegagen_bank'),
                     ),
                     _buildModernServiceCard(
-                      'Wegagen Birr',
-                      'Mobile Wallet',
-                      Icons.phone_android,
+                      'Other Banks',
+                      'Ethiopian Banks',
+                      Icons.account_balance_outlined,
                       const Color(0xFFF37021),
-                      () => _navigateToTransfer('wegagen_ebirr'),
+                      () => _navigateToTransfer('other_banks'),
                     ),
                     _buildModernServiceCard(
                       'Cash Pickup',
@@ -327,11 +312,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       () => _navigateToTransfer('cash_pickup'),
                     ),
                     _buildModernServiceCard(
-                      'e-School',
-                      'Coming Soon',
-                      Icons.school_outlined,
+                      'Wegagen E-birr',
+                      'Mobile Wallet',
+                      Icons.phone_android,
                       const Color(0xFF999999),
-                      () => _navigateToTransfer('school_pay'),
+                      () => _navigateToTransfer('wegagen_ebirr'),
                     ),
                   ],
                 ),
@@ -374,7 +359,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (context) => const TransactionsScreen(),
+                                  builder: (context) =>
+                                      const TransactionsScreen(),
                                 ),
                               );
                             },
@@ -398,7 +384,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             Icons.settings,
                             'Settings',
                             'Manage your account',
-                            () {},
+                            () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const ProfileScreen(),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -430,7 +422,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const ExchangeRatesScreen(),
+                                builder: (context) =>
+                                    const ExchangeRatesScreen(),
                               ),
                             );
                           },
@@ -712,11 +705,152 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToTransfer(String type) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => TransferTypeScreen(transferType: type),
+  Widget _buildKycBanner(User user) {
+    Color bannerColor;
+    IconData bannerIcon;
+    String title;
+    String description;
+    String actionText;
+    VoidCallback? onTap;
+
+    // Determine KYC status from user data
+    if (user.kyc == null) {
+      // No KYC data - not started
+      bannerColor = Colors.blue;
+      bannerIcon = Icons.info_outline;
+      title = 'Complete Your KYC Verification';
+      description =
+          'KYC (Know Your Customer) verification is required for secure money transfers. It helps us verify your identity and comply with financial regulations.';
+      actionText = 'Start KYC';
+      onTap = () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const KycScreen()));
+      };
+    } else if (user.kyc!.verified) {
+      // KYC verified
+      bannerColor = Colors.green;
+      bannerIcon = Icons.check_circle_outline;
+      title = 'KYC Verification Complete';
+      description =
+          'Your identity has been successfully verified. You can now enjoy full access to all transfer services with higher limits.';
+      actionText = 'View Details';
+      onTap = () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const KycScreen()));
+      };
+    } else {
+      // KYC submitted but not verified - under review
+      bannerColor = Colors.amber;
+      bannerIcon = Icons.hourglass_empty;
+      title = 'KYC Under Review';
+      description =
+          'Your KYC documents are being reviewed by our team. This usually takes 1-2 business days. You\'ll be notified once verification is complete.';
+      actionText = 'View Status';
+      onTap = () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const KycScreen()));
+      };
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: bannerColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: bannerColor.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: bannerColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(bannerIcon, color: bannerColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: bannerColor.withValues(alpha: 0.9),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+              height: 1.4,
+            ),
+          ),
+          if (onTap != null) ...[
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: bannerColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      actionText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
+  }
+
+  void _navigateToTransfer(String type) {
+    if (type == 'other_banks') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => const BankSelectionScreen(),
+        ),
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => TransferTypeScreen(transferType: type),
+        ),
+      );
+    }
   }
 }

@@ -77,16 +77,10 @@ class ApiService {
 
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-        message: 'No internet connection',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'No internet connection', statusCode: 0);
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException(
-        message: 'Network error occurred',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'Network error occurred', statusCode: 0);
     }
   }
 
@@ -105,16 +99,10 @@ class ApiService {
 
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-        message: 'No internet connection',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'No internet connection', statusCode: 0);
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException(
-        message: 'Network error occurred',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'Network error occurred', statusCode: 0);
     }
   }
 
@@ -133,16 +121,10 @@ class ApiService {
 
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-        message: 'No internet connection',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'No internet connection', statusCode: 0);
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException(
-        message: 'Network error occurred',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'Network error occurred', statusCode: 0);
     }
   }
 
@@ -159,16 +141,10 @@ class ApiService {
 
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-        message: 'No internet connection',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'No internet connection', statusCode: 0);
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException(
-        message: 'Network error occurred',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'Network error occurred', statusCode: 0);
     }
   }
 
@@ -182,15 +158,15 @@ class ApiService {
   }) async {
     try {
       final request = http.MultipartRequest('POST', Uri.parse(url));
-      
+
       // Add headers
       request.headers.addAll(_getHeaders(includeAuth: includeAuth));
-      
+
       // Add file
       request.files.add(
         await http.MultipartFile.fromPath(fieldName, file.path),
       );
-      
+
       // Add additional fields
       if (additionalFields != null) {
         request.fields.addAll(additionalFields);
@@ -201,16 +177,10 @@ class ApiService {
 
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-        message: 'No internet connection',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'No internet connection', statusCode: 0);
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException(
-        message: 'File upload failed',
-        statusCode: 0,
-      );
+      throw ApiException(message: 'File upload failed', statusCode: 0);
     }
   }
 
@@ -225,11 +195,7 @@ class ApiException implements Exception {
   final int statusCode;
   final Map<String, dynamic>? errors;
 
-  ApiException({
-    required this.message,
-    required this.statusCode,
-    this.errors,
-  });
+  ApiException({required this.message, required this.statusCode, this.errors});
 
   @override
   String toString() {
