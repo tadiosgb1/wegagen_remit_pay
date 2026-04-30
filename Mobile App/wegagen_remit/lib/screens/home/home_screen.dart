@@ -662,46 +662,67 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildExchangeRateItem(String currency, double rate) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
+    return Consumer<ExchangeRateProvider>(
+      builder: (context, exchangeProvider, child) {
+        final exchangeRate = exchangeProvider.getExchangeRate(currency);
+        
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D7D).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                currency,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E7D7D),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D7D).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    currency,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D7D),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Text(
+                  '1 $currency',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Text(
-              '1 $currency',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (exchangeRate != null)
+                  Text(
+                    '${exchangeRate.buyingRate.toStringAsFixed(2)} ETB',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF37021),
+                    ),
+                  )
+                else
+                  Text(
+                    '${rate.toStringAsFixed(2)} ETB',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF37021),
+                    ),
+                  ),
+              ],
             ),
           ],
-        ),
-        Text(
-          '${rate.toStringAsFixed(2)} ETB',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFF37021),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 

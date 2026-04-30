@@ -32,9 +32,7 @@ class UrlContainer {
   static String get accountInfo => '$baseUrl/internal-transfer/account-info';
 
   // Exchange rate endpoints
-  static String get exchangeRates => '$baseUrl/exchange-rates';
-  static String getExchangeRate(String from, String to) =>
-      '$baseUrl/exchange-rates/$from/$to';
+  static String get getExchangeRate => '$baseUrl/internal-transfer/rate';
 
   // Recipients endpoints
   static String get recipients => '$baseUrl/recipients';

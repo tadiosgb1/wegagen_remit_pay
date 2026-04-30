@@ -1,21 +1,27 @@
 class ExchangeRate {
   final String fromCurrency;
   final String toCurrency;
-  final double rate;
+  final double buyingRate;
+  final double sellingRate;
   final DateTime lastUpdated;
 
   ExchangeRate({
     required this.fromCurrency,
     required this.toCurrency,
-    required this.rate,
+    required this.buyingRate,
+    required this.sellingRate,
     required this.lastUpdated,
   });
+
+  // Use buying rate for calculations (what bank pays for foreign currency)
+  double get rate => buyingRate;
 
   factory ExchangeRate.fromJson(Map<String, dynamic> json) {
     return ExchangeRate(
       fromCurrency: json['fromCurrency'],
       toCurrency: json['toCurrency'],
-      rate: json['rate'].toDouble(),
+      buyingRate: json['buyingRate'].toDouble(),
+      sellingRate: json['sellingRate'].toDouble(),
       lastUpdated: DateTime.parse(json['lastUpdated']),
     );
   }
@@ -24,7 +30,8 @@ class ExchangeRate {
     return {
       'fromCurrency': fromCurrency,
       'toCurrency': toCurrency,
-      'rate': rate,
+      'buyingRate': buyingRate,
+      'sellingRate': sellingRate,
       'lastUpdated': lastUpdated.toIso8601String(),
     };
   }

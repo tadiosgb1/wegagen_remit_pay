@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../widgets/auth_guard.dart';
+import '../../providers/exchange_rate_provider.dart';
 import 'amount_entry_screen.dart';
 
 class TransferTypeScreen extends StatefulWidget {
@@ -19,13 +21,89 @@ class TransferTypeScreen extends StatefulWidget {
 class _TransferTypeScreenState extends State<TransferTypeScreen> {
   String _selectedCurrency = 'USD';
 
-  final List<Map<String, dynamic>> _currencies = [
-    {'code': 'USD', 'name': 'US Dollar', 'flag': '🇺🇸', 'rate': 154.60},
-    {'code': 'EUR', 'name': 'Euro', 'flag': '🇪🇺', 'rate': 168.45},
-    {'code': 'GBP', 'name': 'British Pound', 'flag': '🇬🇧', 'rate': 195.20},
-    {'code': 'SAR', 'name': 'Saudi Riyal', 'flag': '🇸🇦', 'rate': 41.23},
-    {'code': 'AED', 'name': 'UAE Dirham', 'flag': '🇦🇪', 'rate': 42.10},
-  ];
+  final List<Map<String, dynamic>> _currencies = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadExchangeRates();
+    });
+  }
+
+  Future<void> _loadExchangeRates() async {
+    final exchangeProvider = Provider.of<ExchangeRateProvider>(
+      context,
+      listen: false,
+    );
+    
+    // Load exchange rates if not already loaded
+    if (exchangeProvider.exchangeRates.isEmpty && !exchangeProvider.isLoading) {
+      await exchangeProvider.loadExchangeRates();
+    }
+    
+    _loadCurrencies();
+  }
+
+  void _loadCurrencies() {
+    final exchangeProvider = Provider.of<ExchangeRateProvider>(
+      context,
+      listen: false,
+    );
+    
+    // Build currency list from exchange rates
+    final currencies = <Map<String, dynamic>>[];
+    exchangeProvider.exchangeRates.forEach((currency, exchangeRate) {
+      currencies.add({
+        'code': currency,
+        'name': _getCurrencyName(currency),
+        'flag': _getCurrencyFlag(currency),
+        'rate': exchangeRate.rate, // This is the buying rate (used for calculations)
+        'buyingRate': exchangeRate.buyingRate,
+        'sellingRate': exchangeRate.sellingRate,
+      });
+    });
+    
+    setState(() {
+      _currencies.clear();
+      _currencies.addAll(currencies);
+      if (_currencies.isNotEmpty && _selectedCurrency == 'USD') {
+        _selectedCurrency = _currencies.first['code'];
+      }
+    });
+  }
+
+  String _getCurrencyName(String code) {
+    switch (code) {
+      case 'USD': return 'US Dollar';
+      case 'EUR': return 'Euro';
+      case 'GBP': return 'British Pound';
+      case 'SAR': return 'Saudi Riyal';
+      case 'AED': return 'UAE Dirham';
+      case 'CAD': return 'Canadian Dollar';
+      case 'AUD': return 'Australian Dollar';
+      case 'JPY': return 'Japanese Yen';
+      case 'CHF': return 'Swiss Franc';
+      case 'SEK': return 'Swedish Krona';
+      default: return code;
+    }
+  }
+
+  String _getCurrencyFlag(String code) {
+    switch (code) {
+      case 'USD': return '🇺🇸';
+      case 'EUR': return '🇪🇺';
+      case 'GBP': return '🇬🇧';
+      case 'SAR': return '🇸🇦';
+      case 'AED': return '🇦🇪';
+      case 'CAD': return '🇨🇦';
+      case 'AUD': return '🇦🇺';
+      case 'JPY': return '🇯🇵';
+      case 'CHF': return '🇨🇭';
+      case 'SEK': return '🇸🇪';
+      default: return '💱';
+    }
+  }
 
   String get _transferTitle {
     switch (widget.transferType) {
@@ -140,97 +218,191 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
 
             // Currency List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(24),
-                itemCount: _currencies.length,
-                itemBuilder: (context, index) {
-                  final currency = _currencies[index];
-                  final isSelected = currency['code'] == _selectedCurrency;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFFF37021)
-                            : Colors.grey.shade200,
-                        width: isSelected ? 2 : 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(20),
-                      leading: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFFF37021).withValues(alpha: 0.1)
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            currency['flag'],
-                            style: const TextStyle(fontSize: 24),
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        currency['name'],
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? const Color(0xFFF37021)
-                              : Colors.black87,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              child: Consumer<ExchangeRateProvider>(
+                builder: (context, exchangeProvider, child) {
+                  if (exchangeProvider.isLoading) {
+                    return const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(height: 4),
+                          CircularProgressIndicator(
+                            color: Color(0xFFF37021),
+                          ),
+                          SizedBox(height: 16),
                           Text(
-                            currency['code'],
+                            'Loading exchange rates...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (exchangeProvider.error != null) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Colors.red.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Failed to load exchange rates',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            exchangeProvider.error!,
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '1 ${currency['code']} = ${currency['rate'].toStringAsFixed(2)} ETB',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () => _loadExchangeRates(),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF37021),
+                              foregroundColor: Colors.white,
                             ),
                           ),
                         ],
                       ),
-                      trailing: Radio<String>(
-                        value: currency['code'],
-                        groupValue: _selectedCurrency,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCurrency = value!;
-                          });
-                        },
-                        activeColor: const Color(0xFFF37021),
+                    );
+                  }
+
+                  if (_currencies.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No currencies available',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
                       ),
-                      onTap: () {
-                        setState(() {
-                          _selectedCurrency = currency['code'];
-                        });
-                      },
-                    ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: _currencies.length,
+                    itemBuilder: (context, index) {
+                      final currency = _currencies[index];
+                      final isSelected = currency['code'] == _selectedCurrency;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFF37021)
+                                : Colors.grey.shade200,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withValues(alpha: 0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(20),
+                          leading: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFF37021).withValues(alpha: 0.1)
+                                  : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                currency['flag'],
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            currency['name'],
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? const Color(0xFFF37021)
+                                  : Colors.black87,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(
+                                currency['code'],
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Buy: ${currency['buyingRate']?.toStringAsFixed(2) ?? currency['rate'].toStringAsFixed(2)} ETB',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFF37021),
+                                    ),
+                                  ),
+                                  if (currency['sellingRate'] != null)
+                                    Text(
+                                      'Sell: ${currency['sellingRate'].toStringAsFixed(2)} ETB',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          trailing: Radio<String>(
+                            value: currency['code'],
+                            groupValue: _selectedCurrency,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedCurrency = value!;
+                              });
+                            },
+                            activeColor: const Color(0xFFF37021),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedCurrency = currency['code'];
+                            });
+                          },
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -243,17 +415,19 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AmountEntryScreen(
-                          transferType: widget.transferType,
-                          selectedCurrency: _selectedCurrency,
-                          selectedBank: widget.selectedBank,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _currencies.isNotEmpty && _selectedCurrency.isNotEmpty
+                      ? () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => AmountEntryScreen(
+                                transferType: widget.transferType,
+                                selectedCurrency: _selectedCurrency,
+                                selectedBank: widget.selectedBank,
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF37021),
                     foregroundColor: Colors.white,

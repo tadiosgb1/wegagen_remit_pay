@@ -384,24 +384,58 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.blue.shade600,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Exchange Rate\n1 ${widget.selectedCurrency} = ${_exchangeRate.toStringAsFixed(2)} ETB',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.blue.shade700,
+                      child: Consumer<ExchangeRateProvider>(
+                        builder: (context, exchangeProvider, child) {
+                          final exchangeRate = exchangeProvider.getExchangeRate(widget.selectedCurrency);
+                          
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Colors.blue.shade600,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Exchange Rate',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.blue.shade700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        if (exchangeRate != null)
+                                          Text(
+                                            '1 ${widget.selectedCurrency} = ${exchangeRate.buyingRate.toStringAsFixed(2)} ETB',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue.shade700,
+                                            ),
+                                          )
+                                        else
+                                          Text(
+                                            '1 ${widget.selectedCurrency} = ${_exchangeRate.toStringAsFixed(2)} ETB',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.blue.shade700,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
-                        ],
+                            ],
+                          );
+                        },
                       ),
                     ),
 
