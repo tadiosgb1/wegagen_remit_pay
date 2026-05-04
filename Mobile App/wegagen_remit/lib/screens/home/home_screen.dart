@@ -11,6 +11,8 @@ import '../transactions/transactions_screen.dart';
 import '../exchange_rates_screen.dart';
 import '../profile/profile_screen.dart';
 import '../auth/kyc_screen.dart';
+import '../kyc/kyc_status_screen.dart';
+import '../payment/payment_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
@@ -292,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     _buildModernServiceCard(
                       'Transfer',
-                      'Bank Account',
+                      'Wegagen Bank Account',
                       Icons.account_balance,
                       const Color(0xFF2E7D7D),
                       () => _navigateToTransfer('wegagen_bank'),
@@ -361,6 +363,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       const TransactionsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const Divider(height: 24),
+                          _buildQuickAccessItem(
+                            Icons.payment,
+                            'Test Payment (CyberSource)',
+                            'Test secure card payment',
+                            () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const PaymentScreen(),
                                 ),
                               );
                             },
@@ -665,7 +680,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Consumer<ExchangeRateProvider>(
       builder: (context, exchangeProvider, child) {
         final exchangeRate = exchangeProvider.getExchangeRate(currency);
-        
+
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -749,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ).push(MaterialPageRoute(builder: (context) => const KycScreen()));
       };
     } else if (user.kyc!.verified) {
-      // KYC verified
+      // KYC verified - show status screen
       bannerColor = Colors.green;
       bannerIcon = Icons.check_circle_outline;
       title = 'KYC Verification Complete';
@@ -757,12 +772,12 @@ class _HomeScreenState extends State<HomeScreen> {
           'Your identity has been successfully verified. You can now enjoy full access to all transfer services with higher limits.';
       actionText = 'View Details';
       onTap = () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (context) => const KycScreen()));
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const KycStatusScreen()),
+        );
       };
     } else {
-      // KYC submitted but not verified - under review
+      // KYC submitted but not verified - show status screen
       bannerColor = Colors.amber;
       bannerIcon = Icons.hourglass_empty;
       title = 'KYC Under Review';
@@ -770,9 +785,9 @@ class _HomeScreenState extends State<HomeScreen> {
           'Your KYC documents are being reviewed by our team. This usually takes 1-2 business days. You\'ll be notified once verification is complete.';
       actionText = 'View Status';
       onTap = () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (context) => const KycScreen()));
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const KycStatusScreen()),
+        );
       };
     }
 
@@ -862,9 +877,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToTransfer(String type) {
     if (type == 'other_banks') {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const BankSelectionScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const BankSelectionScreen()),
       );
     } else {
       Navigator.of(context).push(

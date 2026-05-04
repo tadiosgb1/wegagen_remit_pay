@@ -26,7 +26,7 @@ class TransferSuccessScreen extends StatelessWidget {
   String get _transferTypeTitle {
     switch (transferType) {
       case 'wegagen_bank':
-        return 'Bank Transfer';
+        return 'Wegagen Bank Transfer';
       case 'wegagen_ebirr':
         return 'E-birr Transfer';
       case 'cash_pickup':

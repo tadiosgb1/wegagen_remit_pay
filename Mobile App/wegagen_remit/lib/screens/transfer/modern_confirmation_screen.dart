@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'payment_details_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/payment_providers.dart';
+import '../payment/payment_screen.dart';
 
-class ModernConfirmationScreen extends StatefulWidget {
+class ModernConfirmationScreen extends ConsumerStatefulWidget {
   final String transferType;
   final double amount;
   final String currency;
@@ -22,16 +24,16 @@ class ModernConfirmationScreen extends StatefulWidget {
   });
 
   @override
-  State<ModernConfirmationScreen> createState() => _ModernConfirmationScreenState();
+  ConsumerState<ModernConfirmationScreen> createState() => _ModernConfirmationScreenState();
 }
 
-class _ModernConfirmationScreenState extends State<ModernConfirmationScreen> {
+class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScreen> {
   bool _isProcessing = false;
 
   String get _transferTitle {
     switch (widget.transferType) {
       case 'wegagen_bank':
-        return 'Bank Account Transfer';
+        return 'Wegagen Bank Account Transfer';
       case 'wegagen_ebirr':
         return 'Wegagen E-birr Transfer';
       case 'cash_pickup':
@@ -59,17 +61,61 @@ class _ModernConfirmationScreenState extends State<ModernConfirmationScreen> {
   }
 
   Future<void> _processTransfer() async {
-    // Navigate to payment details screen
+    // Extract account holder name from the account info API response
+    String accountHolderName = '';
+    String accountNumber = '';
+    
+    // The recipientData should contain the account info API response
+    // Expected format: {"status": "success", "data": {"name": "KIDIST FISSHA DAMTEA", ...}}
+    if (widget.recipientData.containsKey('accountInfo')) {
+      final accountInfo = widget.recipientData['accountInfo'];
+      if (accountInfo != null && accountInfo['data'] != null) {
+        accountHolderName = accountInfo['data']['name'] ?? '';
+      }
+    }
+    
+    // Get account number from recipient data based on transfer type
+    switch (widget.transferType) {
+      case 'wegagen_bank':
+        accountNumber = widget.recipientData['accountNumber'] ?? '';
+        // If account holder name is not from API, use the entered name
+        if (accountHolderName.isEmpty) {
+          accountHolderName = widget.recipientData['accountHolderName'] ?? '';
+        }
+        break;
+      case 'wegagen_ebirr':
+        accountNumber = widget.recipientData['phoneNumber'] ?? '';
+        if (accountHolderName.isEmpty) {
+          accountHolderName = widget.recipientData['holderName'] ?? '';
+        }
+        break;
+      case 'cash_pickup':
+        accountNumber = widget.recipientData['phoneNumber'] ?? '';
+        if (accountHolderName.isEmpty) {
+          accountHolderName = widget.recipientData['fullName'] ?? '';
+        }
+        break;
+      case 'school_pay':
+        accountNumber = widget.recipientData['studentId'] ?? '';
+        if (accountHolderName.isEmpty) {
+          accountHolderName = widget.recipientData['studentName'] ?? '';
+        }
+        break;
+    }
+    
+    // Create a default remark based on transfer type
+    String defaultRemark = '${_transferTitle} - ${widget.currency} ${widget.amount.toStringAsFixed(2)}';
+    
+    // Navigate to payment screen with pre-filled data
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => PaymentDetailsScreen(
-          transferType: widget.transferType,
-          amount: widget.amount,
-          currency: widget.currency,
-          etbAmount: widget.etbAmount,
-          fee: widget.fee,
-          exchangeRate: widget.exchangeRate,
-          recipientData: widget.recipientData,
+        builder: (context) => PaymentScreen(
+          prefilledAccountHolder: accountHolderName,
+          prefilledAccount: accountNumber,
+          prefilledAmount: widget.etbAmount,
+          prefilledCurrency: 'ETB',
+          prefilledExchangeRate: widget.exchangeRate,
+          prefilledRemark: defaultRemark,
         ),
       ),
     );

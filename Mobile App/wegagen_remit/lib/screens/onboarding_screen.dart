@@ -18,22 +18,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingData(
       image: 'assets/images/onboard/1.jpg',
       title: 'Welcome to Wegagen Remit',
-      description: 'Send money safely and securely to your loved ones worldwide.',
+      description:
+          'Send money safely and securely to your loved ones worldwide.',
     ),
     OnboardingData(
       image: 'assets/images/onboard/2.png',
       title: 'Fast & Secure Transfers',
-      description: 'Experience lightning-fast money transfers with bank-level security.',
+      description:
+          'Experience lightning-fast money transfers with bank-level security.',
     ),
     OnboardingData(
       image: 'assets/images/onboard/3.png',
       title: 'Easy KYC Verification',
-      description: 'Complete your verification quickly with our simple KYC process.',
+      description:
+          'Complete your verification quickly with our simple KYC process.',
     ),
     OnboardingData(
       image: 'assets/images/onboard/4.jpg',
       title: 'Start Sending Money',
-      description: 'You\'re all set! Start sending money to your family and friends.',
+      description:
+          'You\'re all set! Start sending money to your family and friends.',
+    ),
+    OnboardingData(
+      image: 'assets/images/onboard/1.png',
+      title: 'Start Sending Money',
+      description:
+          'You\'re all set! Start sending money to your family and friends.',
     ),
   ];
 
@@ -54,16 +64,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: _completeOnboarding,
                     child: const Text(
                       'Skip',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // PageView
             Expanded(
               child: PageView.builder(
@@ -79,7 +86,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
               ),
             ),
-            
+
             // Page indicator
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
@@ -95,7 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ),
-            
+
             // Next/Get Started button
             Padding(
               padding: const EdgeInsets.all(24.0),
@@ -170,9 +177,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 40),
-          
+
           // Title
           Text(
             data.title,
@@ -183,9 +190,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Description
           Text(
             data.description,
@@ -211,7 +218,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_completed', true);
-    
+
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),

@@ -259,7 +259,7 @@ class KycRequirementScreen extends StatelessWidget {
   String _getTransferTypeName() {
     switch (transferType) {
       case 'wegagen_bank':
-        return 'Bank Transfer';
+        return 'Wegagen Bank Transfer';
       case 'wegagen_ebirr':
         return 'Wegagen E-birr';
       case 'cash_pickup':

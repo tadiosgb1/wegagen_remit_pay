@@ -26,6 +26,7 @@ class UrlContainer {
   // Transfer endpoints
   static String get createTransfer => '$baseUrl/transfers';
   static String get getTransfers => '$baseUrl/transfers';
+  static String get getUserTransactions => '$baseUrl/transactions/me';
   static String getTransferById(String id) => '$baseUrl/transfers/$id';
   static String get cancelTransfer => '$baseUrl/transfers/cancel';
   static String get transferStatus => '$baseUrl/transfers/status';
@@ -40,7 +41,8 @@ class UrlContainer {
   static String get deleteRecipient => '$baseUrl/recipients';
 
   // Payment endpoints
-  static String get processPayment => '$baseUrl/payments/process';
+  static String get generateCaptureContext => '$baseUrl/payments/generate-capture-context';
+  static String get processPayment => '$baseUrl/payments/process-payment';
   static String get paymentMethods => '$baseUrl/payments/methods';
   static String get paymentHistory => '$baseUrl/payments/history';
 

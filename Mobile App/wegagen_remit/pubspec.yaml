@@ -25,11 +25,20 @@ dependencies:
   permission_handler: ^11.0.1
   path_provider: ^2.1.1
   country_picker: ^2.0.26
+  dio: ^5.4.0
+  flutter_riverpod: ^2.4.9
+  webview_flutter: ^4.4.4
+  webview_flutter_web: ^0.2.2+4
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  build_runner: ^2.4.7
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

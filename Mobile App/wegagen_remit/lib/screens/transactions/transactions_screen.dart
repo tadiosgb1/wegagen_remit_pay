@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/transfer.dart';
+import '../../services/transactions_service.dart';
 import '../../widgets/activity_tracker.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -10,69 +11,54 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  final TransactionsService _transactionsService = TransactionsService();
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'Completed', 'Pending', 'Failed'];
+  
+  List<Transfer> _transactions = [];
+  bool _isLoading = true;
+  String? _error;
 
-  // Mock transaction data
-  final List<Transfer> _mockTransactions = [
-    Transfer(
-      id: 'WR1704123456789',
-      type: TransferType.wegagenBank,
-      amount: 500.00,
-      fromCurrency: 'USD',
-      etbAmount: 77300.00,
-      exchangeRate: 154.60,
-      fee: 5.00,
-      recipientName: 'TADESSE GEBREMICHEL BERHE',
-      recipientDetails: {
-        'accountNumber': '1000000099839',
-        'accountType': 'Savings Account',
-      },
-      status: TransferStatus.completed,
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      completedAt: DateTime.now().subtract(const Duration(hours: 1)),
-    ),
-    Transfer(
-      id: 'WR1704123456790',
-      type: TransferType.wegagenEbirr,
-      amount: 200.00,
-      fromCurrency: 'USD',
-      etbAmount: 30920.00,
-      exchangeRate: 154.60,
-      fee: 2.00,
-      recipientName: 'KIDUS ATSBIH',
-      recipientDetails: {
-        'phoneNumber': '0911234567',
-      },
-      status: TransferStatus.pending,
-      createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
-    ),
-    Transfer(
-      id: 'WR1704123456791',
-      type: TransferType.cashPickup,
-      amount: 1000.00,
-      fromCurrency: 'EUR',
-      etbAmount: 168450.00,
-      exchangeRate: 168.45,
-      fee: 10.00,
-      recipientName: 'MERON TESFAYE',
-      recipientDetails: {
-        'phoneNumber': '0922345678',
-        'fullName': 'MERON TESFAYE SOLOMON',
-        'address': 'Addis Ababa, Ethiopia',
-        'city': 'Addis Ababa',
-        'region': 'Addis Ababa',
-      },
-      status: TransferStatus.completed,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      completedAt: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-      pickupCode: 'PK789123',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final transactions = await _transactionsService.getUserTransactions(
+        status: _selectedFilter == 'All' ? null : _selectedFilter,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _transactions = transactions;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshTransactions() async {
+    await _loadTransactions();
+  }
 
   List<Transfer> get _filteredTransactions {
     if (_selectedFilter == 'All') {
-      return _mockTransactions;
+      return _transactions;
     }
     
     TransferStatus? status;
@@ -87,10 +73,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         status = TransferStatus.failed;
         break;
       default:
-        return _mockTransactions;
+        return _transactions;
     }
     
-    return _mockTransactions.where((transaction) => transaction.status == status).toList();
+    return _transactions.where((transaction) => transaction.status == status).toList();
   }
 
   @override
@@ -124,6 +110,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           setState(() {
                             _selectedFilter = filter;
                           });
+                          _loadTransactions(); // Reload transactions when filter changes
                         },
                         selectedColor: const Color(0xFFF37021).withValues(alpha: 0.2),
                         checkmarkColor: const Color(0xFFF37021),
@@ -140,19 +127,97 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             
             // Transactions List
             Expanded(
-              child: _filteredTransactions.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filteredTransactions.length,
-                      itemBuilder: (context, index) {
-                        final transaction = _filteredTransactions[index];
-                        return _buildTransactionCard(transaction);
-                      },
-                    ),
+              child: _isLoading
+                  ? _buildLoadingState()
+                  : _error != null
+                      ? _buildErrorState()
+                      : _filteredTransactions.isEmpty
+                          ? _buildEmptyState()
+                          : RefreshIndicator(
+                              onRefresh: _refreshTransactions,
+                              color: const Color(0xFFF37021),
+                              child: ListView.builder(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: _filteredTransactions.length,
+                                itemBuilder: (context, index) {
+                                  final transaction = _filteredTransactions[index];
+                                  return _buildTransactionCard(transaction);
+                                },
+                              ),
+                            ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: Color(0xFFF37021),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading transactions...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 80,
+            color: Colors.red.shade400,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Failed to Load Transactions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.red.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _error ?? 'Something went wrong',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton(
+            onPressed: _loadTransactions,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF37021),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Retry',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -436,7 +501,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String _getTransferTypeName(TransferType type) {
     switch (type) {
       case TransferType.wegagenBank:
-        return 'Bank Transfer';
+        return 'Wegagen Bank Transfer';
       case TransferType.wegagenEbirr:
         return 'Wegagen E-birr';
       case TransferType.cashPickup:

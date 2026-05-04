@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/kyc_data.dart';
 import '../../widgets/kyc_status_widget.dart';
+import '../kyc/kyc_status_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -183,6 +184,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           'Personal Information',
                           'Update your profile details',
                           () {},
+                        ),
+                        const Divider(height: 1),
+                        _buildSettingsItem(
+                          Icons.verified_user_outlined,
+                          'KYC Status',
+                          'View identity verification status',
+                          () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const KycStatusScreen(),
+                              ),
+                            );
+                          },
                         ),
                         const Divider(height: 1),
                         _buildSettingsItem(

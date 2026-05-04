@@ -362,24 +362,24 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                // const SizedBox(height: 20),
 
                 // Referral Code (Optional)
-                TextFormField(
-                  controller: _referralCodeController,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(
-                    labelText: 'Referral Code (Optional)',
-                    prefixIcon: const Icon(Icons.card_giftcard_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFF37021)),
-                    ),
-                  ),
-                ),
+                // TextFormField(
+                //   controller: _referralCodeController,
+                //   textCapitalization: TextCapitalization.characters,
+                //   decoration: InputDecoration(
+                //     labelText: 'Referral Code (Optional)',
+                //     prefixIcon: const Icon(Icons.card_giftcard_outlined),
+                //     border: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(12),
+                //     ),
+                //     focusedBorder: OutlineInputBorder(
+                //       borderRadius: BorderRadius.circular(12),
+                //       borderSide: const BorderSide(color: Color(0xFFF37021)),
+                //     ),
+                //   ),
+                // ),
                 const SizedBox(height: 24),
 
                 // Terms and Privacy Checkboxes

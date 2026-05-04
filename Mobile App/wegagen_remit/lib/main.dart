@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as provider;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter_web/webview_flutter_web.dart';
+import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 import 'providers/auth_provider.dart';
 import 'providers/exchange_rate_provider.dart';
 import 'services/api_service.dart';
@@ -11,10 +14,13 @@ import 'screens/auth/login_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize WebView for web platform
+  WebViewPlatform.instance = WebWebViewPlatform();
+  
   // Initialize API service
   await ApiService().initialize();
   
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -22,10 +28,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return provider.MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ExchangeRateProvider()),
+        provider.ChangeNotifierProvider(create: (_) => AuthProvider()),
+        provider.ChangeNotifierProvider(create: (_) => ExchangeRateProvider()),
       ],
       child: MaterialApp(
         title: 'Wegagen Remit',
@@ -55,42 +61,27 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _initializeApp() async {
-    print('DEBUG: AuthWrapper - Starting app initialization...');
+    // Add splash delay
+    await Future.delayed(const Duration(seconds: 2));
     
-    // Check authentication status first
-    await context.read<AuthProvider>().checkAuthStatus();
-    
-    final authProvider = context.read<AuthProvider>();
-    print('DEBUG: AuthWrapper - After checkAuthStatus: isAuthenticated=${authProvider.isAuthenticated}, user=${authProvider.user}');
-    
-    // Then check onboarding status
-    await _checkOnboardingStatus();
-  }
-
-  Future<void> _checkOnboardingStatus() async {
-    await Future.delayed(const Duration(seconds: 2)); // Splash delay
+    if (!mounted) return;
     
     final prefs = await SharedPreferences.getInstance();
     final hasSeenOnboarding = prefs.getBool('onboarding_completed') ?? false;
+    final hasToken = prefs.getString('auth_token') != null;
     
-    if (mounted) {
-      if (!hasSeenOnboarding) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
-      } else {
-        // Check if user is authenticated
-        final authProvider = context.read<AuthProvider>();
-        if (authProvider.isAuthenticated) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-          );
-        } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
-        }
-      }
+    if (!hasSeenOnboarding) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+      );
+    } else if (hasToken) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     }
   }
 
