@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/environment.dart';
 
@@ -9,11 +11,27 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
-  final http.Client _client = http.Client();
+  late final http.Client _client;
+
+  // Initialize client with SSL handling
+  void _initializeClient() {
+    if (kIsWeb) {
+      // For web, use the default HTTP client
+      _client = http.Client();
+    } else if (Environment.isDevelopment) {
+      // For mobile development, create HTTP client that accepts self-signed certificates
+      final httpClient = HttpClient()
+        ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      _client = IOClient(httpClient);
+    } else {
+      _client = http.Client();
+    }
+  }
   String? _authToken;
 
   // Initialize with stored token
   Future<void> initialize() async {
+    _initializeClient(); // Initialize the HTTP client
     final prefs = await SharedPreferences.getInstance();
     _authToken = prefs.getString('auth_token');
   }

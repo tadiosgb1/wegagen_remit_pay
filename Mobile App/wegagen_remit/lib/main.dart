@@ -2,25 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:webview_flutter_web/webview_flutter_web.dart';
-import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 import 'providers/auth_provider.dart';
 import 'providers/exchange_rate_provider.dart';
 import 'services/api_service.dart';
+import 'config/environment.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize WebView for web platform
-  WebViewPlatform.instance = WebWebViewPlatform();
-  
-  // Initialize API service
-  await ApiService().initialize();
-  
-  runApp(const ProviderScope(child: MyApp()));
+
+  try {
+    print('🚀 Starting app initialization...');
+    print('🌐 API URL: ${Environment.apiUrl}');
+    
+    // Initialize API service
+    await ApiService().initialize();
+    print('✅ API service initialized successfully');
+    
+    runApp(const ProviderScope(child: MyApp()));
+    print('✅ App started successfully');
+  } catch (e) {
+    print('❌ App initialization failed: $e');
+    runApp(const ProviderScope(child: MyApp()));
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -61,27 +67,53 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _initializeApp() async {
+    print('🔄 Starting app initialization...');
+    
     // Add splash delay
     await Future.delayed(const Duration(seconds: 2));
-    
-    if (!mounted) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenOnboarding = prefs.getBool('onboarding_completed') ?? false;
-    final hasToken = prefs.getString('auth_token') != null;
-    
-    if (!hasSeenOnboarding) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-      );
-    } else if (hasToken) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-      );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+    print('⏰ Splash delay completed');
+
+    if (!mounted) {
+      print('❌ Widget not mounted, returning');
+      return;
+    }
+
+    try {
+      print('📱 Getting SharedPreferences...');
+      final prefs = await SharedPreferences.getInstance();
+      
+      final hasSeenOnboarding = prefs.getBool('onboarding_completed') ?? false;
+      final hasToken = prefs.getString('auth_token') != null;
+      
+      print('🔍 hasSeenOnboarding: $hasSeenOnboarding');
+      print('🔍 hasToken: $hasToken');
+
+      if (!hasSeenOnboarding) {
+        print('🚀 Navigating to OnboardingScreen');
+        // Temporary: Skip onboarding for testing
+        print('⚠️ TEMP: Skipping onboarding, going to LoginScreen');
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
+      } else if (hasToken) {
+        print('🚀 Navigating to MainNavigationScreen');
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+          );
+        }
+      } else {
+        print('🚀 Navigating to LoginScreen');
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error in _initializeApp: $e');
     }
   }
 
@@ -153,15 +185,10 @@ class SplashScreen extends StatelessWidget {
             const SizedBox(height: 10),
             const Text(
               'Send money worldwide',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 50),
-            const CircularProgressIndicator(
-              color: Color(0xFFF37021),
-            ),
+            const CircularProgressIndicator(color: Color(0xFFF37021)),
           ],
         ),
       ),

@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/environment.dart';
 import '../config/url_container.dart';
@@ -21,6 +24,14 @@ class PaymentService {
         'Accept': 'application/json',
       },
     ));
+
+    // Add SSL certificate handling for development (only for non-web platforms)
+    if (!kIsWeb && Environment.isDevelopment) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
+        client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+        return client;
+      };
+    }
 
     // Add auth interceptor
     _dio.interceptors.add(InterceptorsWrapper(

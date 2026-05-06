@@ -5,7 +5,7 @@ import 'forgot_pin_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? message;
-  
+
   const LoginScreen({super.key, this.message});
 
   @override
@@ -18,22 +18,36 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _keepSignedIn = false;
 
   @override
+  void initState() {
+    super.initState();
+    print('🔐 LoginScreen: initState called');
+    print('🔐 LoginScreen: Message = ${widget.message}');
+  }
+
+  @override
   void dispose() {
+    print('🔐 LoginScreen: dispose called');
     _emailController.dispose();
     super.dispose();
   }
 
   void _continueToPin() {
+    print('🔐 LoginScreen: _continueToPin called');
+    print('🔐 LoginScreen: Email = ${_emailController.text.trim()}');
+
     if (!_formKey.currentState!.validate()) {
+      print('🔐 LoginScreen: Form validation failed');
       return;
     }
 
+    print(
+      '🔐 LoginScreen: Form validation passed, navigating to EnterPinScreen',
+    );
     // Navigate to PIN entry screen
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => EnterPinScreen(
-          email: _emailController.text.trim(),
-        ),
+        builder: (context) =>
+            EnterPinScreen(email: _emailController.text.trim()),
       ),
     );
   }
@@ -50,6 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('🔐 LoginScreen: build() called');
+    print('🔐 LoginScreen: Screen size = ${MediaQuery.of(context).size}');
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       resizeToAvoidBottomInset: true,
@@ -69,7 +86,55 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(height: MediaQuery.of(context).size.height * 0.08),
-                  
+
+                  // Logo
+                  Center(
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: 0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            print(
+                              '🔐 LoginScreen: Logo failed to load: $error',
+                            );
+                            return Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF37021),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Icon(
+                                Icons.account_balance,
+                                color: Colors.white,
+                                size: 40,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
                   // Title
                   const Text(
                     'Sign In',
@@ -81,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Subtitle
                   const Text(
                     'Enter your credentials to manage\nyour money',
@@ -92,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   // Show message if provided
                   if (widget.message != null) ...[
                     const SizedBox(height: 24),
@@ -101,7 +166,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFF37021).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFF37021).withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: const Color(0xFFF37021).withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -124,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ],
-                  
+
                   const SizedBox(height: 60),
 
                   // Email Field
@@ -163,56 +230,67 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25),
-                          borderSide: const BorderSide(color: Color(0xFFF37021), width: 2),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFF37021),
+                            width: 2,
+                          ),
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25),
-                          borderSide: const BorderSide(color: Colors.red, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25),
-                          borderSide: const BorderSide(color: Colors.red, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
                         ),
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
                       ),
                       validator: _validateEmail,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
 
                   // Keep me signed in checkbox
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: Checkbox(
-                          value: _keepSignedIn,
-                          onChanged: (value) {
-                            setState(() {
-                              _keepSignedIn = value ?? false;
-                            });
-                          },
-                          activeColor: const Color(0xFFF37021),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Keep me signed in',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
+                  // Row(
+                  //   children: [
+                  //     SizedBox(
+                  //       width: 24,
+                  //       height: 24,
+                  //       child: Checkbox(
+                  //         value: _keepSignedIn,
+                  //         onChanged: (value) {
+                  //           setState(() {
+                  //             _keepSignedIn = value ?? false;
+                  //           });
+                  //         },
+                  //         activeColor: const Color(0xFFF37021),
+                  //         shape: RoundedRectangleBorder(
+                  //           borderRadius: BorderRadius.circular(4),
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     const SizedBox(width: 12),
+                  //     const Text(
+                  //       'Keep me signed in',
+                  //       style: TextStyle(
+                  //         fontSize: 16,
+                  //         color: Colors.black87,
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                   const SizedBox(height: 40),
 
                   // Sign In Button
@@ -247,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 40),
 
                   // Forgot PIN Link
@@ -270,7 +348,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 80),
 
                   // Sign Up Link
@@ -288,7 +366,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (context) => const CreateAccountScreen(),
+                                    builder: (context) =>
+                                        const CreateAccountScreen(),
                                   ),
                                 );
                               },

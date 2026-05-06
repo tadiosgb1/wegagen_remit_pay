@@ -49,6 +49,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('🎨 Building OnboardingScreen - currentPage: $_currentPage');
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -76,12 +78,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (index) {
+                  print('📄 Page changed to: $index');
                   setState(() {
                     _currentPage = index;
                   });
                 },
                 itemCount: _onboardingData.length,
                 itemBuilder: (context, index) {
+                  print('🏗️ Building page $index: ${_onboardingData[index].title}');
                   return _buildOnboardingPage(_onboardingData[index]);
                 },
               ),
