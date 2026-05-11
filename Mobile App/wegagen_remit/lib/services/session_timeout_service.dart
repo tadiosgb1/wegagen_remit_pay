@@ -10,8 +10,8 @@ class SessionTimeoutService {
   Timer? _warningTimer;
   VoidCallback? _onTimeout;
   
-  // Session timeout duration (2 minutes)
-  static const Duration _timeoutDuration = Duration(minutes: 2);
+  // Session timeout duration (15 minutes for better UX)
+  static const Duration _timeoutDuration = Duration(minutes: 15);
   
   bool _isActive = false;
   VoidCallback? _onWarning;
@@ -64,14 +64,14 @@ class SessionTimeoutService {
     
     if (!_isActive) return;
 
-    // Set timer for warning (1.5 minutes)
-    _warningTimer = Timer(Duration(minutes: 1, seconds: 30), () {
+    // Set timer for warning (13 minutes)
+    _warningTimer = Timer(Duration(minutes: 13), () {
       if (_isActive && _onWarning != null) {
         _onWarning!();
       }
     });
 
-    // Set timer for timeout (2 minutes)
+    // Set timer for timeout (15 minutes)
     _sessionTimer = Timer(_timeoutDuration, () {
       if (_isActive && _onTimeout != null) {
         _onTimeout!();

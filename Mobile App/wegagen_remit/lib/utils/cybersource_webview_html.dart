@@ -147,6 +147,34 @@ class CyberSourceWebViewHTML {
             border-radius: 8px;
             font-size: 16px;
             min-height: 48px;
+            position: relative;
+            background: white;
+        }
+        
+        .microform-field.loading {
+            background: #f8f9fa;
+            border-color: #F37021;
+        }
+        
+        .microform-field.loading::after {
+            content: 'Loading secure field...';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-size: 14px;
+            pointer-events: none;
+        }
+        
+        .field-status {
+            background: #e8f5e8;
+            color: #2d5a2d;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 16px;
+            text-align: center;
         }
     </style>
 </head>
@@ -160,6 +188,13 @@ class CyberSourceWebViewHTML {
         <div class="security-info">
             <span class="icon">🔒</span>
             This form is secured by CyberSource encryption
+        </div>
+        
+        <!-- Debug info -->
+        <div id="debug-info" style="background: #f0f0f0; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; font-family: monospace;">
+            <div>Status: <span id="debug-status">Initializing...</span></div>
+            <div>Capture Context: <span id="debug-context">Loading...</span></div>
+            <div>Fields Ready: <span id="debug-fields">No</span></div>
         </div>
         
         <div id="error-message" class="error"></div>
@@ -200,62 +235,68 @@ class CyberSourceWebViewHTML {
 
     <script src="https://testflex.cybersource.com/microform/bundle/v2.9.0/flex-microform.min.js"></script>
     <script>
-        // Enhanced logging function
-        function logToFlutter(message) {
-            console.log(message);
+        console.log('🚀 Payment form starting...');
+        
+        // Simple logging
+        function log(message) {
+            console.log('💳 ' + message);
             try {
                 if (window.FlutterLog && typeof window.FlutterLog.postMessage === 'function') {
                     window.FlutterLog.postMessage(message);
                 }
             } catch (e) {
-                console.log('Failed to log to Flutter:', e);
+                // Ignore Flutter logging errors
             }
         }
         
-        logToFlutter('Starting CyberSource Flex initialization...');
-        logToFlutter('Capture Context received: ' + ('$captureContext'.length > 0 ? 'Yes (' + '$captureContext'.length + ' chars)' : 'No'));
+        const captureContext = '$captureContext';
+        log('Capture context length: ' + captureContext.length);
         
-        // Validate capture context format
-        if (captureContext && captureContext.length > 0) {
-            try {
-                // Basic JWT validation (should have 3 parts separated by dots)
-                const parts = captureContext.split('.');
-                if (parts.length === 3) {
-                    logToFlutter('Capture context appears to be valid JWT format');
-                } else {
-                    logToFlutter('WARNING: Capture context does not appear to be valid JWT format');
-                }
-            } catch (e) {
-                logToFlutter('Error validating capture context: ' + e.message);
-            }
-        } else {
-            logToFlutter('ERROR: No capture context provided');
-            showError('No capture context provided. Please try again.');
+        // Update debug info
+        document.getElementById('debug-context').textContent = captureContext.length > 0 ? 
+            captureContext.substring(0, 50) + '... (' + captureContext.length + ' chars)' : 'Not loaded';
+        
+        // Validate capture context
+        if (!captureContext || captureContext === '\$captureContext' || captureContext.length < 100) {
+            document.getElementById('debug-status').textContent = 'ERROR: Invalid capture context';
+            document.getElementById('error-message').textContent = 'Invalid payment configuration';
+            document.getElementById('error-message').classList.add('show');
             return;
         }
         
-        // CyberSource Flex configuration
-        const captureContext = '$captureContext';
-        let flex;
-        let microform;
+        let flex, microform;
+        let fieldsReady = false;
         
-        // Initialize CyberSource Flex
-        function initializeFlex() {
+        // Initialize payment form
+        function initPaymentForm() {
+            log('Initializing payment form...');
+            document.getElementById('debug-status').textContent = 'Initializing...';
+            
+            // Check if CyberSource library is loaded
+            if (typeof Flex === 'undefined') {
+                log('CyberSource library not loaded yet, waiting...');
+                document.getElementById('debug-status').textContent = 'Waiting for CyberSource library...';
+                setTimeout(initPaymentForm, 500);
+                return;
+            }
+            
             try {
-                logToFlutter('Creating Flex instance...');
+                log('Creating Flex instance...');
+                document.getElementById('debug-status').textContent = 'Creating Flex instance...';
                 flex = new Flex(captureContext);
                 
-                logToFlutter('Creating microform...');
-                // Create microform
+                log('Creating microform...');
+                document.getElementById('debug-status').textContent = 'Creating microform...';
                 microform = flex.microform({
                     styles: {
                         'input': {
                             'font-size': '16px',
-                            'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                             'color': '#333',
-                            'padding': '12px',
+                            'padding': '0',
                             'border': 'none',
-                            'outline': 'none'
+                            'outline': 'none',
+                            'width': '100%',
+                            'height': '100%'
                         },
                         ':focus': {
                             'color': '#F37021'
@@ -269,147 +310,128 @@ class CyberSourceWebViewHTML {
                     }
                 });
                 
-                logToFlutter('Creating fields...');
+                document.getElementById('debug-status').textContent = 'Loading payment fields...';
                 
-                // Create number field
-                const numberField = microform.field('number', {
-                    placeholder: '1234 5678 9012 3456'
-                });
-                numberField.load('#cardNumber-container');
-                logToFlutter('Card number field loaded');
+                log('Loading card number field...');
+                const cardNumberField = microform.field('number');
+                cardNumberField.load('#cardNumber-container');
                 
-                // Create expiry month field
-                const expiryMonthField = microform.field('expirationMonth', {
-                    placeholder: 'MM'
-                });
-                expiryMonthField.load('#expirationMonth-container');
-                logToFlutter('Expiry month field loaded');
+                log('Loading CVV field...');
+                const cvvField = microform.field('securityCode');
+                cvvField.load('#securityCode-container');
                 
-                // Create expiry year field
-                const expiryYearField = microform.field('expirationYear', {
-                    placeholder: 'YY'
-                });
-                expiryYearField.load('#expirationYear-container');
-                logToFlutter('Expiry year field loaded');
+                log('Loading expiry month field...');
+                const monthField = microform.field('expirationMonth');
+                monthField.load('#expirationMonth-container');
                 
-                // Create security code field
-                const securityCodeField = microform.field('securityCode', {
-                    placeholder: '123'
-                });
-                securityCodeField.load('#securityCode-container');
-                logToFlutter('Security code field loaded');
+                log('Loading expiry year field...');
+                const yearField = microform.field('expirationYear');
+                yearField.load('#expirationYear-container');
                 
-                logToFlutter('CyberSource Flex initialized successfully');
-                hideError();
+                // Mark fields as ready after a short delay
+                setTimeout(() => {
+                    fieldsReady = true;
+                    log('✅ All fields loaded successfully!');
+                    document.getElementById('debug-status').textContent = '✅ Ready for payment';
+                    document.getElementById('debug-fields').textContent = 'Yes';
+                    document.getElementById('debug-fields').style.color = '#28a745';
+                    
+                    // Visual feedback - flash green borders
+                    const containers = document.querySelectorAll('.microform-field');
+                    containers.forEach(container => {
+                        container.style.borderColor = '#28a745';
+                        container.style.boxShadow = '0 0 5px rgba(40, 167, 69, 0.3)';
+                    });
+                    
+                    setTimeout(() => {
+                        containers.forEach(container => {
+                            container.style.borderColor = '#e1e1e1';
+                            container.style.boxShadow = 'none';
+                        });
+                    }, 2000);
+                    
+                    // Hide any error messages
+                    document.getElementById('error-message').classList.remove('show');
+                }, 1000);
                 
             } catch (error) {
-                logToFlutter('Failed to initialize CyberSource Flex: ' + error.message);
-                showError('Failed to initialize secure payment form: ' + error.message);
+                log('❌ Error initializing payment form: ' + error.message);
+                document.getElementById('debug-status').textContent = '❌ Error: ' + error.message;
+                document.getElementById('error-message').textContent = 'Failed to load payment form: ' + error.message;
+                document.getElementById('error-message').classList.add('show');
             }
         }
         
         // Handle form submission
         document.getElementById('payment-form').addEventListener('submit', function(e) {
             e.preventDefault();
+            log('Form submitted');
             
-            logToFlutter('Form submitted');
-            
-            if (!microform) {
-                showError('Payment form not ready. Please try again.');
+            if (!fieldsReady || !microform) {
+                document.getElementById('error-message').textContent = 'Payment form not ready. Please wait and try again.';
+                document.getElementById('error-message').classList.add('show');
                 return;
             }
             
-            showLoading(true);
-            hideError();
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('payment-form').style.display = 'none';
+            document.getElementById('error-message').classList.remove('show');
             
-            // Create token
+            log('Creating payment token...');
+            
             microform.createToken({}, function(err, token) {
-                logToFlutter('Token creation callback - Error: ' + (err ? err.message : 'None') + ', Token: ' + (token ? 'Received' : 'None'));
-                showLoading(false);
+                // Hide loading
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('payment-form').style.display = 'block';
                 
                 if (err) {
-                    logToFlutter('Token creation failed: ' + err.message);
-                    showError('Payment validation failed: ' + (err.message || 'Please check your card details and try again.'));
+                    log('❌ Token creation failed: ' + err.message);
+                    document.getElementById('error-message').textContent = 'Payment validation failed: ' + err.message;
+                    document.getElementById('error-message').classList.add('show');
                     return;
                 }
                 
                 if (token) {
-                    logToFlutter('Token created successfully: ' + token);
+                    log('✅ Token created successfully');
                     
-                    // Send token back to Flutter - try multiple methods
+                    // Send token to Flutter
                     try {
-                        // Method 1: Flutter WebView JavaScript channel
                         if (window.paymentToken && typeof window.paymentToken.postMessage === 'function') {
-                            logToFlutter('Sending token via Flutter channel');
                             window.paymentToken.postMessage(JSON.stringify(token));
-                            return;
+                        } else {
+                            window.parent.postMessage({
+                                type: 'PAYMENT_TOKEN',
+                                token: token
+                            }, '*');
                         }
-                        
-                        // Method 2: Post message to parent (for Flutter web)
-                        logToFlutter('Sending token via postMessage');
-                        window.parent.postMessage({
-                            type: 'PAYMENT_TOKEN',
-                            token: token
-                        }, '*');
-                        
-                        // Method 3: Console log for debugging
-                        logToFlutter('TOKEN_READY: ' + JSON.stringify(token));
-                        
-                        // Show success message if no communication method worked
-                        showError('Payment token generated successfully. Check console for token details.');
-                        
-                    } catch (commError) {
-                        logToFlutter('Communication error: ' + commError.message);
-                        showError('Payment processed but communication failed. Check console for token details.');
+                        log('Token sent to Flutter');
+                    } catch (e) {
+                        log('Failed to send token: ' + e.message);
+                        document.getElementById('error-message').textContent = 'Payment processed but communication failed.';
+                        document.getElementById('error-message').classList.add('show');
                     }
                 } else {
-                    showError('Failed to process payment. Please try again.');
+                    log('❌ No token received');
+                    document.getElementById('error-message').textContent = 'Failed to process payment. Please try again.';
+                    document.getElementById('error-message').classList.add('show');
                 }
             });
         });
         
-        function showLoading(show) {
-            const loading = document.getElementById('loading');
-            const form = document.getElementById('payment-form');
-            
-            if (show) {
-                loading.classList.add('show');
-                form.style.display = 'none';
-            } else {
-                loading.classList.remove('show');
-                form.style.display = 'block';
+        // Start initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPaymentForm);
+        } else {
+            initPaymentForm();
+        }
+        
+        // Also try when window loads (backup)
+        window.addEventListener('load', function() {
+            if (!fieldsReady) {
+                log('Backup initialization attempt...');
+                setTimeout(initPaymentForm, 1000);
             }
-        }
-        
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-        }
-        
-        function hideError() {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.classList.remove('show');
-        }
-        
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            logToFlutter('DOM loaded, initializing Flex...');
-            setTimeout(initializeFlex, 500);
-        });
-        
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                console.log('Page hidden');
-            } else {
-                console.log('Page visible');
-            }
-        });
-
-        // Listen for messages from parent (Flutter web)
-        window.addEventListener('message', function(event) {
-            console.log('Received message:', event.data);
         });
     </script>
 </body>

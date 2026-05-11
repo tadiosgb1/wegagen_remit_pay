@@ -80,20 +80,45 @@ class PaymentService {
       final response = await _dio.post(UrlContainer.generateCaptureContext);
       
       if (response.statusCode == 200) {
-        // Handle case where response is a string (JWT token) instead of JSON
+        String captureContextToken;
+        
+        // Handle different response formats
         if (response.data is String) {
-          // The response is directly the capture context JWT token
-          return CaptureContextResponse(
-            status: 'success',
-            data: CaptureContextData(
-              captureContext: response.data as String,
-              sessionId: null,
-            ),
-          );
+          captureContextToken = response.data as String;
+        } else if (response.data is Map<String, dynamic>) {
+          final data = response.data as Map<String, dynamic>;
+          if (data.containsKey('captureContext')) {
+            captureContextToken = data['captureContext'] as String;
+          } else if (data.containsKey('data') && data['data'] is Map) {
+            captureContextToken = data['data']['captureContext'] as String;
+          } else {
+            // Try to find any JWT-like string in the response
+            final jsonStr = data.toString();
+            final jwtMatch = RegExp(r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+').firstMatch(jsonStr);
+            if (jwtMatch != null) {
+              captureContextToken = jwtMatch.group(0)!;
+            } else {
+              throw PaymentException('No valid capture context found in response');
+            }
+          }
         } else {
-          // Normal JSON response
-          return CaptureContextResponse.fromJson(response.data);
+          throw PaymentException('Invalid response format from server');
         }
+        
+        // Validate the token format
+        if (captureContextToken.isEmpty || !captureContextToken.contains('.')) {
+          throw PaymentException('Invalid capture context token format');
+        }
+        
+        print('Capture context token received: ${captureContextToken.substring(0, 50)}...');
+        
+        return CaptureContextResponse(
+          status: 'success',
+          data: CaptureContextData(
+            captureContext: captureContextToken,
+            sessionId: null,
+          ),
+        );
       } else {
         throw PaymentException(
           'Failed to generate capture context: ${response.statusMessage}',
@@ -101,8 +126,11 @@ class PaymentService {
         );
       }
     } on DioException catch (e) {
+      print('DioException in getCaptureContext: ${e.message}');
+      print('Response data: ${e.response?.data}');
       throw _handleDioError(e);
     } catch (e) {
+      print('Exception in getCaptureContext: $e');
       throw PaymentException('Unexpected error: $e');
     }
   }

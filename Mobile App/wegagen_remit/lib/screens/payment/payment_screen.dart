@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
-import 'payment_webview_screen.dart';
+import 'billing_info_screen.dart';
 
 class PaymentScreen extends ConsumerStatefulWidget {
   final String? prefilledAccountHolder;
@@ -379,10 +379,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget _buildProceedButton() {
     final formData = ref.watch(paymentFormProvider);
     
+    // Check only the fields that are collected on this screen
+    final isBasicInfoValid = formData.toAccountHolder.isNotEmpty &&
+                            formData.toAccount.isNotEmpty &&
+                            formData.amount > 0 &&
+                            formData.currency.isNotEmpty &&
+                            formData.remark.isNotEmpty &&
+                            formData.exchangeRate > 0;
+    
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: formData.isValid ? _proceedToPayment : null,
+        onPressed: isBasicInfoValid ? _proceedToPayment : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFF37021),
           foregroundColor: Colors.white,
@@ -435,10 +443,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   void _proceedToPayment() {
     if (_formKey.currentState?.validate() ?? false) {
-      // Navigate to WebView for secure payment
+      // Navigate to billing info screen first
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => const PaymentWebViewScreen(),
+          builder: (context) => const BillingInfoScreen(),
         ),
       );
     }

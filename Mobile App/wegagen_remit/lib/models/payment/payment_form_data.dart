@@ -5,6 +5,16 @@ class PaymentFormData {
   final String currency;
   final String remark;
   final double exchangeRate;
+  
+  // Billing information
+  final String firstName;
+  final String lastName;
+  final String address1;
+  final String locality;
+  final String administrativeArea;
+  final String postalCode;
+  final String country;
+  final String email;
 
   const PaymentFormData({
     required this.toAccountHolder,
@@ -13,6 +23,14 @@ class PaymentFormData {
     required this.currency,
     required this.remark,
     required this.exchangeRate,
+    required this.firstName,
+    required this.lastName,
+    required this.address1,
+    required this.locality,
+    required this.administrativeArea,
+    required this.postalCode,
+    required this.country,
+    required this.email,
   });
 
   PaymentFormData copyWith({
@@ -22,6 +40,14 @@ class PaymentFormData {
     String? currency,
     String? remark,
     double? exchangeRate,
+    String? firstName,
+    String? lastName,
+    String? address1,
+    String? locality,
+    String? administrativeArea,
+    String? postalCode,
+    String? country,
+    String? email,
   }) {
     return PaymentFormData(
       toAccountHolder: toAccountHolder ?? this.toAccountHolder,
@@ -30,6 +56,14 @@ class PaymentFormData {
       currency: currency ?? this.currency,
       remark: remark ?? this.remark,
       exchangeRate: exchangeRate ?? this.exchangeRate,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      address1: address1 ?? this.address1,
+      locality: locality ?? this.locality,
+      administrativeArea: administrativeArea ?? this.administrativeArea,
+      postalCode: postalCode ?? this.postalCode,
+      country: country ?? this.country,
+      email: email ?? this.email,
     );
   }
 
@@ -39,6 +73,14 @@ class PaymentFormData {
            amount > 0 &&
            currency.isNotEmpty &&
            remark.isNotEmpty &&
-           exchangeRate > 0;
+           exchangeRate > 0 &&
+           firstName.isNotEmpty &&
+           lastName.isNotEmpty &&
+           address1.isNotEmpty &&
+           locality.isNotEmpty &&
+           administrativeArea.isNotEmpty &&
+           postalCode.isNotEmpty &&
+           country.isNotEmpty &&
+           email.isNotEmpty;
   }
 }

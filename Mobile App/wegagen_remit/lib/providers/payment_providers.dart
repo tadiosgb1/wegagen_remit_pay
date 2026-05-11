@@ -40,6 +40,14 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
     currency: 'ETB',
     remark: '',
     exchangeRate: 0.0,
+    firstName: '',
+    lastName: '',
+    address1: '',
+    locality: '',
+    administrativeArea: '',
+    postalCode: '',
+    country: '',
+    email: '',
   ));
 
   void updateAccountHolder(String value) {
@@ -66,6 +74,38 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
     state = state.copyWith(exchangeRate: value);
   }
 
+  void updateFirstName(String value) {
+    state = state.copyWith(firstName: value);
+  }
+
+  void updateLastName(String value) {
+    state = state.copyWith(lastName: value);
+  }
+
+  void updateAddress1(String value) {
+    state = state.copyWith(address1: value);
+  }
+
+  void updateLocality(String value) {
+    state = state.copyWith(locality: value);
+  }
+
+  void updateAdministrativeArea(String value) {
+    state = state.copyWith(administrativeArea: value);
+  }
+
+  void updatePostalCode(String value) {
+    state = state.copyWith(postalCode: value);
+  }
+
+  void updateCountry(String value) {
+    state = state.copyWith(country: value);
+  }
+
+  void updateEmail(String value) {
+    state = state.copyWith(email: value);
+  }
+
   void reset() {
     state = const PaymentFormData(
       toAccountHolder: '',
@@ -74,6 +114,14 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
       currency: 'ETB',
       remark: '',
       exchangeRate: 0.0,
+      firstName: '',
+      lastName: '',
+      address1: '',
+      locality: '',
+      administrativeArea: '',
+      postalCode: '',
+      country: '',
+      email: '',
     );
   }
 }
@@ -89,13 +137,16 @@ class PaymentProcessingNotifier extends StateNotifier<AsyncValue<PaymentResponse
 
     try {
       final request = PaymentRequest(
-        toAccountHolder: formData.toAccountHolder,
-        toAccount: formData.toAccount,
-        amount: formData.amount,
-        currency: formData.currency,
-        remark: formData.remark,
+        transientToken: paymentToken,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        address1: formData.address1,
+        locality: formData.locality,
+        administrativeArea: formData.administrativeArea,
+        postalCode: formData.postalCode,
+        country: formData.country,
+        email: formData.email,
         exchangeRate: formData.exchangeRate,
-        paymentToken: paymentToken,
       );
 
       final response = await _repository.processPayment(request);

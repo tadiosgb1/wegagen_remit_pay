@@ -8,24 +8,28 @@ part of 'payment_request.dart';
 
 PaymentRequest _$PaymentRequestFromJson(Map<String, dynamic> json) =>
     PaymentRequest(
-      toAccountHolder: json['toAccountHolder'] as String,
-      toAccount: json['toAccount'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      currency: json['currency'] as String,
-      remark: json['remark'] as String,
+      transientToken: json['transientToken'] as String,
+      firstName: json['firstName'] as String,
+      lastName: json['lastName'] as String,
+      address1: json['address1'] as String,
+      locality: json['locality'] as String,
+      administrativeArea: json['administrativeArea'] as String,
+      postalCode: json['postalCode'] as String,
+      country: json['country'] as String,
+      email: json['email'] as String,
       exchangeRate: (json['exchange_rate'] as num).toDouble(),
-      paymentToken: json['payment_token'] as String,
-      channel: json['channel'] as String? ?? 'MOBILE_APP',
     );
 
 Map<String, dynamic> _$PaymentRequestToJson(PaymentRequest instance) =>
     <String, dynamic>{
-      'toAccountHolder': instance.toAccountHolder,
-      'toAccount': instance.toAccount,
-      'amount': instance.amount,
-      'currency': instance.currency,
-      'remark': instance.remark,
+      'transientToken': instance.transientToken,
+      'firstName': instance.firstName,
+      'lastName': instance.lastName,
+      'address1': instance.address1,
+      'locality': instance.locality,
+      'administrativeArea': instance.administrativeArea,
+      'postalCode': instance.postalCode,
+      'country': instance.country,
+      'email': instance.email,
       'exchange_rate': instance.exchangeRate,
-      'payment_token': instance.paymentToken,
-      'channel': instance.channel,
     };

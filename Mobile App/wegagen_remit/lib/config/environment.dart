@@ -2,8 +2,7 @@ class Environment {
   static const String _baseUrl = String.fromEnvironment(
     // defaultValue: 'https://10.195.49.21:3001',
     'BASE_URL',
-    defaultValue:
-        'http://10.195.49.21:3001', // Replace with your actual ngrok URL
+    defaultValue: 'http://localhost:3001', // Replace with your actual ngrok URL
   );
 
   static const String _apiVersion = String.fromEnvironment(
