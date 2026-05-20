@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/payment_providers.dart';
-import '../payment/payment_screen.dart';
+import 'final_transfer_screen.dart';
 
 class ModernConfirmationScreen extends ConsumerStatefulWidget {
   final String transferType;
@@ -61,61 +60,17 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
   }
 
   Future<void> _processTransfer() async {
-    // Extract account holder name from the account info API response
-    String accountHolderName = '';
-    String accountNumber = '';
-    
-    // The recipientData should contain the account info API response
-    // Expected format: {"status": "success", "data": {"name": "KIDIST FISSHA DAMTEA", ...}}
-    if (widget.recipientData.containsKey('accountInfo')) {
-      final accountInfo = widget.recipientData['accountInfo'];
-      if (accountInfo != null && accountInfo['data'] != null) {
-        accountHolderName = accountInfo['data']['name'] ?? '';
-      }
-    }
-    
-    // Get account number from recipient data based on transfer type
-    switch (widget.transferType) {
-      case 'wegagen_bank':
-        accountNumber = widget.recipientData['accountNumber'] ?? '';
-        // If account holder name is not from API, use the entered name
-        if (accountHolderName.isEmpty) {
-          accountHolderName = widget.recipientData['accountHolderName'] ?? '';
-        }
-        break;
-      case 'wegagen_ebirr':
-        accountNumber = widget.recipientData['phoneNumber'] ?? '';
-        if (accountHolderName.isEmpty) {
-          accountHolderName = widget.recipientData['holderName'] ?? '';
-        }
-        break;
-      case 'cash_pickup':
-        accountNumber = widget.recipientData['phoneNumber'] ?? '';
-        if (accountHolderName.isEmpty) {
-          accountHolderName = widget.recipientData['fullName'] ?? '';
-        }
-        break;
-      case 'school_pay':
-        accountNumber = widget.recipientData['studentId'] ?? '';
-        if (accountHolderName.isEmpty) {
-          accountHolderName = widget.recipientData['studentName'] ?? '';
-        }
-        break;
-    }
-    
-    // Create a default remark based on transfer type
-    String defaultRemark = '${_transferTitle} - ${widget.currency} ${widget.amount.toStringAsFixed(2)}';
-    
-    // Navigate to payment screen with pre-filled data
+    // Navigate to final transfer screen for review and remark input
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => PaymentScreen(
-          prefilledAccountHolder: accountHolderName,
-          prefilledAccount: accountNumber,
-          prefilledAmount: widget.etbAmount,
-          prefilledCurrency: 'ETB',
-          prefilledExchangeRate: widget.exchangeRate,
-          prefilledRemark: defaultRemark,
+        builder: (context) => FinalTransferScreen(
+          transferType: widget.transferType,
+          amount: widget.amount,
+          currency: widget.currency,
+          etbAmount: widget.etbAmount,
+          fee: widget.fee,
+          exchangeRate: widget.exchangeRate,
+          recipientData: widget.recipientData,
         ),
       ),
     );
@@ -285,7 +240,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                         // Amount Details
                         _buildDetailRow('You Send', '${widget.amount.toStringAsFixed(2)} ${widget.currency}'),
                         const SizedBox(height: 12),
-                        _buildDetailRow('Transfer Fee', '${widget.fee.toStringAsFixed(2)} ${widget.currency}'),
+                        _buildDetailRow('Bones', '${widget.fee.toStringAsFixed(2)} ETB'),
                         const SizedBox(height: 12),
                         _buildDetailRow('Exchange Rate', '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(2)} ETB'),
                         

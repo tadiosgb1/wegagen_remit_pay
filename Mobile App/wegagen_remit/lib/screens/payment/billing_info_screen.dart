@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
 import 'payment_webview_screen.dart';
-import 'payment_final_test.dart';
+import 'payment_working_screen.dart';
+import 'payment_debug_screen.dart';
 
 class BillingInfoScreen extends ConsumerStatefulWidget {
   const BillingInfoScreen({super.key});
@@ -444,11 +445,11 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
         ref.read(paymentFormProvider.notifier).updateCountry(_selectedCountry);
       }
       
-      // Navigate to appropriate payment screen based on platform
+      // Navigate directly to the microform payment screen (restore original working behavior)
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => kIsWeb 
-              ? const PaymentFinalTest()
+              ? const PaymentWorkingScreen()
               : const PaymentWebViewScreen(),
         ),
       );

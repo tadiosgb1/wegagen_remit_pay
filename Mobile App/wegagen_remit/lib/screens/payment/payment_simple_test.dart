@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/foundation.dart';
@@ -160,7 +161,7 @@ class PaymentSimpleTest extends ConsumerWidget {
     
     <hr>
     
-    <div id="payment-fields" style="display: none;">
+    <div id="payment-fields">
         <h3>Payment Fields</h3>
         <div>Card Number:</div>
         <div id="cardNumber" class="field"></div>
@@ -211,7 +212,7 @@ class PaymentSimpleTest extends ConsumerWidget {
         
         document.head.appendChild(script);
         
-        const captureContext = '$captureContext';
+        const captureContext = ${jsonEncode(captureContext)};
         let flex, microform;
         
         function initFlex() {
@@ -224,14 +225,32 @@ class PaymentSimpleTest extends ConsumerWidget {
                 flex = new Flex(captureContext);
                 
                 updateStatus('Creating microform...', 'info');
-                microform = flex.microform();
+                microform = flex.microform('card');
                 
                 updateStatus('Loading fields...', 'info');
                 
-                microform.field('number').load('#cardNumber');
-                microform.field('expirationMonth').load('#expirationMonth');
-                microform.field('expirationYear').load('#expirationYear');
-                microform.field('securityCode').load('#securityCode');
+                let numberField = null;
+                let monthField = null;
+                let yearField = null;
+                let cvvField = null;
+
+                try {
+                    numberField = microform.createField('number');
+                    monthField = microform.createField('expirationMonth');
+                    yearField = microform.createField('expirationYear');
+                    cvvField = microform.createField('securityCode');
+                } catch (createFieldError) {
+                    updateStatus('createField failed, trying field(): ' + createFieldError.message, 'info');
+                    numberField = microform.field('number');
+                    monthField = microform.field('expirationMonth');
+                    yearField = microform.field('expirationYear');
+                    cvvField = microform.field('securityCode');
+                }
+
+                numberField.load('#cardNumber');
+                monthField.load('#expirationMonth');
+                yearField.load('#expirationYear');
+                cvvField.load('#securityCode');
                 
                 updateStatus('✅ SUCCESS: Microform ready!', 'success');
                 document.getElementById('payment-fields').style.display = 'block';
@@ -267,7 +286,17 @@ class PaymentSimpleTest extends ConsumerWidget {
       ..style.width = '100%'
       ..style.height = '100%'
       ..style.border = 'none'
-      ..srcdoc = htmlContent;
+      ..src = '/cybersource_payment_frame.html';
+
+    iframe.onLoad.listen((_) {
+      iframe.contentWindow?.postMessage(
+        {
+          'type': 'captureContext',
+          'captureContext': captureContext,
+        },
+        html.window.location.origin ?? '*',
+      );
+    });
 
     ui_web.platformViewRegistry.registerViewFactory(
       iframeId,
@@ -321,13 +350,31 @@ class PaymentSimpleTest extends ConsumerWidget {
             try {
                 status.textContent = 'Initializing Flex...';
                 
-                const flex = new Flex('$captureContext');
-                const microform = flex.microform();
+                const flex = new Flex(${jsonEncode(captureContext)});
+                const microform = flex.microform('card');
                 
-                microform.field('number').load('#cardNumber');
-                microform.field('expirationMonth').load('#expirationMonth');
-                microform.field('expirationYear').load('#expirationYear');
-                microform.field('securityCode').load('#securityCode');
+                let numberField = null;
+                let monthField = null;
+                let yearField = null;
+                let cvvField = null;
+
+                try {
+                    numberField = microform.createField('number');
+                    monthField = microform.createField('expirationMonth');
+                    yearField = microform.createField('expirationYear');
+                    cvvField = microform.createField('securityCode');
+                } catch (createFieldError) {
+                    console.log('createField failed, trying field():', createFieldError);
+                    numberField = microform.field('number');
+                    monthField = microform.field('expirationMonth');
+                    yearField = microform.field('expirationYear');
+                    cvvField = microform.field('securityCode');
+                }
+
+                numberField.load('#cardNumber');
+                monthField.load('#expirationMonth');
+                yearField.load('#expirationYear');
+                cvvField.load('#securityCode');
                 
                 status.textContent = 'SUCCESS: Fields loaded!';
                 status.style.color = 'green';

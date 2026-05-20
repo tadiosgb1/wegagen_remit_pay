@@ -130,7 +130,7 @@ class KycRequirementScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildSummaryRow('Exchange Rate', '1 $currency = ${exchangeRate.toStringAsFixed(2)} ETB'),
                   const SizedBox(height: 12),
-                  _buildSummaryRow('Transfer Fee', '${fee.toStringAsFixed(2)} $currency'),
+                  _buildSummaryRow('Bones', '${fee.toStringAsFixed(2)} ETB'),
                 ],
               ),
             ),

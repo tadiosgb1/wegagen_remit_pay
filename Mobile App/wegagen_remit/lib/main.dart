@@ -90,11 +90,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
       if (!hasSeenOnboarding) {
         print('🚀 Navigating to OnboardingScreen');
-        // Temporary: Skip onboarding for testing
-        print('⚠️ TEMP: Skipping onboarding, going to LoginScreen');
         if (mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
           );
         }
       } else if (hasToken) {

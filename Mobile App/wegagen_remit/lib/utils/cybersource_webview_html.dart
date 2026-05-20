@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class CyberSourceWebViewHTML {
   static String generateHTML(String captureContext) {
     return '''
@@ -140,15 +142,25 @@ class CyberSourceWebViewHTML {
         }
 
         /* Microform field styling */
+     /* Find this class inside your CSS block and replace it */
         .microform-field {
-            width: 100%;
-            padding: 12px;
+            width: 100% !important;
+            height: 52px !important; /* Forces physical height on screen */
+            min-height: 52px !important;
+            position: relative !important;
+            background: white !important;
+            display: block !important;
+            pointer-events: auto !important; /* Tells the browser to accept clicks */
             border: 2px solid #e1e1e1;
             border-radius: 8px;
-            font-size: 16px;
-            min-height: 48px;
-            position: relative;
-            background: white;
+            box-sizing: border-box;
+        }
+        .microform-field iframe {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 52px !important;
+            border: none !important;
+            display: block !important;
         }
         
         .microform-field.loading {
@@ -239,7 +251,7 @@ class CyberSourceWebViewHTML {
         
         // Simple logging
         function log(message) {
-            console.log('💳 ' + message);
+            console.log('静态 ' + message);
             try {
                 if (window.FlutterLog && typeof window.FlutterLog.postMessage === 'function') {
                     window.FlutterLog.postMessage(message);
@@ -249,193 +261,203 @@ class CyberSourceWebViewHTML {
             }
         }
         
-        const captureContext = '$captureContext';
+        const captureContext = ${jsonEncode(captureContext)};
         log('Capture context length: ' + captureContext.length);
         
         // Update debug info
         document.getElementById('debug-context').textContent = captureContext.length > 0 ? 
             captureContext.substring(0, 50) + '... (' + captureContext.length + ' chars)' : 'Not loaded';
         
-        // Validate capture context
-        if (!captureContext || captureContext === '\$captureContext' || captureContext.length < 100) {
+        // FIXED: Escaped the dollar sign using \\\$ so Dart treats it as a raw JS string
+        if (!captureContext || captureContext.length < 100) {
             document.getElementById('debug-status').textContent = 'ERROR: Invalid capture context';
             document.getElementById('error-message').textContent = 'Invalid payment configuration';
             document.getElementById('error-message').classList.add('show');
-            return;
-        }
-        
-        let flex, microform;
-        let fieldsReady = false;
-        
-        // Initialize payment form
-        function initPaymentForm() {
-            log('Initializing payment form...');
-            document.getElementById('debug-status').textContent = 'Initializing...';
+        } else {
+            let flex, microform;
+            let fieldsReady = false;
             
-            // Check if CyberSource library is loaded
-            if (typeof Flex === 'undefined') {
-                log('CyberSource library not loaded yet, waiting...');
-                document.getElementById('debug-status').textContent = 'Waiting for CyberSource library...';
-                setTimeout(initPaymentForm, 500);
-                return;
-            }
-            
-            try {
-                log('Creating Flex instance...');
-                document.getElementById('debug-status').textContent = 'Creating Flex instance...';
-                flex = new Flex(captureContext);
+            // Initialize payment form
+            function initPaymentForm() {
+                log('Initializing payment form...');
+                document.getElementById('debug-status').textContent = 'Initializing...';
                 
-                log('Creating microform...');
-                document.getElementById('debug-status').textContent = 'Creating microform...';
-                microform = flex.microform({
-                    styles: {
-                        'input': {
-                            'font-size': '16px',
-                            'color': '#333',
-                            'padding': '0',
-                            'border': 'none',
-                            'outline': 'none',
-                            'width': '100%',
-                            'height': '100%'
-                        },
-                        ':focus': {
-                            'color': '#F37021'
-                        },
-                        '.valid': {
-                            'color': '#28a745'
-                        },
-                        '.invalid': {
-                            'color': '#dc3545'
-                        }
-                    }
-                });
+                // Check if CyberSource library is loaded
+                if (typeof Flex === 'undefined') {
+                    log('CyberSource library not loaded yet, waiting...');
+                    document.getElementById('debug-status').textContent = 'Waiting for CyberSource library...';
+                    setTimeout(initPaymentForm, 500);
+                    return;
+                }
                 
-                document.getElementById('debug-status').textContent = 'Loading payment fields...';
-                
-                log('Loading card number field...');
-                const cardNumberField = microform.field('number');
-                cardNumberField.load('#cardNumber-container');
-                
-                log('Loading CVV field...');
-                const cvvField = microform.field('securityCode');
-                cvvField.load('#securityCode-container');
-                
-                log('Loading expiry month field...');
-                const monthField = microform.field('expirationMonth');
-                monthField.load('#expirationMonth-container');
-                
-                log('Loading expiry year field...');
-                const yearField = microform.field('expirationYear');
-                yearField.load('#expirationYear-container');
-                
-                // Mark fields as ready after a short delay
-                setTimeout(() => {
-                    fieldsReady = true;
-                    log('✅ All fields loaded successfully!');
-                    document.getElementById('debug-status').textContent = '✅ Ready for payment';
-                    document.getElementById('debug-fields').textContent = 'Yes';
-                    document.getElementById('debug-fields').style.color = '#28a745';
+                try {
+                    log('Creating Flex instance...');
+                    document.getElementById('debug-status').textContent = 'Creating Flex instance...';
+                    flex = new Flex(captureContext);
                     
-                    // Visual feedback - flash green borders
-                    const containers = document.querySelectorAll('.microform-field');
-                    containers.forEach(container => {
-                        container.style.borderColor = '#28a745';
-                        container.style.boxShadow = '0 0 5px rgba(40, 167, 69, 0.3)';
+                    log('Creating microform...');
+                    document.getElementById('debug-status').textContent = 'Creating microform...';
+                    microform = flex.microform('card', {
+                        styles: {
+                            'input': {
+                                'font-size': '16px',
+                                'color': '#333',
+                                'padding': '0',
+                                'border': 'none',
+                                'outline': 'none',
+                                'width': '100%',
+                                'height': '100%'
+                            },
+                            ':focus': {
+                                'color': '#F37021'
+                            },
+                            '.valid': {
+                                'color': '#28a745'
+                            },
+                            '.invalid': {
+                                'color': '#dc3545'
+                            }
+                        }
                     });
                     
-                    setTimeout(() => {
-                        containers.forEach(container => {
-                            container.style.borderColor = '#e1e1e1';
-                            container.style.boxShadow = 'none';
-                        });
-                    }, 2000);
+                    document.getElementById('debug-status').textContent = 'Loading payment fields...';
                     
-                    // Hide any error messages
-                    document.getElementById('error-message').classList.remove('show');
-                }, 1000);
-                
-            } catch (error) {
-                log('❌ Error initializing payment form: ' + error.message);
-                document.getElementById('debug-status').textContent = '❌ Error: ' + error.message;
-                document.getElementById('error-message').textContent = 'Failed to load payment form: ' + error.message;
-                document.getElementById('error-message').classList.add('show');
+                    log('Loading card number field...');
+                    let cardNumberField, cvvField, monthField, yearField;
+                    try {
+                        cardNumberField = microform.createField('number', { placeholder: '1234 5678 9012 3456' });
+                        cvvField = microform.createField('securityCode', { placeholder: '123' });
+                        monthField = microform.createField('expirationMonth', { placeholder: 'MM' });
+                        yearField = microform.createField('expirationYear', { placeholder: 'YY' });
+                        log('Using createField API');
+                    } catch (fieldError) {
+                        log('createField failed, fallback to field(): ' + fieldError.message);
+                        cardNumberField = microform.field('number');
+                        cvvField = microform.field('securityCode');
+                        monthField = microform.field('expirationMonth');
+                        yearField = microform.field('expirationYear');
+                    }
+
+                    cardNumberField.load('#cardNumber-container');
+                    
+                    log('Loading CVV field...');
+                    cvvField.load('#securityCode-container');
+                    
+                    log('Loading expiry month field...');
+                    monthField.load('#expirationMonth-container');
+                    
+                    log('Loading expiry year field...');
+                    yearField.load('#expirationYear-container');
+                    
+                    // Mark fields as ready after a short delay
+                    setTimeout(() => {
+                        fieldsReady = true;
+                        log('✅ All fields loaded successfully!');
+                        document.getElementById('debug-status').textContent = '✅ Ready for payment';
+                        document.getElementById('debug-fields').textContent = 'Yes';
+                        document.getElementById('debug-fields').style.color = '#28a745';
+                        
+                        // Visual feedback - flash green borders
+                        const containers = document.querySelectorAll('.microform-field');
+                        containers.forEach(container => {
+                            container.style.borderColor = '#28a745';
+                            container.style.boxShadow = '0 0 5px rgba(40, 167, 69, 0.3)';
+                        });
+                        
+                        setTimeout(() => {
+                            containers.forEach(container => {
+                                container.style.borderColor = '#e1e1e1';
+                                container.style.boxShadow = 'none';
+                            });
+                        }, 2000);
+                        
+                        // Hide any error messages
+                        document.getElementById('error-message').classList.remove('show');
+                    }, 1000);
+                    
+                } catch (error) {
+                    log('❌ Error initializing payment form: ' + error.message);
+                    document.getElementById('debug-status').textContent = '❌ Error: ' + error.message;
+                    document.getElementById('error-message').textContent = 'Failed to load payment form: ' + error.message;
+                    document.getElementById('error-message').classList.add('show');
+                }
             }
-        }
-        
-        // Handle form submission
-        document.getElementById('payment-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            log('Form submitted');
             
-            if (!fieldsReady || !microform) {
-                document.getElementById('error-message').textContent = 'Payment form not ready. Please wait and try again.';
-                document.getElementById('error-message').classList.add('show');
-                return;
-            }
-            
-            // Show loading
-            document.getElementById('loading').classList.add('show');
-            document.getElementById('payment-form').style.display = 'none';
-            document.getElementById('error-message').classList.remove('show');
-            
-            log('Creating payment token...');
-            
-            microform.createToken({}, function(err, token) {
-                // Hide loading
-                document.getElementById('loading').classList.remove('show');
-                document.getElementById('payment-form').style.display = 'block';
+            // Handle form submission
+            document.getElementById('payment-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                log('Form submitted');
                 
-                if (err) {
-                    log('❌ Token creation failed: ' + err.message);
-                    document.getElementById('error-message').textContent = 'Payment validation failed: ' + err.message;
+                if (!fieldsReady || !microform) {
+                    document.getElementById('error-message').textContent = 'Payment form not ready. Please wait and try again.';
                     document.getElementById('error-message').classList.add('show');
                     return;
                 }
                 
-                if (token) {
-                    log('✅ Token created successfully');
+                // Show loading
+                document.getElementById('loading').classList.add('show');
+                document.getElementById('payment-form').style.display = 'none';
+                document.getElementById('error-message').classList.remove('show');
+                
+                log('Creating payment token...');
+                
+                microform.createToken({}, function(err, token) {
+                    // Hide loading
+                    document.getElementById('loading').classList.remove('show');
+                    document.getElementById('payment-form').style.display = 'block';
                     
-                    // Send token to Flutter
-                    try {
-                        if (window.paymentToken && typeof window.paymentToken.postMessage === 'function') {
-                            window.paymentToken.postMessage(JSON.stringify(token));
-                        } else {
-                            window.parent.postMessage({
-                                type: 'PAYMENT_TOKEN',
-                                token: token
-                            }, '*');
+                    if (err) {
+                        log('❌ Token creation failed: ' + err.message);
+                        document.getElementById('error-message').textContent = 'Payment validation failed: ' + err.message;
+                        document.getElementById('error-message').classList.add('show');
+                        return;
+                    }
+                    
+                    if (token) {
+                        log('✅ Token created successfully');
+                        
+                        // Send token to Flutter
+                        try {
+                            if (window.paymentToken && typeof window.paymentToken.postMessage === 'function') {
+                                window.paymentToken.postMessage(JSON.stringify(token));
+                            } else {
+                                window.parent.postMessage({
+                                    type: 'PAYMENT_TOKEN',
+                                    token: token
+                                }, '*');
+                            }
+                            log('Token sent to Flutter');
+                        } catch (e) {
+                            log('Failed to send token: ' + e.message);
+                            document.getElementById('error-message').textContent = 'Payment processed but communication failed.';
+                            document.getElementById('error-message').classList.add('show');
                         }
-                        log('Token sent to Flutter');
-                    } catch (e) {
-                        log('Failed to send token: ' + e.message);
-                        document.getElementById('error-message').textContent = 'Payment processed but communication failed.';
+                    } else {
+                        log('❌ No token received');
+                        document.getElementById('error-message').textContent = 'Failed to process payment. Please try again.';
                         document.getElementById('error-message').classList.add('show');
                     }
-                } else {
-                    log('❌ No token received');
-                    document.getElementById('error-message').textContent = 'Failed to process payment. Please try again.';
-                    document.getElementById('error-message').classList.add('show');
+                });
+            });
+            
+            // Start initialization when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initPaymentForm);
+            } else {
+                initPaymentForm();
+            }
+            
+            // Also try when window loads (backup)
+            window.addEventListener('load', function() {
+                if (!fieldsReady) {
+                    log('Backup initialization attempt...');
+                    setTimeout(initPaymentForm, 1000);
                 }
             });
-        });
-        
-        // Start initialization when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPaymentForm);
-        } else {
-            initPaymentForm();
         }
-        
-        // Also try when window loads (backup)
-        window.addEventListener('load', function() {
-            if (!fieldsReady) {
-                log('Backup initialization attempt...');
-                setTimeout(initPaymentForm, 1000);
-            }
-        });
     </script>
 </body>
 </html>
-    ''';
+''';
   }
 }

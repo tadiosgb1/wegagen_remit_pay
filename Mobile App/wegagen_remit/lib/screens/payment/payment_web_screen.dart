@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/foundation.dart';
@@ -213,7 +214,7 @@ class _PaymentWebScreenState extends ConsumerState<PaymentWebScreen> {
 
     <script src="https://testflex.cybersource.com/microform/bundle/v2.9.0/flex-microform.min.js"></script>
     <script>
-        const captureContext = '$_captureContext';
+        const captureContext = ${jsonEncode(_captureContext)};
         let flex, microform;
         
         function init() {
@@ -225,7 +226,7 @@ class _PaymentWebScreenState extends ConsumerState<PaymentWebScreen> {
                 }
                 
                 flex = new Flex(captureContext);
-                microform = flex.microform({
+                microform = flex.microform('card', {
                     styles: {
                         'input': {
                             'font-size': '16px',
@@ -236,10 +237,28 @@ class _PaymentWebScreenState extends ConsumerState<PaymentWebScreen> {
                     }
                 });
                 
-                microform.field('number', { placeholder: '1234 5678 9012 3456' }).load('#cardNumber-container');
-                microform.field('expirationMonth', { placeholder: 'MM' }).load('#expirationMonth-container');
-                microform.field('expirationYear', { placeholder: 'YY' }).load('#expirationYear-container');
-                microform.field('securityCode', { placeholder: '123' }).load('#securityCode-container');
+                let numberField = null;
+                let monthField = null;
+                let yearField = null;
+                let cvvField = null;
+
+                try {
+                    numberField = microform.createField('number', { placeholder: '1234 5678 9012 3456' });
+                    monthField = microform.createField('expirationMonth', { placeholder: 'MM' });
+                    yearField = microform.createField('expirationYear', { placeholder: 'YY' });
+                    cvvField = microform.createField('securityCode', { placeholder: '123' });
+                } catch (createFieldError) {
+                    console.log('createField failed, fallback to field():', createFieldError);
+                    numberField = microform.field('number', { placeholder: '1234 5678 9012 3456' });
+                    monthField = microform.field('expirationMonth', { placeholder: 'MM' });
+                    yearField = microform.field('expirationYear', { placeholder: 'YY' });
+                    cvvField = microform.field('securityCode', { placeholder: '123' });
+                }
+
+                numberField.load('#cardNumber-container');
+                monthField.load('#expirationMonth-container');
+                yearField.load('#expirationYear-container');
+                cvvField.load('#securityCode-container');
                 
                 console.log('Flex initialized successfully');
                 
@@ -307,12 +326,22 @@ class _PaymentWebScreenState extends ConsumerState<PaymentWebScreen> {
 </html>
     ''';
 
-    // Create iframe
+    // Create iframe using a blob URL to preserve same-origin context
     final iframe = html.IFrameElement()
       ..style.width = '100%'
       ..style.height = '600px'
       ..style.border = 'none'
-      ..srcdoc = htmlContent;
+      ..src = '/cybersource_payment_frame.html';
+
+    iframe.onLoad.listen((_) {
+      iframe.contentWindow?.postMessage(
+        {
+          'type': 'captureContext',
+          'captureContext': _captureContext,
+        },
+        html.window.location.origin ?? '*',
+      );
+    });
 
     // Register view
     ui_web.platformViewRegistry.registerViewFactory(

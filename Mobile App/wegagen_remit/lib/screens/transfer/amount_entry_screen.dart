@@ -59,8 +59,12 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
 
     if (amount > 0 && _exchangeRate > 0) {
       setState(() {
-        _fee = _calculateFee(amount);
-        _etbAmount = amount * _exchangeRate;
+        // Calculate base ETB amount first
+        final baseEtbAmount = amount * _exchangeRate;
+        // Calculate Bones fee as 10% of ETB amount
+        _fee = _calculateFee(baseEtbAmount);
+        // Add the Bones fee (in ETB) to the ETB amount
+        _etbAmount = baseEtbAmount + _fee;
       });
     } else {
       setState(() {
@@ -70,11 +74,11 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
     }
   }
 
-  double _calculateFee(double amount) {
-    // Simple fee calculation - 1% with min 4 and max 50
-    double fee = amount * 0.01;
-    if (fee < 4.0) fee = 4.0;
-    if (fee > 50.0) fee = 50.0;
+  double _calculateFee(double etbAmount) {
+    // Bones fee calculation - 10% of ETB amount
+    double fee = etbAmount * 0.10;
+    if (fee < 10.0) fee = 10.0; // Minimum 10 ETB
+    if (fee > 500.0) fee = 500.0; // Maximum 500 ETB
     return fee;
   }
 
@@ -479,11 +483,11 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
-                                  'Transfer fee (1%)',
+                                  'Bones',
                                   style: TextStyle(fontSize: 16),
                                 ),
                                 Text(
-                                  '${_fee.toStringAsFixed(2)} ${widget.selectedCurrency}',
+                                  '${_fee.toStringAsFixed(2)} ETB',
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,

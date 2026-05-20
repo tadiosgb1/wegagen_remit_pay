@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/foundation.dart';
@@ -150,7 +151,7 @@ Capture context length: ${_captureContext!.length}
         <div id="error-container"></div>
         <div id="success-container"></div>
         
-        <div id="payment-form" style="display: none;">
+        <div id="payment-form">
             <h3>Card Details</h3>
             <div>Card Number:</div>
             <div id="cardNumber-container" class="field"></div>
@@ -219,7 +220,7 @@ Capture context length: ${_captureContext!.length}
         
         document.head.appendChild(script);
         
-        const captureContext = '$_captureContext';
+        const captureContext = ${jsonEncode(_captureContext)};
         let flex, microform;
         
         function initFlex() {
@@ -235,7 +236,7 @@ Capture context length: ${_captureContext!.length}
                 log('Flex instance created successfully');
                 
                 log('Creating microform...');
-                microform = flex.microform({
+                microform = flex.microform('card', {
                     styles: {
                         'input': {
                             'font-size': '14px',
@@ -250,30 +251,28 @@ Capture context length: ${_captureContext!.length}
                 log('Microform created successfully');
                 
                 log('Loading card number field...');
-                const numberField = microform.field('number', { 
-                    placeholder: '1234 5678 9012 3456' 
-                });
+                let numberField, monthField, yearField, cvvField;
+
+                try {
+                    numberField = microform.createField('number', { placeholder: '1234 5678 9012 3456' });
+                    monthField = microform.createField('expirationMonth', { placeholder: 'MM' });
+                    yearField = microform.createField('expirationYear', { placeholder: 'YY' });
+                    cvvField = microform.createField('securityCode', { placeholder: '123' });
+                    log('Using createField API');
+                } catch (createFieldError) {
+                    log('createField failed, trying field API: ' + createFieldError.message);
+                    numberField = microform.field('number', { placeholder: '1234 5678 9012 3456' });
+                    monthField = microform.field('expirationMonth', { placeholder: 'MM' });
+                    yearField = microform.field('expirationYear', { placeholder: 'YY' });
+                    cvvField = microform.field('securityCode', { placeholder: '123' });
+                }
+
                 numberField.load('#cardNumber-container');
                 log('Card number field loaded');
-                
-                log('Loading expiry month field...');
-                const monthField = microform.field('expirationMonth', { 
-                    placeholder: 'MM' 
-                });
                 monthField.load('#expirationMonth-container');
                 log('Expiry month field loaded');
-                
-                log('Loading expiry year field...');
-                const yearField = microform.field('expirationYear', { 
-                    placeholder: 'YY' 
-                });
                 yearField.load('#expirationYear-container');
                 log('Expiry year field loaded');
-                
-                log('Loading security code field...');
-                const cvvField = microform.field('securityCode', { 
-                    placeholder: '123' 
-                });
                 cvvField.load('#securityCode-container');
                 log('Security code field loaded');
                 
@@ -327,12 +326,22 @@ Capture context length: ${_captureContext!.length}
 
     print('Creating iframe element...');
     
-    // Create iframe
+    // Create iframe using a blob URL to preserve same-origin context
     final iframe = html.IFrameElement()
       ..style.width = '100%'
       ..style.height = '800px'
       ..style.border = '1px solid #ccc'
-      ..srcdoc = htmlContent;
+      ..src = '/cybersource_payment_frame.html';
+
+    iframe.onLoad.listen((_) {
+      iframe.contentWindow?.postMessage(
+        {
+          'type': 'captureContext',
+          'captureContext': _captureContext,
+        },
+        html.window.location.origin ?? '*',
+      );
+    });
 
     print('Registering iframe view...');
     

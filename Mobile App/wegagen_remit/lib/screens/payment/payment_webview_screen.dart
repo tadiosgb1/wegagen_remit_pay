@@ -6,6 +6,8 @@ import '../../providers/payment_providers.dart';
 import '../../utils/cybersource_webview_html.dart';
 import '../../widgets/activity_tracker.dart';
 import 'payment_processing_screen.dart';
+import 'package:flutter/foundation.dart'; // <--- ADD THIS
+import 'package:flutter/gestures.dart';   // <--- ADD THIS
 
 class PaymentWebViewScreen extends ConsumerStatefulWidget {
   const PaymentWebViewScreen({super.key});
@@ -19,11 +21,14 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
   bool _isLoading = true;
   String? _error;
   bool _isWebViewInitialized = false;
+  
+  // Track the context value to avoid reloading the HTML string on every re-render
+  String? _loadedCaptureContext;
 
   @override
   void initState() {
     super.initState();
-    // Initialize WebView after the widget is built
+    // Initialize WebView after the widget framework finishes mounting
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeWebView();
     });
@@ -69,7 +74,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
         ..addJavaScriptChannel(
           'FlutterLog',
           onMessageReceived: (JavaScriptMessage message) {
-            print('WebView Log: ${message.message}');
+            debugPrint('WebView Log: ${message.message}');
           },
         );
 
@@ -81,6 +86,17 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
         _error = 'Failed to initialize WebView: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  /// Safely evaluates and loads HTML payload execution outside the render mapping loop
+void _loadPaymentForm(String captureContext) {
+    if (_controller != null && _loadedCaptureContext != captureContext) {
+      _loadedCaptureContext = captureContext;
+      _controller!.loadHtmlString(
+        CyberSourceWebViewHTML.generateHTML(captureContext),
+        baseUrl: 'https://localhost', // <--- Ensure this is exactly like this
+      );
     }
   }
 
@@ -137,7 +153,11 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
       body: ActivityTracker(
         interactionType: 'payment_webview_screen',
         child: captureContextAsync.when(
-          data: (captureContext) => _buildWebView(captureContext.data.captureContext),
+          data: (captureContext) {
+            // Guard loop intercepted here before pushing updates to UI Layout
+            _loadPaymentForm(captureContext.data.captureContext);
+            return _buildWebView();
+          },
           loading: () => _buildLoadingState(),
           error: (error, stack) => _buildErrorState(error.toString()),
         ),
@@ -145,7 +165,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
     );
   }
 
-  Widget _buildWebView(String captureContext) {
+ Widget _buildWebView() {
     if (_error != null) {
       return _buildErrorState(_error!);
     }
@@ -157,10 +177,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
     return Stack(
       children: [
         WebViewWidget(
-          controller: _controller!
-            ..loadHtmlString(
-              CyberSourceWebViewHTML.generateHTML(captureContext),
-            ),
+          controller: _controller!,
         ),
         if (_isLoading)
           Container(
@@ -272,6 +289,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
                       setState(() {
                         _error = null;
                         _isLoading = true;
+                        _loadedCaptureContext = null; // Clear key on deliberate manual reset
                       });
                       ref.invalidate(captureContextProvider);
                     },

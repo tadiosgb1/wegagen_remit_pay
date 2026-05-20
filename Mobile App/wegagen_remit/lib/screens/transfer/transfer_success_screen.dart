@@ -173,7 +173,7 @@ class TransferSuccessScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           _buildDetailRow('Exchange Rate', '1 ETB = ${(amount / etbAmount).toStringAsFixed(4)} $currency'),
                           const SizedBox(height: 16),
-                          _buildDetailRow('Transfer Fee', '100.00 ETB'),
+                          _buildDetailRow('Bones', '100.00 ETB'),
                           const SizedBox(height: 16),
                           _buildDetailRow('Transaction ID', transactionId),
                           const SizedBox(height: 16),

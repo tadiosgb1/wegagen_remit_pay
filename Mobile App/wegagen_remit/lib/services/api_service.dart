@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/environment.dart';
+import '../config/url_container.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -199,6 +200,25 @@ class ApiService {
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(message: 'File upload failed', statusCode: 0);
+    }
+  }
+
+  // Account search
+  Future<Map<String, dynamic>> searchAccount(String accountNumber) async {
+    try {
+      final response = await get(
+        UrlContainer.accountInfo,
+        queryParams: {
+          'accountNumber': accountNumber.trim(),
+        },
+      );
+      
+      return response;
+    } catch (e) {
+      throw ApiException(
+        message: 'Invalid account or account not found',
+        statusCode: 404,
+      );
     }
   }
 
