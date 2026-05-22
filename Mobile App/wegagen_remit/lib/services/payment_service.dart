@@ -27,7 +27,8 @@ class PaymentService {
 
     // Add SSL certificate handling for development (only for non-web platforms)
     if (!kIsWeb && Environment.isDevelopment) {
-      (_dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
         client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
         return client;
       };
@@ -94,7 +95,8 @@ class PaymentService {
           } else {
             // Try to find any JWT-like string in the response
             final jsonStr = data.toString();
-            final jwtMatch = RegExp(r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+').firstMatch(jsonStr);
+            final jwtPattern = r'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+';
+            final jwtMatch = RegExp(jwtPattern).firstMatch(jsonStr);
             if (jwtMatch != null) {
               captureContextToken = jwtMatch.group(0)!;
             } else {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'final_transfer_screen.dart';
+import '../payment/streamlined_billing_screen.dart';
 
 class ModernConfirmationScreen extends ConsumerStatefulWidget {
   final String transferType;
@@ -60,17 +60,46 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
   }
 
   Future<void> _processTransfer() async {
-    // Navigate to final transfer screen for review and remark input
+    setState(() {
+      _isProcessing = true;
+    });
+
+    // Extract recipient account info based on transfer type
+    String toAccount = '';
+    String toAccountHolder = '';
+    
+    switch (widget.transferType) {
+      case 'wegagen_bank':
+        toAccount = widget.recipientData['accountNumber'] ?? '';
+        toAccountHolder = widget.recipientData['accountHolderName'] ?? '';
+        break;
+      case 'wegagen_ebirr':
+        toAccount = widget.recipientData['phoneNumber'] ?? '';
+        toAccountHolder = widget.recipientData['holderName'] ?? '';
+        break;
+      case 'cash_pickup':
+        toAccount = 'CASH_PICKUP';
+        toAccountHolder = widget.recipientData['fullName'] ?? '';
+        break;
+      case 'school_pay':
+        toAccount = widget.recipientData['accountNumber'] ?? '';
+        toAccountHolder = widget.recipientData['schoolName'] ?? '';
+        break;
+    }
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    // Navigate directly to streamlined billing screen (skip multiple pages)
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FinalTransferScreen(
-          transferType: widget.transferType,
-          amount: widget.amount,
-          currency: widget.currency,
-          etbAmount: widget.etbAmount,
-          fee: widget.fee,
+        builder: (context) => StreamlinedBillingScreen(
+          toAccountHolder: toAccountHolder,
+          toAccount: toAccount,
+          amount: widget.etbAmount, // Amount recipient gets in ETB
+          currency: 'ETB',
           exchangeRate: widget.exchangeRate,
-          recipientData: widget.recipientData,
         ),
       ),
     );
@@ -241,8 +270,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                         _buildDetailRow('You Send', '${widget.amount.toStringAsFixed(2)} ${widget.currency}'),
                         const SizedBox(height: 12),
                         _buildDetailRow('Bones', '${widget.fee.toStringAsFixed(2)} ETB'),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Exchange Rate', '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(2)} ETB'),
+                        // Exchange rate hidden from UI but used internally
                         
                         const SizedBox(height: 16),
                         const Divider(),

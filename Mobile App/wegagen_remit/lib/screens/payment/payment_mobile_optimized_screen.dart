@@ -3,27 +3,22 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
 import 'payment_processing_screen.dart';
 
-// Conditional imports for web and mobile
-import 'dart:html' as html show window, MessageEvent, Element, Blob, Url, ScriptElement, document;
-import 'dart:ui_web' as ui_web show platformViewRegistry;
-import 'package:webview_flutter/webview_flutter.dart';
-
-class PaymentWorkingScreen extends ConsumerStatefulWidget {
-  const PaymentWorkingScreen({super.key});
+class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
+  const PaymentMobileOptimizedScreen({super.key});
 
   @override
-  ConsumerState<PaymentWorkingScreen> createState() => _PaymentWorkingScreenState();
+  ConsumerState<PaymentMobileOptimizedScreen> createState() => _PaymentMobileOptimizedScreenState();
 }
 
-class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
+class _PaymentMobileOptimizedScreenState extends ConsumerState<PaymentMobileOptimizedScreen> {
   bool _isLoading = true;
   String? _error;
   String? _captureContext;
-  final String _iframeId = 'payment-working-iframe';
   WebViewController? _webViewController;
 
   @override
@@ -34,35 +29,23 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
 
   void _initializePayment() async {
     try {
-      print('DEBUG: Starting payment initialization...');
-      print('DEBUG: Platform - kIsWeb: $kIsWeb');
+      print('DEBUG: Starting mobile payment initialization...');
       
       final captureContextAsync = ref.read(captureContextProvider);
       
       captureContextAsync.when(
         data: (response) {
           print('DEBUG: Capture context received successfully');
-          print('DEBUG: Status: ${response.status}');
-          print('DEBUG: Token length: ${response.data?.captureContext?.length ?? 0}');
-          print('DEBUG: Token preview: ${response.data?.captureContext?.substring(0, 50) ?? 'null'}...');
           setState(() {
             _captureContext = response.data.captureContext;
           });
-          if (kIsWeb) {
-            print('DEBUG: Setting up web payment...');
-            _setupWebPayment();
-          } else {
-            print('DEBUG: Setting up mobile payment...');
-            _setupMobilePayment();
-          }
+          _setupMobilePayment();
         },
         loading: () {
           print('DEBUG: Capture context is loading from backend...');
-          // Keep loading state
         },
         error: (error, stack) {
           print('DEBUG: Capture context error: $error');
-          print('DEBUG: Stack trace: $stack');
           setState(() {
             _error = 'Failed to get payment configuration: $error';
             _isLoading = false;
@@ -78,92 +61,54 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
     }
   }
 
-  void _setupWebPayment() {
-    print('DEBUG: _setupWebPayment called');
-    if (_captureContext == null) {
-      print('DEBUG: ERROR - _captureContext is null');
-      return;
-    }
-    
-    print('DEBUG: Capture context available, creating HTML content...');
-    
-    // Create HTML content for the payment form
-    final htmlContent = _createPaymentHTML();
-    print('DEBUG: HTML content created, length: ${htmlContent.length}');
-    
-    // Create blob URL for better Chrome compatibility
-    final blob = html.Blob([htmlContent], 'text/html');
-    final blobUrl = html.Url.createObjectUrlFromBlob(blob);
-    print('DEBUG: Blob URL created: $blobUrl');
-    
-    final iframe = html.Element.tag('iframe')
-      ..style.width = '100%'
-      ..style.height = '700px'
-      ..style.border = 'none'
-      ..style.borderRadius = '8px'
-      ..setAttribute('src', blobUrl)
-      ..setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
-
-    print('DEBUG: Iframe created, registering view factory...');
-
-    // Register view
-    ui_web.platformViewRegistry.registerViewFactory(
-      _iframeId,
-      (int viewId) {
-        print('DEBUG: View factory called with viewId: $viewId');
-        return iframe;
-      },
-    );
-
-    print('DEBUG: View factory registered, setting up message listener...');
-
-    // Listen for messages
-    html.window.addEventListener('message', (event) {
-      final messageEvent = event as html.MessageEvent;
-      final rawData = messageEvent.data;
-
-      dynamic parsed;
-      if (rawData is String) {
-        try {
-          parsed = jsonDecode(rawData);
-        } catch (e) {
-          return;
-        }
-      } else {
-        parsed = rawData;
-      }
-
-      if (parsed is Map) {
-        final data = parsed as Map<String, dynamic>;
-        final type = data['type']?.toString();
-        if (type == 'PAYMENT_TOKEN' || type == 'paymentToken') {
-          _handlePaymentToken(data['token'].toString());
-        }
-      }
-    });
-
-    print('DEBUG: Message listener set up, updating state to show microform...');
-    setState(() {
-      _isLoading = false;
-    });
-    print('DEBUG: State updated, _isLoading = false');
-  }
-
   void _setupMobilePayment() {
     if (_captureContext == null) return;
     
-    // Create WebView controller for mobile
+    // Create WebView controller optimized for mobile
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent('Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36')
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            // Page started loading
+            print('DEBUG: Page started loading: $url');
           },
           onPageFinished: (String url) {
-            // Page finished loading
+            print('DEBUG: Page finished loading: $url');
+            // Inject mobile-specific fixes
+            _webViewController?.runJavaScript('''
+              // Mobile touch event fixes
+              document.addEventListener('DOMContentLoaded', function() {
+                // Enable touch events for microform containers
+                const containers = document.querySelectorAll('.microform-field');
+                containers.forEach(container => {
+                  container.style.pointerEvents = 'auto';
+                  container.style.touchAction = 'manipulation';
+                  
+                  // Add touch event listeners
+                  container.addEventListener('touchstart', function(e) {
+                    console.log('Touch start on microform field');
+                    e.stopPropagation();
+                  }, { passive: false });
+                  
+                  container.addEventListener('touchend', function(e) {
+                    console.log('Touch end on microform field');
+                    e.stopPropagation();
+                  }, { passive: false });
+                });
+                
+                // Focus fix for mobile
+                setTimeout(() => {
+                  const firstField = document.querySelector('#cardNumber-container iframe');
+                  if (firstField) {
+                    firstField.focus();
+                  }
+                }, 2000);
+              });
+            ''');
           },
           onWebResourceError: (WebResourceError error) {
+            print('DEBUG: WebView error: ${error.description}');
             setState(() {
               _error = 'Failed to load payment form: ${error.description}';
               _isLoading = false;
@@ -180,13 +125,13 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
               _handlePaymentToken(data['token'].toString());
             }
           } catch (e) {
-            // Handle parsing error
+            print('DEBUG: Error parsing message: $e');
           }
         },
       );
 
-    // Load the HTML content
-    final htmlContent = _createPaymentHTML();
+    // Load the mobile-optimized HTML content
+    final htmlContent = _createMobileOptimizedHTML();
     _webViewController!.loadHtmlString(htmlContent);
     
     setState(() {
@@ -194,44 +139,57 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
     });
   }
 
-  String _createPaymentHTML() {
+  String _createMobileOptimizedHTML() {
     return '''
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Secure Payment</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
-            padding: 20px;
+            padding: 16px;
+            -webkit-text-size-adjust: 100%;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         
         .container {
-            max-width: 400px;
+            max-width: 100%;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
-            padding: 24px;
+            padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .header {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
         
         .header h2 {
             color: #333;
             margin-bottom: 8px;
+            font-size: 20px;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         
         .form-group label {
@@ -239,17 +197,19 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
             margin-bottom: 8px;
             color: #333;
             font-weight: 500;
+            font-size: 14px;
         }
         
         .form-control {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             border: 2px solid #e1e1e1;
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.3s;
-            min-height: 48px;
             background: white;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
         
         .form-control:focus {
@@ -258,33 +218,46 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
         }
         
         .microform-field {
-            width: 100%;
-            padding: 12px;
+            width: 100% !important;
+            height: 56px !important;
+            min-height: 56px !important;
+            position: relative !important;
+            background: white !important;
+            display: block !important;
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
             border: 2px solid #e1e1e1;
             border-radius: 8px;
-            font-size: 16px;
-            min-height: 48px;
-            background: white;
-            position: relative;
+            box-sizing: border-box;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        
+        .microform-field:focus-within {
+            border-color: #F37021;
         }
         
         .microform-field iframe {
             width: 100% !important;
             height: 100% !important;
-            min-height: 48px !important;
+            min-height: 56px !important;
             border: none !important;
             display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
         }
         
         .card-row {
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
         }
         
         .card-row .form-group {
             flex: 1;
+            min-width: 120px;
         }
         
         .pay-button {
@@ -298,6 +271,10 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.3s;
+            margin-top: 20px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
         
         .pay-button:hover:not(:disabled) {
@@ -316,6 +293,7 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
             border-radius: 8px;
             margin-bottom: 16px;
             display: none;
+            font-size: 14px;
         }
         
         .error.show {
@@ -339,11 +317,21 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
             border-radius: 4px;
             font-size: 12px;
             margin-bottom: 16px;
+            text-align: center;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @media (max-width: 480px) {
+            .card-row {
+                flex-direction: column;
+            }
+            
+            .card-row .form-group {
+                min-width: 100%;
+            }
+            
+            .container {
+                padding: 16px;
+            }
         }
     </style>
 </head>
@@ -458,10 +446,8 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
         function sendMessage(data) {
             try {
                 if (window.PaymentChannel && window.PaymentChannel.postMessage) {
-                    // Mobile WebView
                     window.PaymentChannel.postMessage(JSON.stringify(data));
                 } else {
-                    // Web iframe
                     window.parent.postMessage(data, '*');
                 }
             } catch (e) {
@@ -483,54 +469,40 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
                 const captureContext = ${jsonEncode(_captureContext)};
                 console.log('Capture context received:', captureContext.substring(0, 100) + '...');
                 
-                // Check if we're on localhost and add special handling
-                const isLocalhost = window.location.hostname === 'localhost' || 
-                                  window.location.hostname === '127.0.0.1' ||
-                                  window.location.hostname.includes('localhost');
-                
-                if (isLocalhost) {
-                    console.log('Running on localhost - using development configuration');
-                }
-                
                 const flex = new Flex(captureContext);
                 console.log('Flex instance created successfully');
                 
-                // Create microform with enhanced error handling
-                let microform;
-                try {
-                    microform = flex.microform('card', {
-                        styles: {
-                            'input': {
-                                'font-size': '16px',
-                                'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                'color': '#333',
-                                'padding': '8px',
-                                'border': 'none',
-                                'outline': 'none',
-                                'width': '100%',
-                                'background': 'transparent'
-                            },
-                            ':focus': {
-                                'color': '#F37021'
-                            },
-                            '.valid': {
-                                'color': '#28a745'
-                            },
-                            '.invalid': {
-                                'color': '#dc3545'
-                            }
+                const microform = flex.microform('card', {
+                    styles: {
+                        'input': {
+                            'font-size': '16px',
+                            'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                            'color': '#333',
+                            'padding': '12px',
+                            'border': 'none',
+                            'outline': 'none',
+                            'width': '100%',
+                            'background': 'transparent',
+                            '-webkit-appearance': 'none',
+                            '-moz-appearance': 'none',
+                            'appearance': 'none'
+                        },
+                        ':focus': {
+                            'color': '#F37021'
+                        },
+                        '.valid': {
+                            'color': '#28a745'
+                        },
+                        '.invalid': {
+                            'color': '#dc3545'
                         }
-                    });
-                    console.log('Microform created successfully');
-                } catch (microformError) {
-                    console.error('Microform creation failed:', microformError);
-                    showError('Failed to create secure form: ' + microformError.message);
-                    return;
-                }
+                    }
+                });
+                console.log('Microform created successfully');
                 
                 updateStatus('Loading payment fields...');
                 
-                // Create microform fields with enhanced error handling - only supported fields
+                // Create only supported fields
                 let numberField, cvvField;
                 try {
                     numberField = microform.createField('number', { 
@@ -548,7 +520,7 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
                     return;
                 }
                 
-                // Load microform fields with error handling
+                // Load fields
                 try {
                     console.log('Loading card number field...');
                     numberField.load('#cardNumber-container');
@@ -563,61 +535,70 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
                     return;
                 }
                 
-                // Add field event listeners for debugging
+                // Mobile-specific event handlers
                 numberField.on('focus', function() {
                     console.log('Card number field focused');
+                    document.getElementById('cardNumber-container').style.borderColor = '#F37021';
                 });
                 
                 numberField.on('blur', function() {
                     console.log('Card number field blurred');
+                    document.getElementById('cardNumber-container').style.borderColor = '#e1e1e1';
                 });
                 
                 cvvField.on('focus', function() {
                     console.log('CVV field focused');
+                    document.getElementById('securityCode-container').style.borderColor = '#F37021';
                 });
                 
                 cvvField.on('blur', function() {
                     console.log('CVV field blurred');
+                    document.getElementById('securityCode-container').style.borderColor = '#e1e1e1';
                 });
                 
                 // Show form after fields are loaded
                 setTimeout(() => {
-                    updateStatus('Payment form ready');
+                    updateStatus('Payment form ready - tap fields to enter card details');
                     showForm();
                     
-                    // Add click handlers to containers for debugging
+                    // Mobile interaction fixes
                     const cardContainer = document.getElementById('cardNumber-container');
                     const cvvContainer = document.getElementById('securityCode-container');
                     
-                    if (cardContainer) {
-                        cardContainer.addEventListener('click', function() {
-                            console.log('Card number container clicked');
-                        });
-                    }
+                    // Add mobile touch handlers
+                    [cardContainer, cvvContainer].forEach(container => {
+                        if (container) {
+                            container.addEventListener('touchstart', function(e) {
+                                console.log('Touch start on container');
+                                container.style.borderColor = '#F37021';
+                            }, { passive: true });
+                            
+                            container.addEventListener('touchend', function(e) {
+                                console.log('Touch end on container');
+                                setTimeout(() => {
+                                    const iframe = container.querySelector('iframe');
+                                    if (iframe) {
+                                        iframe.focus();
+                                    }
+                                }, 100);
+                            }, { passive: true });
+                        }
+                    });
                     
-                    if (cvvContainer) {
-                        cvvContainer.addEventListener('click', function() {
-                            console.log('CVV container clicked');
-                        });
-                    }
-                    
-                    // Check if fields are actually interactive after a delay
+                    // Check iframe loading
                     setTimeout(() => {
                         const cardIframe = cardContainer.querySelector('iframe');
                         const cvvIframe = cvvContainer.querySelector('iframe');
                         
                         if (!cardIframe || !cvvIframe) {
-                            console.warn('Microform iframes not found - this may indicate localhost security restrictions');
-                            
-                            // For localhost development, show a helpful message
-                            if (isLocalhost) {
-                                showError('Localhost detected: Microform fields may not work due to security restrictions. For testing, try using test card data or deploy to a proper domain with HTTPS.');
-                            }
+                            console.warn('Microform iframes not found');
+                            showError('Payment fields failed to load. Please refresh and try again.');
                         } else {
                             console.log('Microform iframes loaded successfully');
+                            updateStatus('Ready - tap on the card number field to start');
                         }
-                    }, 1000);
-                }, 2000);
+                    }, 2000);
+                }, 3000);
                 
                 // Handle form submission
                 document.getElementById('payment-form').addEventListener('submit', function(e) {
@@ -661,7 +642,7 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
                 
             } catch (error) {
                 console.error('Initialization error:', error);
-                showError('Failed to initialize payment form: ' + error.message + '. Please check browser console for details.');
+                showError('Failed to initialize payment form: ' + error.message);
             }
         }
         
@@ -671,6 +652,21 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
         } else {
             initializePayment();
         }
+        
+        // Mobile-specific fixes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Prevent zoom on input focus
+            const viewport = document.querySelector('meta[name=viewport]');
+            if (viewport) {
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+            }
+            
+            // Fix iOS Safari issues
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                document.body.style.webkitTextSizeAdjust = '100%';
+                document.body.style.webkitTouchCallout = 'none';
+            }
+        });
     </script>
 </body>
 </html>
@@ -702,33 +698,21 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
         ),
       ),
       body: ActivityTracker(
-        interactionType: 'payment_working_screen',
+        interactionType: 'payment_mobile_optimized_screen',
         child: captureContextAsync.when(
           data: (response) {
-            print('DEBUG: Capture context received successfully');
-            print('DEBUG: Status: ${response.status}');
-            print('DEBUG: Token length: ${response.data?.captureContext?.length ?? 0}');
-            
-            // Set capture context and setup payment
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_captureContext != response.data.captureContext) {
+            if (_captureContext != response.data.captureContext) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
                 setState(() {
                   _captureContext = response.data.captureContext;
                 });
-                if (kIsWeb) {
-                  print('DEBUG: Setting up web payment...');
-                  _setupWebPayment();
-                } else {
-                  print('DEBUG: Setting up mobile payment...');
-                  _setupMobilePayment();
-                }
-              }
-            });
+                _setupMobilePayment();
+              });
+            }
             
             return _buildBody();
           },
           loading: () {
-            print('DEBUG: Capture context is loading from backend...');
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -741,7 +725,6 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
             );
           },
           error: (error, stack) {
-            print('DEBUG: Capture context error: $error');
             return _buildErrorState('Failed to get payment configuration: $error');
           },
         ),
@@ -784,7 +767,7 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Your payment is processed securely through CyberSource. All card details are encrypted.',
+                    'Mobile-optimized payment form. Tap on fields to enter card details.',
                     style: TextStyle(color: Colors.blue.shade700),
                   ),
                 ),
@@ -795,11 +778,9 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
           Expanded(
             child: SizedBox(
               width: double.infinity,
-              child: kIsWeb
-                  ? HtmlElementView(viewType: _iframeId)
-                  : _webViewController != null
-                      ? WebViewWidget(controller: _webViewController!)
-                      : const Center(child: Text('Loading payment form...')),
+              child: _webViewController != null
+                  ? WebViewWidget(controller: _webViewController!)
+                  : const Center(child: Text('Loading payment form...')),
             ),
           ),
         ],
@@ -840,13 +821,7 @@ class _PaymentWorkingScreenState extends ConsumerState<PaymentWorkingScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _error = null;
-                        _isLoading = true;
-                      });
-                      _initializePayment();
-                    },
+                    onPressed: _initializePayment,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF37021),
                       foregroundColor: Colors.white,

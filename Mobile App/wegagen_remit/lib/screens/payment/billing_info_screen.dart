@@ -5,7 +5,8 @@ import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
 import 'payment_webview_screen.dart';
 import 'payment_working_screen.dart';
-import 'payment_debug_screen.dart';
+import 'payment_mobile_optimized_screen.dart';
+import 'payment_debug_mobile_screen.dart';
 
 class BillingInfoScreen extends ConsumerStatefulWidget {
   const BillingInfoScreen({super.key});
@@ -208,7 +209,8 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
               if (value == null || value.trim().isEmpty) {
                 return 'Email is required';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+              const emailPattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
+              if (!RegExp(emailPattern).hasMatch(value.trim())) {
                 return 'Please enter a valid email address';
               }
               return null;
@@ -445,12 +447,12 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
         ref.read(paymentFormProvider.notifier).updateCountry(_selectedCountry);
       }
       
-      // Navigate directly to the microform payment screen (restore original working behavior)
+      // Navigate to debug screen first to detect mobile origin
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => kIsWeb 
               ? const PaymentWorkingScreen()
-              : const PaymentWebViewScreen(),
+              : const PaymentDebugMobileScreen(), // Debug screen for mobile
         ),
       );
     }

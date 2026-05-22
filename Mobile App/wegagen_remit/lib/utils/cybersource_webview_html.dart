@@ -220,12 +220,38 @@ class CyberSourceWebViewHTML {
             <div class="card-row">
                 <div class="form-group">
                     <label for="expirationMonth">Expiry Month</label>
-                    <div id="expirationMonth-container" class="microform-field"></div>
+                    <select id="expirationMonth" class="form-control" required>
+                        <option value="">MM</option>
+                        <option value="01">01</option>
+                        <option value="02">02</option>
+                        <option value="03">03</option>
+                        <option value="04">04</option>
+                        <option value="05">05</option>
+                        <option value="06">06</option>
+                        <option value="07">07</option>
+                        <option value="08">08</option>
+                        <option value="09">09</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
                     <label for="expirationYear">Expiry Year</label>
-                    <div id="expirationYear-container" class="microform-field"></div>
+                    <select id="expirationYear" class="form-control" required>
+                        <option value="">YY</option>
+                        <option value="25">25</option>
+                        <option value="26">26</option>
+                        <option value="27">27</option>
+                        <option value="28">28</option>
+                        <option value="29">29</option>
+                        <option value="30">30</option>
+                        <option value="31">31</option>
+                        <option value="32">32</option>
+                        <option value="33">33</option>
+                        <option value="34">34</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
@@ -323,31 +349,21 @@ class CyberSourceWebViewHTML {
                     document.getElementById('debug-status').textContent = 'Loading payment fields...';
                     
                     log('Loading card number field...');
-                    let cardNumberField, cvvField, monthField, yearField;
+                    let cardNumberField, cvvField;
                     try {
                         cardNumberField = microform.createField('number', { placeholder: '1234 5678 9012 3456' });
                         cvvField = microform.createField('securityCode', { placeholder: '123' });
-                        monthField = microform.createField('expirationMonth', { placeholder: 'MM' });
-                        yearField = microform.createField('expirationYear', { placeholder: 'YY' });
-                        log('Using createField API');
+                        log('Using createField API - only number and securityCode fields');
                     } catch (fieldError) {
                         log('createField failed, fallback to field(): ' + fieldError.message);
                         cardNumberField = microform.field('number');
                         cvvField = microform.field('securityCode');
-                        monthField = microform.field('expirationMonth');
-                        yearField = microform.field('expirationYear');
                     }
 
                     cardNumberField.load('#cardNumber-container');
                     
                     log('Loading CVV field...');
                     cvvField.load('#securityCode-container');
-                    
-                    log('Loading expiry month field...');
-                    monthField.load('#expirationMonth-container');
-                    
-                    log('Loading expiry year field...');
-                    yearField.load('#expirationYear-container');
                     
                     // Mark fields as ready after a short delay
                     setTimeout(() => {
@@ -394,14 +410,30 @@ class CyberSourceWebViewHTML {
                     return;
                 }
                 
+                // Get expiry values from HTML select elements
+                const expirationMonth = document.getElementById('expirationMonth').value;
+                const expirationYear = document.getElementById('expirationYear').value;
+                
+                if (!expirationMonth || !expirationYear) {
+                    document.getElementById('error-message').textContent = 'Please select both expiration month and year.';
+                    document.getElementById('error-message').classList.add('show');
+                    return;
+                }
+                
                 // Show loading
                 document.getElementById('loading').classList.add('show');
                 document.getElementById('payment-form').style.display = 'none';
                 document.getElementById('error-message').classList.remove('show');
                 
-                log('Creating payment token...');
+                log('Creating payment token with expiry: ' + expirationMonth + '/' + expirationYear);
                 
-                microform.createToken({}, function(err, token) {
+                // Create token with expiry data
+                const tokenData = {
+                    expirationMonth: expirationMonth,
+                    expirationYear: expirationYear
+                };
+                
+                microform.createToken(tokenData, function(err, token) {
                     // Hide loading
                     document.getElementById('loading').classList.remove('show');
                     document.getElementById('payment-form').style.display = 'block';
@@ -423,7 +455,9 @@ class CyberSourceWebViewHTML {
                             } else {
                                 window.parent.postMessage({
                                     type: 'PAYMENT_TOKEN',
-                                    token: token
+                                    token: token,
+                                    expirationMonth: expirationMonth,
+                                    expirationYear: expirationYear
                                 }, '*');
                             }
                             log('Token sent to Flutter');
