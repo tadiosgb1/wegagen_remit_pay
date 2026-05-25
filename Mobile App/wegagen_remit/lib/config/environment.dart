@@ -1,7 +1,7 @@
 class Environment {
   static const String _baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.195.49.18:3001', // Your backend URL
+    defaultValue: 'https://10.195.49.18:3001', // Your backend URL
   );
 
   static const String _apiVersion = String.fromEnvironment(

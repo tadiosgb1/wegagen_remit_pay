@@ -18,6 +18,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
+  bool _isTakingPicture = false;
 
   @override
   void initState() {
@@ -84,6 +85,31 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
     );
   }
 
+  Future<void> _captureSelfie() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+
+    setState(() {
+      _isTakingPicture = true;
+    });
+
+    try {
+      final XFile picture = await _cameraController!.takePicture();
+      if (mounted) {
+        Navigator.pop(context, picture);
+      }
+    } catch (e) {
+      _showErrorDialog('Failed to capture selfie: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTakingPicture = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _cameraController?.dispose();
@@ -104,16 +130,88 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
         ),
         centerTitle: true,
       ),
-      body: const Center(
-        child: Text(
-          'Liveness Detection\nComing Soon',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-        ),
+      body: SafeArea(
+        child: _isCameraInitialized && _cameraController != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        CameraPreview(_cameraController!),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.black.withOpacity(0.35),
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.35),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Text(
+                              'Position your face in the frame',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Tap the button below to capture your selfie and complete liveness verification.',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton.icon(
+                            onPressed: _isTakingPicture ? null : _captureSelfie,
+                            icon: const Icon(Icons.camera_alt),
+                            label: Text(
+                              _isTakingPicture ? 'Capturing...' : 'Capture Selfie',
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF37021),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }

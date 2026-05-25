@@ -17,6 +17,7 @@ class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
 
 class _PaymentMobileOptimizedScreenState extends ConsumerState<PaymentMobileOptimizedScreen> {
   bool _isLoading = true;
+  bool _isSetupDone = false;
   String? _error;
   String? _captureContext;
   WebViewController? _webViewController;
@@ -24,47 +25,25 @@ class _PaymentMobileOptimizedScreenState extends ConsumerState<PaymentMobileOpti
   @override
   void initState() {
     super.initState();
-    _initializePayment();
   }
 
-  void _initializePayment() async {
-    try {
-      print('DEBUG: Starting mobile payment initialization...');
-      
-      final captureContextAsync = ref.read(captureContextProvider);
-      
-      captureContextAsync.when(
-        data: (response) {
-          print('DEBUG: Capture context received successfully');
-          setState(() {
-            _captureContext = response.data.captureContext;
-          });
-          _setupMobilePayment();
-        },
-        loading: () {
-          print('DEBUG: Capture context is loading from backend...');
-        },
-        error: (error, stack) {
-          print('DEBUG: Capture context error: $error');
-          setState(() {
-            _error = 'Failed to get payment configuration: $error';
-            _isLoading = false;
-          });
-        },
-      );
-    } catch (e) {
-      print('DEBUG: Exception in _initializePayment: $e');
-      setState(() {
-        _error = 'Failed to initialize payment: $e';
-        _isLoading = false;
-      });
-    }
-  }
 
-  void _setupMobilePayment() {
-    if (_captureContext == null) return;
-    
-    // Create WebView controller optimized for mobile
+@override
+void dispose() {
+  _webViewController = null;
+  super.dispose();
+}
+
+
+
+
+ void _setupMobilePayment() {
+  if (_captureContext == null) return;
+
+  if (_isSetupDone) return;
+  _isSetupDone = true;
+  
+      // Create WebView controller optimized for mobile
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent('Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36')
@@ -701,14 +680,20 @@ class _PaymentMobileOptimizedScreenState extends ConsumerState<PaymentMobileOpti
         interactionType: 'payment_mobile_optimized_screen',
         child: captureContextAsync.when(
           data: (response) {
-            if (_captureContext != response.data.captureContext) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                setState(() {
-                  _captureContext = response.data.captureContext;
-                });
-                _setupMobilePayment();
+          if (_captureContext != response.data.captureContext) {
+            
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+
+              setState(() {
+                _captureContext = response.data.captureContext;
               });
-            }
+
+              _setupMobilePayment();
+            });
+
+
+          }
             
             return _buildBody();
           },
@@ -732,25 +717,27 @@ class _PaymentMobileOptimizedScreenState extends ConsumerState<PaymentMobileOpti
     );
   }
 
-  Widget _buildBody() {
-    if (_error != null) {
-      return _buildErrorState();
-    }
+ Widget _buildBody() {
+  if (_error != null) {
+    return _buildErrorState();
+  }
 
-    if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Color(0xFFF37021)),
-            SizedBox(height: 16),
-            Text('Preparing secure payment...'),
-          ],
-        ),
-      );
-    }
+  if (_isLoading) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: Color(0xFFF37021)),
+          SizedBox(height: 16),
+          Text('Preparing secure payment...'),
+        ],
+      ),
+    );
+  }
 
-    return Padding(
+  return SafeArea(
+    bottom: true,
+    child: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
@@ -785,8 +772,10 @@ class _PaymentMobileOptimizedScreenState extends ConsumerState<PaymentMobileOpti
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildErrorState([String? errorMessage]) {
     final displayError = errorMessage ?? _error ?? 'Unknown error occurred';
@@ -821,7 +810,16 @@ class _PaymentMobileOptimizedScreenState extends ConsumerState<PaymentMobileOpti
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _initializePayment,
+                   onPressed: () {
+                      setState(() {
+                        _error = null;
+                        _isLoading = true;
+                        _isSetupDone = false;
+                        _webViewController = null;
+                      });
+
+                      ref.invalidate(captureContextProvider);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF37021),
                       foregroundColor: Colors.white,
