@@ -1,121 +1,114 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../../providers/payment_providers.dart';
-import '../../utils/cybersource_webview_html.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../config/url_container.dart';
 import '../../widgets/activity_tracker.dart';
 import 'payment_processing_screen.dart';
-import 'package:flutter/foundation.dart'; // <--- ADD THIS
-import 'package:flutter/gestures.dart';   // <--- ADD THIS
 
-class PaymentWebViewScreen extends ConsumerStatefulWidget {
+class PaymentWebViewScreen extends StatefulWidget {
   const PaymentWebViewScreen({super.key});
 
   @override
-  ConsumerState<PaymentWebViewScreen> createState() => _PaymentWebViewScreenState();
+  State<PaymentWebViewScreen> createState() => _PaymentWebViewScreenState();
 }
 
-class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
-  WebViewController? _controller;
+class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
+  late final WebViewController _controller;
   bool _isLoading = true;
   String? _error;
-  bool _isWebViewInitialized = false;
-  
-  // Track the context value to avoid reloading the HTML string on every re-render
-  String? _loadedCaptureContext;
 
   @override
   void initState() {
     super.initState();
-    // Initialize WebView after the widget framework finishes mounting
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.white)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = true;
+              });
+            }
+          },
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+          onWebResourceError: (WebResourceError error) {
+            if (mounted) {
+              setState(() {
+                _error = 'Failed to load payment page: ${error.description}';
+                _isLoading = false;
+              });
+            }
+          },
+        ),
+      )
+      ..addJavaScriptChannel(
+        'paymentToken',
+        onMessageReceived: (JavaScriptMessage message) {
+          _handlePaymentToken(message.message);
+        },
+      )
+      ..addJavaScriptChannel(
+        'FlutterLog',
+        onMessageReceived: (JavaScriptMessage message) {
+          debugPrint('WebView Log: ${message.message}');
+        },
+      );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeWebView();
+      _loadPaymentPage();
     });
   }
 
-  void _initializeWebView() {
-    try {
-      _controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(Colors.white)
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onPageStarted: (String url) {
-              if (mounted) {
-                setState(() {
-                  _isLoading = true;
-                });
-              }
-            },
-            onPageFinished: (String url) {
-              if (mounted) {
-                setState(() {
-                  _isLoading = false;
-                });
-              }
-            },
-            onWebResourceError: (WebResourceError error) {
-              if (mounted) {
-                setState(() {
-                  _error = 'Failed to load payment form: ${error.description}';
-                  _isLoading = false;
-                });
-              }
-            },
-          ),
-        )
-        ..addJavaScriptChannel(
-          'paymentToken',
-          onMessageReceived: (JavaScriptMessage message) {
-            _handlePaymentToken(message.message);
-          },
-        )
-        ..addJavaScriptChannel(
-          'FlutterLog',
-          onMessageReceived: (JavaScriptMessage message) {
-            debugPrint('WebView Log: ${message.message}');
-          },
-        );
+Future<void> _loadPaymentPage() async {
+  final prefs = await SharedPreferences.getInstance();
+  final authToken = prefs.getString('auth_token');
 
+  if (authToken == null || authToken.isEmpty) {
+    if (mounted) {
       setState(() {
-        _isWebViewInitialized = true;
+        _error = 'Authentication required. Please log in first.';
+        _isLoading = false;
       });
-    } catch (e) {
+    }
+    return;
+  }
+
+  try {
+    final paymentUrl =
+        '${UrlContainer.paymentSession}?token=$authToken'; // Updated to use new payment session endpoint
+
+    await _controller.loadRequest(
+      Uri.parse(paymentUrl),
+    );
+  } catch (e) {
+    if (mounted) {
       setState(() {
-        _error = 'Failed to initialize WebView: $e';
+        _error = 'Failed to load payment page: $e';
         _isLoading = false;
       });
     }
   }
-
-  /// Safely evaluates and loads HTML payload execution outside the render mapping loop
-void _loadPaymentForm(String captureContext) {
-    if (_controller != null && _loadedCaptureContext != captureContext) {
-      _loadedCaptureContext = captureContext;
-      _controller!.loadHtmlString(
-        CyberSourceWebViewHTML.generateHTML(captureContext),
-        baseUrl: 'https://localhost', // <--- Ensure this is exactly like this
-      );
-    }
-  }
+}
 
   void _handlePaymentToken(String tokenJson) {
     try {
-      final tokenData = jsonDecode(tokenJson);
-      final paymentToken = tokenData['token'] ?? tokenData;
-      
-      if (paymentToken != null && paymentToken.toString().isNotEmpty) {
-        // Navigate to processing screen with the token
+      final token = tokenJson.trim();
+      if (token.isNotEmpty) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => PaymentProcessingScreen(
-              paymentToken: paymentToken.toString(),
-            ),
+            builder: (context) => PaymentProcessingScreen(paymentToken: token),
           ),
         );
       } else {
-        _showError('Invalid payment token received');
+        _showError('Invalid payment token received.');
       }
     } catch (e) {
       _showError('Failed to process payment token: $e');
@@ -136,8 +129,6 @@ void _loadPaymentForm(String captureContext) {
 
   @override
   Widget build(BuildContext context) {
-    final captureContextAsync = ref.watch(captureContextProvider);
-    
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -152,33 +143,17 @@ void _loadPaymentForm(String captureContext) {
       ),
       body: ActivityTracker(
         interactionType: 'payment_webview_screen',
-        child: captureContextAsync.when(
-          data: (captureContext) {
-            // Guard loop intercepted here before pushing updates to UI Layout
-            _loadPaymentForm(captureContext.data.captureContext);
-            return _buildWebView();
-          },
-          loading: () => _buildLoadingState(),
-          error: (error, stack) => _buildErrorState(error.toString()),
-        ),
+        child: _error != null
+            ? _buildErrorState(_error!)
+            : _buildWebView(),
       ),
     );
   }
 
- Widget _buildWebView() {
-    if (_error != null) {
-      return _buildErrorState(_error!);
-    }
-
-    if (!_isWebViewInitialized || _controller == null) {
-      return _buildLoadingState();
-    }
-
+  Widget _buildWebView() {
     return Stack(
       children: [
-        WebViewWidget(
-          controller: _controller!,
-        ),
+        WebViewWidget(controller: _controller),
         if (_isLoading)
           Container(
             color: Colors.white,
@@ -191,7 +166,7 @@ void _loadPaymentForm(String captureContext) {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'Loading secure payment form...',
+                    'Loading secure payment page...',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
@@ -205,42 +180,10 @@ void _loadPaymentForm(String captureContext) {
     );
   }
 
-  Widget _buildLoadingState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            color: Color(0xFFF37021),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Preparing secure payment...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'This may take a few moments',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildErrorState(String error) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minHeight: MediaQuery.of(context).size.height - 200,
-        ),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -268,40 +211,14 @@ void _loadPaymentForm(String captureContext) {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade300,
-                      foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('Go Back'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _error = null;
-                        _isLoading = true;
-                        _loadedCaptureContext = null; // Clear key on deliberate manual reset
-                      });
-                      ref.invalidate(captureContextProvider);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF37021),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('Retry'),
-                  ),
-                ),
-              ],
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF37021),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text('Go Back'),
             ),
           ],
         ),
@@ -325,8 +242,8 @@ void _loadPaymentForm(String captureContext) {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Go back to payment form
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
               },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,

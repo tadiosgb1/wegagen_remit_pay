@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import '../config/environment.dart';
 import '../config/url_container.dart';
 import '../models/kyc_data.dart';
 import 'api_service.dart';
@@ -92,8 +94,10 @@ class KycService {
       print('Request fields: ${request.fields}');
       print('Request files: ${request.files.map((f) => '${f.field}: ${f.filename} (${f.length} bytes)').join(', ')}');
       
-      final streamedResponse = await request.send();
+      final client = _createMultipartClient();
+      final streamedResponse = await client.send(request);
       final response = await http.Response.fromStream(streamedResponse);
+      client.close();
       
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
@@ -148,6 +152,17 @@ class KycService {
     }
 
     return headers;
+  }
+
+  http.Client _createMultipartClient() {
+    if (kIsWeb || !Environment.isDevelopment) {
+      return http.Client();
+    }
+
+    final ioHttpClient = HttpClient()
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+    return IOClient(ioHttpClient);
   }
 
   // Get KYC status

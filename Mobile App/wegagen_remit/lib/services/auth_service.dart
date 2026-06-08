@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/url_container.dart';
 import '../models/user.dart';
@@ -13,20 +14,16 @@ class AuthService {
   // Login
   Future<AuthResponse> login(String email, String pin) async {
     try {
-      final response = await _apiService.post(
-        UrlContainer.login,
-        {
-          'email': email,
-          'pin': pin,
-        },
-        includeAuth: false,
-      );
+      final response = await _apiService.post(UrlContainer.login, {
+        'email': email,
+        'pin': pin,
+      }, includeAuth: false);
 
       final authResponse = AuthResponse.fromJson(response);
-      
+
       // Store token and user data
       await _storeAuthData(authResponse);
-      
+
       return authResponse;
     } catch (e) {
       throw _handleAuthError(e);
@@ -54,7 +51,7 @@ class AuthService {
         if (referralCode != null) 'referral_code': referralCode,
       };
       print('DEBUG: Request data: $requestData');
-      
+
       final response = await _apiService.post(
         UrlContainer.register,
         requestData,
@@ -62,13 +59,13 @@ class AuthService {
       );
 
       print('DEBUG: API Response: $response');
-      
+
       final authResponse = AuthResponse.fromJson(response);
       print('DEBUG: Parsed AuthResponse - User: ${authResponse.user}');
-      
+
       // Store token and user data
       await _storeAuthData(authResponse);
-      
+
       return authResponse;
     } catch (e) {
       print('DEBUG: Registration error: $e');
@@ -92,20 +89,18 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final refreshToken = prefs.getString('refresh_token');
-      
+
       if (refreshToken == null) {
         throw AuthException('No refresh token available');
       }
 
-      final response = await _apiService.post(
-        UrlContainer.refreshToken,
-        {'refresh_token': refreshToken},
-        includeAuth: false,
-      );
+      final response = await _apiService.post(UrlContainer.refreshToken, {
+        'refresh_token': refreshToken,
+      }, includeAuth: false);
 
       final authResponse = AuthResponse.fromJson(response);
       await _storeAuthData(authResponse);
-      
+
       return authResponse;
     } catch (e) {
       await _clearAuthData();
@@ -116,11 +111,9 @@ class AuthService {
   // Forgot password
   Future<void> forgotPassword(String email) async {
     try {
-      await _apiService.post(
-        UrlContainer.forgotPassword,
-        {'email': email},
-        includeAuth: false,
-      );
+      await _apiService.post(UrlContainer.forgotPassword, {
+        'email': email,
+      }, includeAuth: false);
     } catch (e) {
       throw _handleAuthError(e);
     }
@@ -134,16 +127,12 @@ class AuthService {
     required String confirmPassword,
   }) async {
     try {
-      await _apiService.post(
-        UrlContainer.resetPassword,
-        {
-          'email': email,
-          'token': token,
-          'password': password,
-          'password_confirmation': confirmPassword,
-        },
-        includeAuth: false,
-      );
+      await _apiService.post(UrlContainer.resetPassword, {
+        'email': email,
+        'token': token,
+        'password': password,
+        'password_confirmation': confirmPassword,
+      }, includeAuth: false);
     } catch (e) {
       throw _handleAuthError(e);
     }
@@ -152,10 +141,7 @@ class AuthService {
   // Verify email
   Future<void> verifyEmail(String token) async {
     try {
-      await _apiService.post(
-        UrlContainer.verifyEmail,
-        {'token': token},
-      );
+      await _apiService.post(UrlContainer.verifyEmail, {'token': token});
     } catch (e) {
       throw _handleAuthError(e);
     }
@@ -173,12 +159,10 @@ class AuthService {
   // Forgot PIN
   Future<ApiResponse> forgotPin(String email) async {
     try {
-      final response = await _apiService.post(
-        UrlContainer.forgotPin,
-        {'email': email},
-        includeAuth: false,
-      );
-      
+      final response = await _apiService.post(UrlContainer.forgotPin, {
+        'email': email,
+      }, includeAuth: false);
+
       return ApiResponse.fromJson(response);
     } catch (e) {
       throw _handleAuthError(e);
@@ -188,15 +172,11 @@ class AuthService {
   // Verify OTP
   Future<ApiResponse> verifyOtp(String email, String otp) async {
     try {
-      final response = await _apiService.post(
-        UrlContainer.verifyOtp,
-        {
-          'email': email,
-          'otp': otp,
-        },
-        includeAuth: false,
-      );
-      
+      final response = await _apiService.post(UrlContainer.verifyOtp, {
+        'email': email,
+        'otp': otp,
+      }, includeAuth: false);
+
       return ApiResponse.fromJson(response);
     } catch (e) {
       throw _handleAuthError(e);
@@ -206,15 +186,11 @@ class AuthService {
   // Reset PIN
   Future<ApiResponse> resetPin(String email, String newPin) async {
     try {
-      final response = await _apiService.post(
-        UrlContainer.resetPin,
-        {
-          'email': email,
-          'newPin': newPin,
-        },
-        includeAuth: false,
-      );
-      
+      final response = await _apiService.post(UrlContainer.resetPin, {
+        'email': email,
+        'newPin': newPin,
+      }, includeAuth: false);
+
       return ApiResponse.fromJson(response);
     } catch (e) {
       throw _handleAuthError(e);
@@ -226,15 +202,15 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userJson = prefs.getString('user_data');
-      
+
       print('DEBUG: getCurrentUser - stored userJson: $userJson');
-      
+
       if (userJson != null) {
         final user = User.fromJson(userJson);
         print('DEBUG: getCurrentUser - parsed user: $user');
         return user;
       }
-      
+
       print('DEBUG: getCurrentUser - no user data found');
       return null;
     } catch (e) {
@@ -246,46 +222,60 @@ class AuthService {
   // Check if user is authenticated
   Future<bool> isAuthenticated() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
     final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
-    
-    // Consider user authenticated if they have a token OR if they're marked as logged in
-    // This handles cases where registration doesn't return tokens immediately
-    return token != null || isLoggedIn;
+
+    if (kIsWeb) {
+      // For web, rely on HTTP-only cookies and login state
+      // The server will validate the HTTP-only cookie automatically
+      return isLoggedIn;
+    } else {
+      // For mobile, check both token and login state
+      final token = prefs.getString('auth_token');
+      return token != null || isLoggedIn;
+    }
   }
 
   // Store auth data
   Future<void> _storeAuthData(AuthResponse authResponse) async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     print('DEBUG: Storing auth data...');
     print('DEBUG: Access token: ${authResponse.accessToken}');
-    print('DEBUG: Refresh token: ${authResponse.refreshToken}');
     print('DEBUG: User to store: ${authResponse.user}');
     print('DEBUG: User JSON to store: ${authResponse.user.toJson()}');
-    
-    await prefs.setString('auth_token', authResponse.accessToken);
-    await prefs.setString('refresh_token', authResponse.refreshToken);
+
+    // Store user data and login state
     await prefs.setString('user_data', authResponse.user.toJson());
     await prefs.setBool('is_logged_in', true);
-    
-    // Set token in API service
-    _apiService.setAuthToken(authResponse.accessToken);
-    
+
+    // For mobile apps, still store tokens in SharedPreferences
+    // For web, rely on HTTP-only cookies set by the server
+    if (!kIsWeb) {
+      await prefs.setString('auth_token', authResponse.accessToken);
+      await prefs.setString('refresh_token', authResponse.refreshToken);
+      // Set token in API service for mobile
+      _apiService.setAuthToken(authResponse.accessToken);
+    }
+
     print('DEBUG: Auth data stored successfully');
   }
 
   // Clear auth data
   Future<void> _clearAuthData() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    await prefs.remove('auth_token');
-    await prefs.remove('refresh_token');
+
+    // Clear user data and login state
     await prefs.remove('user_data');
     await prefs.setBool('is_logged_in', false);
-    
-    // Clear token from API service
-    _apiService.clearAuthToken();
+
+    // For mobile, also clear tokens
+    if (!kIsWeb) {
+      await prefs.remove('auth_token');
+      await prefs.remove('refresh_token');
+      // Clear token from API service
+      _apiService.clearAuthToken();
+    }
+    // For web, HTTP-only cookies will be cleared by the server on logout
   }
 
   // Handle auth errors
@@ -317,10 +307,11 @@ class AuthResponse {
     Map<String, dynamic> userData;
     String accessToken = '';
     String refreshToken = '';
-    
+
     if (json['data'] != null) {
       // Check if this is a login response with tokens
-      if (json['data']['access_token'] != null && json['data']['user'] != null) {
+      if (json['data']['access_token'] != null &&
+          json['data']['user'] != null) {
         // Login response structure: {status: success, data: {access_token: ..., user: {...}}}
         accessToken = json['data']['access_token'] ?? '';
         refreshToken = json['data']['refresh_token'] ?? '';
@@ -346,7 +337,7 @@ class AuthResponse {
       accessToken = json['access_token'] ?? '';
       refreshToken = json['refresh_token'] ?? '';
     }
-    
+
     return AuthResponse(
       accessToken: accessToken,
       refreshToken: refreshToken,
@@ -362,11 +353,7 @@ class ApiResponse {
   final String message;
   final Map<String, dynamic>? data;
 
-  ApiResponse({
-    required this.success,
-    required this.message,
-    this.data,
-  });
+  ApiResponse({required this.success, required this.message, this.data});
 
   factory ApiResponse.fromJson(Map<String, dynamic> json) {
     return ApiResponse(

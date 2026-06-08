@@ -15,47 +15,25 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  bool _keepSignedIn = false;
-
-  @override
-  void initState() {
-    super.initState();
-    print('🔐 LoginScreen: initState called');
-    print('🔐 LoginScreen: Message = ${widget.message}');
-  }
 
   @override
   void dispose() {
-    print('🔐 LoginScreen: dispose called');
     _emailController.dispose();
     super.dispose();
   }
 
   void _continueToPin() {
-    print('🔐 LoginScreen: _continueToPin called');
-    print('🔐 LoginScreen: Email = ${_emailController.text.trim()}');
+    if (!_formKey.currentState!.validate()) return;
 
-    if (!_formKey.currentState!.validate()) {
-      print('🔐 LoginScreen: Form validation failed');
-      return;
-    }
-
-    print(
-      '🔐 LoginScreen: Form validation passed, navigating to EnterPinScreen',
-    );
-    // Navigate to PIN entry screen
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) =>
-            EnterPinScreen(email: _emailController.text.trim()),
+        builder: (context) => EnterPinScreen(email: _emailController.text.trim()),
       ),
     );
   }
 
   String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your email';
-    }
+    if (value == null || value.isEmpty) return 'Please enter your email';
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
       return 'Please enter a valid email';
     }
@@ -64,327 +42,204 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('🔐 LoginScreen: build() called');
-    print('🔐 LoginScreen: Screen size = ${MediaQuery.of(context).size}');
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              32.0,
-              40.0,
-              32.0,
-              32.0 + MediaQuery.of(context).viewInsets.bottom,
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Container(
+          height: size.height,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFF37021),
+                Color(0xFFFF8A4D),
+                Colors.white,
+              ],
+              stops: [0.0, 0.3, 1.0],
             ),
-            child: Form(
-              key: _formKey,
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+                  const SizedBox(height: 50),
 
-                  // Logo
-                  Center(
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withValues(alpha: 0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            print(
-                              '🔐 LoginScreen: Logo failed to load: $error',
-                            );
-                            return Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF37021),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Icon(
-                                Icons.account_balance,
-                                color: Colors.white,
-                                size: 40,
-                              ),
-                            );
-                          },
+                  // Logo with glow effect
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.3),
+                          blurRadius: 30,
+                          spreadRadius: 8,
                         ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 110,
+                      height: 110,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.account_balance,
+                        size: 90,
+                        color: Color(0xFFF37021),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 40),
 
-                  // Title
+                  // Welcome Text
                   const Text(
-                    'Sign In',
+                    "Welcome Back",
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.white,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
-
-                  // Subtitle
+                  const SizedBox(height: 8),
                   const Text(
-                    'Enter your credentials to manage\nyour money',
+                    "Sign in to continue",
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                      height: 1.4,
+                      fontSize: 18,
+                      color: Colors.white70,
                     ),
-                    textAlign: TextAlign.center,
                   ),
 
-                  // Show message if provided
-                  if (widget.message != null) ...[
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF37021).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFFF37021).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: Color(0xFFF37021),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              widget.message!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFFF37021),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 50),
 
-                  const SizedBox(height: 60),
-
-                  // Email Field
+                  // Login Card
                   Container(
+                    padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 40,
+                          offset: const Offset(0, 15),
                         ),
                       ],
                     ),
-                    child: TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'Enter your Email Address',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 16,
-                        ),
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Icon(
-                            Icons.email_outlined,
-                            color: Colors.grey.shade400,
-                            size: 20,
-                          ),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFF37021),
-                            width: 2,
-                          ),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 18,
-                        ),
-                      ),
-                      validator: _validateEmail,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Keep me signed in checkbox
-                  // Row(
-                  //   children: [
-                  //     SizedBox(
-                  //       width: 24,
-                  //       height: 24,
-                  //       child: Checkbox(
-                  //         value: _keepSignedIn,
-                  //         onChanged: (value) {
-                  //           setState(() {
-                  //             _keepSignedIn = value ?? false;
-                  //           });
-                  //         },
-                  //         activeColor: const Color(0xFFF37021),
-                  //         shape: RoundedRectangleBorder(
-                  //           borderRadius: BorderRadius.circular(4),
-                  //         ),
-                  //       ),
-                  //     ),
-                  //     const SizedBox(width: 12),
-                  //     const Text(
-                  //       'Keep me signed in',
-                  //       style: TextStyle(
-                  //         fontSize: 16,
-                  //         color: Colors.black87,
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
-                  const SizedBox(height: 40),
-
-                  // Sign In Button
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFF37021).withValues(alpha: 0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _continueToPin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF37021),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Forgot PIN Link
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const ForgotPinScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Forgot PIN?',
-                        style: TextStyle(
-                          color: Color(0xFFF37021),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 80),
-
-                  // Sign Up Link
-                  Center(
-                    child: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const TextSpan(text: "Don't have an account? "),
-                          WidgetSpan(
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const CreateAccountScreen(),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                'Sign Up',
-                                style: TextStyle(
-                                  color: Color(0xFFF37021),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          // Email Field
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            style: const TextStyle(fontSize: 17),
+                            decoration: InputDecoration(
+                              labelText: "Email Address",
+                              labelStyle: TextStyle(color: Colors.grey.shade600),
+                              prefixIcon: const Icon(Icons.email_rounded, color: Color(0xFFF37021)),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(color: Color(0xFFF37021), width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                            ),
+                            validator: _validateEmail,
+                          ),
+
+                          const SizedBox(height: 28),
+
+                          // Continue Button
+                          ElevatedButton(
+                            onPressed: _continueToPin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF37021),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              "Log In",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
+
+                          const SizedBox(height: 5),
+
+                          // Forgot PIN
+                          // Align(
+                          //   alignment: Alignment.center,
+                          //   child: TextButton(
+                          //     onPressed: () {
+                          //       Navigator.push(
+                          //         context,
+                          //         MaterialPageRoute(builder: (_) => const ForgotPinScreen()),
+                          //       );
+                          //     },
+                          //     child: const Text(
+                          //       "Forgot PIN?",
+                          //       style: TextStyle(
+                          //         color: Color(0xFFF37021),
+                          //         fontWeight: FontWeight.w500,
+                          //         fontSize: 16,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ),
                   ),
+
+                  // const Spacer(),
+                 SizedBox(height: 30),
+                  // Sign Up Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Don't have an account? ",
+                        style: TextStyle(color: Colors.black87, fontSize: 16),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const CreateAccountScreen()),
+                          );
+                        },
+                        child: const Text(
+                          "Sign Up",
+                          style: TextStyle(
+                            color: Color(0xFFF37021),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
                 ],
               ),
             ),

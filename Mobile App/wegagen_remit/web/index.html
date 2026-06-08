@@ -1,46 +1,138 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Important: Allow Cybersource domain -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self' https://testflex.cybersource.com https://flex.cybersource.com;
+                   script-src 'self' 'unsafe-inline' https://testflex.cybersource.com https://flex.cybersource.com;
+                   frame-src 'self' https://testflex.cybersource.com;
+                   style-src 'self' 'unsafe-inline';
+                   connect-src 'self' https://testflex.cybersource.com;">
 
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="$FLUTTER_BASE_HREF">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="wegagen_remit">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>wegagen_remit</title>
-  <link rel="manifest" href="manifest.json">
+    <title>Secure Payment</title>
+    <style>
+        body { margin:0; padding:16px; background:#f8f9fa; font-family:system-ui; }
+        .container { background:white; border-radius:16px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
+        h2 { text-align:center; margin-bottom:8px; color:#1f2937; }
+        .microform-field { width:100% !important; height:58px !important; border:2px solid #ddd; border-radius:10px; margin:12px 0; }
+        .pay-button { width:100%; background:#F37021; color:white; border:none; padding:16px; border-radius:12px; font-size:17px; font-weight:600; margin-top:20px; }
+        #status { text-align:center; margin:15px 0; color:#666; font-size:15px; }
+    </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+    <div class="container">
+        <h2>Secure Payment</h2>
+        <div id="status">Loading secure payment form...</div>
+        
+        <form id="payment-form">
+            <label>Card Number</label>
+            <div id="cardNumber-container" class="microform-field"></div>
+            
+            <div style="display:flex; gap:12px;">
+                <div style="flex:1;">
+                    <label>Month</label>
+                    <select id="expMonth" style="width:100%; padding:14px; border:2px solid #ddd; border-radius:8px;"></select>
+                </div>
+                <div style="flex:1;">
+                    <label>Year</label>
+                    <select id="expYear" style="width:100%; padding:14px; border:2px solid #ddd; border-radius:8px;"></select>
+                </div>
+                <div style="flex:1;">
+                    <label>CVV</label>
+                    <div id="securityCode-container" class="microform-field"></div>
+                </div>
+            </div>
+            
+            <button type="submit" class="pay-button">Pay Securely</button>
+        </form>
+    </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+    <script src="https://testflex.cybersource.com/microform/bundle/v2.9.0/flex-microform.min.js"></script>
+    <script>
+        let microformInstance = null;
+
+        window.addEventListener('flutter', function(e) {
+            if (e.detail && e.detail.captureContext) {
+                initFlex(e.detail.captureContext);
+            }
+        });
+
+        async function initFlex(captureContext) {
+            document.getElementById('status').textContent = 'Initializing secure fields...';
+            
+            try {
+                const flex = new Flex(captureContext);
+                microformInstance = flex.microform('card');
+
+                const numberField = microformInstance.createField('number', {
+                    placeholder: '•••• •••• •••• ••••'
+                });
+                const cvvField = microformInstance.createField('securityCode', {
+                    placeholder: '•••'
+                });
+
+                numberField.load('#cardNumber-container');
+                cvvField.load('#securityCode-container');
+
+                document.getElementById('status').textContent = '';
+                populateExpirationDates();
+
+            } catch (e) {
+                console.error('Flex init error:', e);
+                document.getElementById('status').innerHTML = 
+                    `<span style="color:red">Failed to initialize payment form</span>`;
+            }
+        }
+
+        function populateExpirationDates() {
+            const monthSelect = document.getElementById('expMonth');
+            const yearSelect = document.getElementById('expYear');
+            
+            for (let i = 1; i <= 12; i++) {
+                const opt = document.createElement('option');
+                opt.value = i.toString().padStart(2, '0');
+                opt.textContent = i.toString().padStart(2, '0');
+                monthSelect.appendChild(opt);
+            }
+            
+            const currentYear = new Date().getFullYear();
+            for (let i = 0; i < 15; i++) {
+                const opt = document.createElement('option');
+                opt.value = (currentYear + i).toString();
+                opt.textContent = (currentYear + i).toString();
+                yearSelect.appendChild(opt);
+            }
+        }
+
+        document.getElementById('payment-form').addEventListener('submit', e => {
+            e.preventDefault();
+            
+            const month = document.getElementById('expMonth').value;
+            const year = document.getElementById('expYear').value;
+
+            if (!microformInstance) return;
+
+            microformInstance.createToken({
+                expirationMonth: month,
+                expirationYear: year
+            }, (err, token) => {
+                if (err) {
+                    console.error('Create Token Error:', err);
+                    document.getElementById('status').innerHTML = 
+                        `<span style="color:red">Error creating token</span>`;
+                    return;
+                }
+                if (token) {
+                    window.PaymentChannel.postMessage(JSON.stringify({
+                        type: 'PAYMENT_TOKEN',
+                        token: token
+                    }));
+                }
+            });
+        });
+    </script>
 </body>
 </html>

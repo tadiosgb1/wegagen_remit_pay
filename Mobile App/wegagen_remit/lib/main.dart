@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
+import 'providers/kyc_provider.dart';
 import 'providers/exchange_rate_provider.dart';
 import 'services/api_service.dart';
 import 'config/environment.dart';
+import 'config/url_container.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -17,12 +19,10 @@ void main() async {
     print('🚀 Starting app initialization...');
     print('🌐 API URL: ${Environment.apiUrl}');
     
-    // Initialize API service
     await ApiService().initialize();
     print('✅ API service initialized successfully');
     
     runApp(const ProviderScope(child: MyApp()));
-    print('✅ App started successfully');
   } catch (e) {
     print('❌ App initialization failed: $e');
     runApp(const ProviderScope(child: MyApp()));
@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
     return provider.MultiProvider(
       providers: [
         provider.ChangeNotifierProvider(create: (_) => AuthProvider()),
+        provider.ChangeNotifierProvider(create: (_) => KycProvider()),
         provider.ChangeNotifierProvider(create: (_) => ExchangeRateProvider()),
       ],
       child: MaterialApp(
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF37021)),
           useMaterial3: true,
+          fontFamily: 'Poppins', // Add this if you have Poppins font
         ),
         home: const AuthWrapper(),
         debugShowCheckedModeBanner: false,
@@ -51,6 +53,8 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+enum AuthStatus { checking, onboarding, login, home }
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -60,6 +64,8 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  AuthStatus _status = AuthStatus.checking;
+
   @override
   void initState() {
     super.initState();
@@ -67,127 +73,208 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _initializeApp() async {
-    print('🔄 Starting app initialization...');
-    
-    // Add splash delay
-    await Future.delayed(const Duration(seconds: 2));
-    print('⏰ Splash delay completed');
+    await Future.delayed(const Duration(seconds: 3));
 
-    if (!mounted) {
-      print('❌ Widget not mounted, returning');
-      return;
-    }
+    if (!mounted) return;
 
     try {
-      print('📱 Getting SharedPreferences...');
       final prefs = await SharedPreferences.getInstance();
-      
       final hasSeenOnboarding = prefs.getBool('onboarding_completed') ?? false;
-      final hasToken = prefs.getString('auth_token') != null;
-      
-      print('🔍 hasSeenOnboarding: $hasSeenOnboarding');
-      print('🔍 hasToken: $hasToken');
+      final token = prefs.getString('auth_token');
 
       if (!hasSeenOnboarding) {
-        print('🚀 Navigating to OnboardingScreen');
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-          );
-        }
-      } else if (hasToken) {
-        print('🚀 Navigating to MainNavigationScreen');
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-          );
-        }
-      } else {
-        print('🚀 Navigating to LoginScreen');
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
-        }
+        setState(() => _status = AuthStatus.onboarding);
+        return;
+      }
+
+      if (token == null) {
+        setState(() => _status = AuthStatus.login);
+        return;
+      }
+
+      try {
+        await ApiService().get(UrlContainer.profile);
+        setState(() => _status = AuthStatus.home);
+      } catch (e) {
+        await prefs.remove('auth_token');
+        setState(() => _status = AuthStatus.login);
       }
     } catch (e) {
       print('❌ Error in _initializeApp: $e');
+      setState(() => _status = AuthStatus.login);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const SplashScreen();
+    switch (_status) {
+      case AuthStatus.checking:
+        return const SplashScreen();
+      case AuthStatus.onboarding:
+        return const OnboardingScreen();
+      case AuthStatus.login:
+        return const LoginScreen();
+      case AuthStatus.home:
+        return const MainNavigationScreen();
+    }
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1800),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFF37021),
+              Color(0xFFFF8A4D),
+              Color(0xFFFFB07A),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Glowing Logo Container
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Opacity(
+                      opacity: _fadeAnimation.value,
+                      child: Container(
+                        padding: const EdgeInsets.all(25),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.6),
+                              blurRadius: 60,
+                              spreadRadius: 20,
+                            ),
+                            BoxShadow(
+                              color: Colors.orange.withOpacity(0.4),
+                              blurRadius: 80,
+                              spreadRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 130,
+                          height: 130,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.account_balance,
+                              size: 110,
+                              color: Color(0xFFF37021),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF37021),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(
-                        Icons.account_balance,
+
+              const SizedBox(height: 50),
+
+              // App Name with Animation
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _fadeAnimation.value,
+                    child: const Text(
+                      'Wegagen Remit',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        size: 50,
+                        letterSpacing: 1.5,
                       ),
-                    );
-                  },
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _fadeAnimation.value,
+                    child: const Text(
+                      'Send Money Worldwide',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white70,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 80),
+
+              // Loading Indicator
+              const SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 3.5,
                 ),
               ),
-            ),
-            const SizedBox(height: 30),
-            const Text(
-              'Wegagen Remit',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFF37021),
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Send money worldwide',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 50),
-            const CircularProgressIndicator(color: Color(0xFFF37021)),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import '../models/payment/payment_request.dart';
 import '../models/payment/payment_response.dart';
 import '../repositories/payment_repository.dart';
 import '../services/payment_service.dart';
+import '../services/bonus_service.dart';
 
 // Service providers
 final paymentServiceProvider = Provider<PaymentService>((ref) {
@@ -60,10 +61,12 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
 
   void updateAmount(double value) {
     state = state.copyWith(amount: value);
+    _calculateBonus();
   }
 
   void updateCurrency(String value) {
     state = state.copyWith(currency: value);
+    _calculateBonus();
   }
 
   void updateRemark(String value) {
@@ -72,6 +75,35 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
 
   void updateExchangeRate(double value) {
     state = state.copyWith(exchangeRate: value);
+    _calculateBonus();
+  }
+  
+  /// Calculate bonus in ETB only (regardless of sender currency)
+  void _calculateBonus() {
+    if (state.amount <= 0 || state.exchangeRate <= 0) {
+      // Clear bonus if invalid data
+      state = state.copyWith(bonusCalculation: null);
+      return;
+    }
+    
+    // Only calculate bonus if sender is NOT using ETB
+    if (!BonusCalculator.bonusApplies(state.currency)) {
+      state = state.copyWith(bonusCalculation: null);
+      return;
+    }
+    
+    try {
+      final bonusCalculation = BonusCalculator.calculateBonus(
+        senderAmount: state.amount,
+        senderCurrency: state.currency,
+        exchangeRate: state.exchangeRate,
+      );
+      
+      state = state.copyWith(bonusCalculation: bonusCalculation);
+    } catch (e) {
+      // In case of error, clear bonus
+      state = state.copyWith(bonusCalculation: null);
+    }
   }
 
   void updateFirstName(String value) {

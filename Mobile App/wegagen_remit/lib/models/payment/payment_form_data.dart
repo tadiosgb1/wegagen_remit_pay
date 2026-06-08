@@ -1,3 +1,5 @@
+import '../../services/bonus_service.dart';
+
 class PaymentFormData {
   final String toAccountHolder;
   final String toAccount;
@@ -5,7 +7,8 @@ class PaymentFormData {
   final String currency;
   final String remark;
   final double exchangeRate;
-  
+  final BonusCalculation? bonusCalculation; // ETB bonus calculation
+
   // Billing information
   final String firstName;
   final String lastName;
@@ -31,6 +34,7 @@ class PaymentFormData {
     required this.postalCode,
     required this.country,
     required this.email,
+    this.bonusCalculation,
   });
 
   PaymentFormData copyWith({
@@ -48,6 +52,7 @@ class PaymentFormData {
     String? postalCode,
     String? country,
     String? email,
+    BonusCalculation? bonusCalculation,
   }) {
     return PaymentFormData(
       toAccountHolder: toAccountHolder ?? this.toAccountHolder,
@@ -64,23 +69,24 @@ class PaymentFormData {
       postalCode: postalCode ?? this.postalCode,
       country: country ?? this.country,
       email: email ?? this.email,
+      bonusCalculation: bonusCalculation ?? this.bonusCalculation,
     );
   }
 
   bool get isValid {
     return toAccountHolder.isNotEmpty &&
-           toAccount.isNotEmpty &&
-           amount > 0 &&
-           currency.isNotEmpty &&
-           remark.isNotEmpty &&
-           exchangeRate > 0 &&
-           firstName.isNotEmpty &&
-           lastName.isNotEmpty &&
-           address1.isNotEmpty &&
-           locality.isNotEmpty &&
-           administrativeArea.isNotEmpty &&
-           postalCode.isNotEmpty &&
-           country.isNotEmpty &&
-           email.isNotEmpty;
+        toAccount.isNotEmpty &&
+        amount > 0 &&
+        currency.isNotEmpty &&
+        remark.isNotEmpty &&
+        exchangeRate > 0 &&
+        firstName.isNotEmpty &&
+        lastName.isNotEmpty &&
+        address1.isNotEmpty &&
+        locality.isNotEmpty &&
+        administrativeArea.isNotEmpty &&
+        postalCode.isNotEmpty &&
+        country.isNotEmpty &&
+        email.isNotEmpty;
   }
 }

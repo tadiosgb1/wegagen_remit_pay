@@ -14,17 +14,37 @@ class PaymentDebugMobileScreen extends ConsumerStatefulWidget {
   ConsumerState<PaymentDebugMobileScreen> createState() => _PaymentDebugMobileScreenState();
 }
 
-class _PaymentDebugMobileScreenState extends ConsumerState<PaymentDebugMobileScreen> {
+class _PaymentDebugMobileScreenState extends ConsumerState<PaymentDebugMobileScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   bool _isLoading = true;
   String? _error;
   String? _captureContext;
   WebViewController? _webViewController;
+  String? _loadedCaptureContext;
   List<String> _debugLogs = [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializePayment();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // Keep the controller alive where possible; only null it when truly disposing.
+    // Do not aggressively recreate the WebView on transient lifecycle events.
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Log lifecycle changes for debugging; avoid disposing controller on pause/resume.
+    _addDebugLog('AppLifecycleState changed: $state');
+    if (state == AppLifecycleState.resumed) {
+      // Optionally reload if webview lost context on some devices
+      // _webViewController?.reload();
+    }
   }
 
   void _addDebugLog(String message) {
@@ -70,7 +90,11 @@ class _PaymentDebugMobileScreenState extends ConsumerState<PaymentDebugMobileScr
 
   void _setupMobilePayment() {
     if (_captureContext == null) return;
-    
+    if (_loadedCaptureContext == _captureContext) {
+      _addDebugLog('Capture context already loaded, skipping setup');
+      return;
+    }
+
     _addDebugLog('Setting up mobile WebView...');
     
     // Create WebView controller with debug logging
@@ -155,9 +179,18 @@ class _PaymentDebugMobileScreenState extends ConsumerState<PaymentDebugMobileScr
         },
       );
 
-    // Load the debug HTML content
+    // Load the debug HTML content with a base origin that matches the captureContext
     final htmlContent = _createDebugHTML();
-    _webViewController!.loadHtmlString(htmlContent);
+    final origin = _extractCaptureOrigin(_captureContext) ?? 'https://appassets.androidplatform.net';
+    _addDebugLog('Loading debug HTML with origin: $origin');
+    try {
+      _webViewController!.loadHtmlString(htmlContent, baseUrl: origin);
+    } catch (e) {
+      // Older webview versions may not support baseUrl parameter
+      _addDebugLog('loadHtmlString with baseUrl failed: $e. Falling back to default load.');
+      _webViewController!.loadHtmlString(htmlContent);
+    }
+    _loadedCaptureContext = _captureContext;
     
     setState(() {
       _isLoading = false;
@@ -400,9 +433,30 @@ class _PaymentDebugMobileScreenState extends ConsumerState<PaymentDebugMobileScr
     ''';
   }
 
+  String? _extractCaptureOrigin(String? captureContext) {
+    if (captureContext == null) return null;
+    try {
+      final parts = captureContext.split('.');
+      if (parts.length < 2) return null;
+      var payload = parts[1];
+      final mod = payload.length % 4;
+      if (mod > 0) payload = payload + List.filled(4 - mod, '=').join();
+      final decoded = utf8.decode(base64Url.decode(payload));
+      final Map<String, dynamic> json = jsonDecode(decoded);
+      if (json.containsKey('flx') && json['flx'] is Map && json['flx']['origin'] != null) {
+        return json['flx']['origin'].toString();
+      }
+    } catch (e) {
+      _addDebugLog('Failed to extract capture origin: $e');
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context); // required when using AutomaticKeepAliveClientMixin
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Mobile Origin Debug'),
@@ -502,6 +556,9 @@ class _PaymentDebugMobileScreenState extends ConsumerState<PaymentDebugMobileScr
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   Widget _buildBody() {
     if (_error != null) {

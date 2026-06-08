@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
+import '../../widgets/bonus_display_widget.dart';
 import 'billing_info_screen.dart';
 
 class PaymentScreen extends ConsumerStatefulWidget {
@@ -340,7 +341,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         style: TextStyle(fontWeight: FontWeight.w500),
                       ),
                       Text(
-                        '${_currencyFormatter.format(formData.amount / formData.exchangeRate)} USD',
+                        '${_currencyFormatter.format(formData.amount)} ${formData.currency}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -368,6 +369,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                 ],
               ),
+            ),
+            
+            // Bonus Display - Only shown if bonus applies (non-ETB currencies)
+            BonusDisplayWidget(
+              bonusCalculation: formData.bonusCalculation,
+              showDetailed: true,
             ),
           ],
         ],

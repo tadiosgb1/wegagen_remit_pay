@@ -17,11 +17,11 @@ class UrlContainer {
   static String get resetPin => '$baseUrl/users/reset-pin';
 
   // User endpoints
-  static String get profile => '$baseUrl/user/profile';
-  static String get updateProfile => '$baseUrl/user/profile';
-  static String get changePassword => '$baseUrl/user/change-password';
-  static String get uploadDocument => '$baseUrl/user/documents';
-  static String get getDocuments => '$baseUrl/user/documents';
+  static String get profile => '$baseUrl/users/profile';
+  static String get updateProfile => '$baseUrl/users/profile';
+  static String get changePassword => '$baseUrl/users/change-password';
+  static String get uploadDocument => '$baseUrl/users/documents';
+  static String get getDocuments => '$baseUrl/users/documents';
 
   // Transfer endpoints
   static String get createTransfer => '$baseUrl/transfers';
@@ -40,11 +40,23 @@ class UrlContainer {
   static String getRecipientById(String id) => '$baseUrl/recipients/$id';
   static String get deleteRecipient => '$baseUrl/recipients';
 
-  // Payment endpoints
-  static String get generateCaptureContext => '$baseUrl/payments/generate-capture-context';
+  // Payment endpoints - Updated with new backend URLs
+  static String get generateCaptureContext =>
+      '$baseUrl/payments/generate-capture-context';
   static String get processPayment => '$baseUrl/payments/process-payment';
+  static String get paymentPage => '${Environment.backendUrl}/payment-page';
+  static String get paymentSession => '${Environment.backendUrl}/payments/session'; // New CVV and card page endpoint
   static String get paymentMethods => '$baseUrl/payments/methods';
   static String get paymentHistory => '$baseUrl/payments/history';
+
+  // Alternative payment endpoints for fallback
+  static String get generateCaptureContextAlt =>
+      '${Environment.fallbackApiUrl}/payments/generate-capture-context';
+  static String get processPaymentAlt =>
+      '${Environment.fallbackApiUrl}/payments/process-payment';
+  static String get paymentPageAlt =>
+      '${Environment.fallbackBackendUrl}/payment-page';
+  static String get paymentSessionAlt => '${Environment.fallbackBackendUrl}/payments/session'; // Fallback CVV endpoint
 
   // KYC endpoints
   static String get kycStatus => '$baseUrl/kyc/status';
@@ -64,4 +76,8 @@ class UrlContainer {
   static String get bankBranches => '$baseUrl/banks/branches';
   static String validateBankAccount(String bankCode) =>
       '$baseUrl/banks/$bankCode/validate';
+
+  // Health check endpoints
+  static String get healthCheck => '$baseUrl/health';
+  static String get healthCheckAlt => '${Environment.fallbackApiUrl}/health';
 }

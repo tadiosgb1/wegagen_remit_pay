@@ -1,28 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:async';
-import 'dart:math';
-import '../../models/kyc_data.dart';
+
+enum LivenessStep { lookStraight, turnHeadLeft, turnHeadRight, smile, blink }
 
 class LivenessDetectionScreen extends StatefulWidget {
   const LivenessDetectionScreen({super.key});
 
   @override
-  State<LivenessDetectionScreen> createState() =>
-      _LivenessDetectionScreenState();
+  State<LivenessDetectionScreen> createState() => _LivenessDetectionScreenState();
 }
 
-class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
-    with TickerProviderStateMixin {
+class _LivenessDetectionScreenState extends State<LivenessDetectionScreen> with TickerProviderStateMixin {
   CameraController? _cameraController;
-  List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
-  bool _isTakingPicture = false;
+  bool _isProcessing = false;
+
+  LivenessStep _currentStep = LivenessStep.lookStraight;
+  int _completedSteps = 0;
+  final List<LivenessStep> _challenges = [
+    LivenessStep.lookStraight,
+    LivenessStep.turnHeadLeft,
+    LivenessStep.turnHeadRight,
+    LivenessStep.smile,
+    LivenessStep.blink,
+  ];
+
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _initializeCamera();
   }
 
@@ -30,88 +39,80 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
     try {
       final status = await Permission.camera.request();
       if (!status.isGranted) {
-        _showErrorDialog('Camera permission is required for liveness detection');
+        _showError('Camera permission required');
         return;
       }
 
-      _cameras = await availableCameras();
-      CameraDescription? frontCamera;
-      for (var camera in _cameras!) {
-        if (camera.lensDirection == CameraLensDirection.front) {
-          frontCamera = camera;
-          break;
-        }
-      }
-
-      if (frontCamera == null) {
-        _showErrorDialog('Front camera not found');
-        return;
-      }
-
-      _cameraController = CameraController(
-        frontCamera,
-        ResolutionPreset.medium,
-        enableAudio: false,
+      final cameras = await availableCameras();
+      final frontCamera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
       );
 
+      _cameraController = CameraController(frontCamera, ResolutionPreset.high, enableAudio: false);
       await _cameraController!.initialize();
 
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
+      if (mounted) setState(() => _isCameraInitialized = true);
     } catch (e) {
-      _showErrorDialog('Failed to initialize camera: $e');
+      _showError('Failed to start camera');
     }
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context, false);
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _captureSelfie() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+  void _nextChallenge() {
+    if (_completedSteps >= _challenges.length - 1) {
+      _completeLiveness();
       return;
     }
 
     setState(() {
-      _isTakingPicture = true;
+      _completedSteps++;
+      _currentStep = _challenges[_completedSteps];
     });
+    _animationController.forward(from: 0);
+  }
+
+  Future<void> _completeLiveness() async {
+    setState(() => _isProcessing = true);
 
     try {
-      final XFile picture = await _cameraController!.takePicture();
+      final XFile image = await _cameraController!.takePicture();
       if (mounted) {
-        Navigator.pop(context, picture);
+        Navigator.pop(context, image); // Return captured image
       }
     } catch (e) {
-      _showErrorDialog('Failed to capture selfie: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isTakingPicture = false;
-        });
-      }
+      _showError('Failed to capture final image');
+    }
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Error"),
+        content: Text(message),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+      ),
+    );
+  }
+
+  String _getInstruction() {
+    switch (_currentStep) {
+      case LivenessStep.lookStraight:
+        return "Look straight at the camera";
+      case LivenessStep.turnHeadLeft:
+        return "Turn your head slowly to the LEFT";
+      case LivenessStep.turnHeadRight:
+        return "Turn your head slowly to the RIGHT";
+      case LivenessStep.smile:
+        return "Smile naturally";
+      case LivenessStep.blink:
+        return "Blink both eyes";
     }
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _cameraController?.dispose();
     super.dispose();
   }
@@ -122,96 +123,120 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen>
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Liveness Verification',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        title: const Text('Liveness Detection'),
         centerTitle: true,
       ),
       body: SafeArea(
         child: _isCameraInitialized && _cameraController != null
             ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
                     child: Stack(
+                      alignment: Alignment.center,
                       children: [
                         CameraPreview(_cameraController!),
+
+                        // Overlay
                         Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [
-                                Colors.black.withOpacity(0.35),
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.35),
-                              ],
+                              colors: [Colors.black.withOpacity(0.5), Colors.transparent, Colors.black.withOpacity(0.6)],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.topCenter,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            child: Text(
-                              'Position your face in the frame',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
+
+                        // Animated Challenge Circle
+                        AnimatedBuilder(
+                          animation: _animationController,
+                          builder: (context, child) {
+                            return Container(
+                              width: 240,
+                              height: 240,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.8),
+                                  width: 4,
+                                ),
                               ),
+                            );
+                          },
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            _getInstruction(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+
+                  // Progress & Button
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                    ),
                     child: Column(
                       children: [
-                        Text(
-                          'Tap the button below to capture your selfie and complete liveness verification.',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
+                        // Progress Indicator
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(_challenges.length, (index) {
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: 28,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: index <= _completedSteps ? const Color(0xFFF37021) : Colors.grey.shade700,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            );
+                          }),
                         ),
-                        const SizedBox(height: 16),
+
+                        const SizedBox(height: 24),
+
+                        Text(
+                          "Step ${_completedSteps + 1} of ${_challenges.length}",
+                          style: const TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+
+                        const SizedBox(height: 20),
+
                         SizedBox(
                           width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            onPressed: _isTakingPicture ? null : _captureSelfie,
-                            icon: const Icon(Icons.camera_alt),
-                            label: Text(
-                              _isTakingPicture ? 'Capturing...' : 'Capture Selfie',
-                            ),
+                          height: 58,
+                          child: ElevatedButton(
+                            onPressed: _isProcessing ? null : _nextChallenge,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFF37021),
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: Text(
+                              _completedSteps >= _challenges.length - 1 ? "Complete Verification" : "Next Challenge",
+                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ],
               )
-            : const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
-              ),
+            : const Center(child: CircularProgressIndicator(color: Colors.white)),
       ),
     );
   }

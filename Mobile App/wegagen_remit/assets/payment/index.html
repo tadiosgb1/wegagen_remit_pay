@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Cybersource-optimized CSP - allows all necessary sources -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; frame-src *; child-src *; connect-src *; img-src * data:; style-src * 'unsafe-inline';">
+    
+    <title>Secure Payment</title>
+    <style>
+        body { margin:0; padding:16px; background:#f8f9fa; font-family:system-ui; }
+        .container { background:white; border-radius:16px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+        h2 { text-align:center; margin-bottom:8px; color:#1f2937; }
+        label { display:block; margin:12px 0 6px; font-weight:600; color:#374151; }
+        .microform-field { 
+            width:100% !important; 
+            height:58px !important; 
+            border:2px solid #e5e7eb; 
+            border-radius:10px; 
+            margin-bottom:8px; 
+            box-sizing: border-box;
+            background: white !important;
+            position: relative;
+        }
+        .pay-button { width:100%; background:#F37021; color:white; border:none; padding:16px; border-radius:12px; font-size:17px; margin-top:20px; cursor:pointer; }
+        .pay-button:disabled { background:#ccc; cursor:not-allowed; }
+        #status { text-align:center; margin:20px 0; color:#666; font-size:15px; }
+        .error { color:red; text-align:center; margin:10px 0; display:none; }
+        .row { display:flex; gap:12px; }
+        .col { flex:1; }
+        select { width:100%; padding:14px; border:2px solid #e5e7eb; border-radius:8px; background:white; }
+        .security-info { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin:16px 0; font-size:14px; color:#0c4a6e; }
+        .field-label { position: relative; }
+        .field-label::after { content: ' *'; color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔒 Secure Payment</h2>
+        <div id="status">Initializing Cybersource security...</div>
+        <div id="error" class="error"></div>
+        
+        <div class="security-info" style="display:none;" id="security-note">
+            <strong>🛡️ Security Notice:</strong> Your card details are processed securely by Cybersource and never stored on our servers.
+        </div>
+
+        <form id="payment-form" style="display:none;">
+            <div class="field-label">
+                <label for="number-container">Card Number</label>
+            </div>
+            <div id="number-container" class="microform-field"></div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="field-label">
+                        <label for="expMonth">Expiry Month</label>
+                    </div>
+                    <select id="expMonth" required>
+                        <option value="">Month</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <div class="field-label">
+                        <label for="expYear">Expiry Year</label>
+                    </div>
+                    <select id="expYear" required>
+                        <option value="">Year</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <div class="field-label">
+                        <label for="cvv-container">CVV</label>
+                    </div>
+                    <div id="cvv-container" class="microform-field"></div>
+                </div>
+            </div>
+
+            <button type="submit" id="payButton" class="pay-button">Pay Securely</button>
+        </form>
+    </div>
+
+    <!-- Updated Cybersource Flex Microform v2.0 -->
+    <script src="https://testflex.cybersource.com/microform/bundle/v2.0/flex-microform.min.js"></script>
+    <script>
+        function log(msg) {
+            console.log(`[Cybersource] ${msg}`);
+            if (window.ConsoleChannel) {
+                window.ConsoleChannel.postMessage(`[Cybersource] ${msg}`);
+            }
+        }
+
+        let flexInstance = null;
+        let microformInstance = null;
+        let fieldsLoaded = { number: false, cvv: false };
+
+        // Initialize immediately for testing - in production this should come from backend
+        window.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, initializing payment form...');
+            // For testing - replace with actual capture context from your backend
+            fetchCaptureContext();
+        });
+
+        // Listen for messages from Flutter WebView
+        window.addEventListener('message', function(e) {
+            log('Received message from Flutter: ' + JSON.stringify(e.data));
+            if (e.data && e.data.captureContext) {
+                initFlex(e.data.captureContext);
+            }
+        });
+
+        async function fetchCaptureContext() {
+            try {
+                log('Fetching capture context from backend...');
+                
+                // Try to get capture context from your backend
+                const response = await fetch('http://10.195.49.18:3001/payments/generate-capture-context', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log('Received capture context from backend');
+                
+                if (data.captureContext) {
+                    initFlex(data.captureContext);
+                } else {
+                    throw new Error('No capture context in response');
+                }
+            } catch (error) {
+                log('Failed to fetch capture context: ' + error.message);
+                showError('Failed to initialize payment system. Please check your internet connection and try again.');
+            }
+        }
+
+        function initFlex(captureContext) {
+            log('Initializing Cybersource Flex v2.0...');
+            
+            try {
+                // Create Flex instance
+                flexInstance = new Flex(captureContext);
+                log('Flex instance created successfully');
+                
+                // Create microform instance
+                microformInstance = flexInstance.microform();
+                log('Microform instance created successfully');
+
+                // Create and configure fields with better styling
+                const numberField = microformInstance.createField('number', {
+                    placeholder: '•••• •••• •••• ••••',
+                    styles: {
+                        'input': {
+                            'font-size': '16px',
+                            'font-family': 'system-ui, -apple-system, sans-serif',
+                            'color': '#1f2937',
+                            'border': 'none',
+                            'outline': 'none',
+                            'padding': '16px 12px',
+                            'width': '100%',
+                            'box-sizing': 'border-box'
+                        }
+                    }
+                });
+                
+                const cvvField = microformInstance.createField('securityCode', {
+                    placeholder: '•••',
+                    styles: {
+                        'input': {
+                            'font-size': '16px',
+                            'font-family': 'system-ui, -apple-system, sans-serif',
+                            'color': '#1f2937',
+                            'border': 'none',
+                            'outline': 'none',
+                            'padding': '16px 12px',
+                            'width': '100%',
+                            'box-sizing': 'border-box'
+                        }
+                    }
+                });
+
+                // Load fields into containers
+                numberField.load('#number-container').then(() => {
+                    log('Card number field loaded successfully');
+                    fieldsLoaded.number = true;
+                    checkAllFieldsLoaded();
+                }).catch(err => {
+                    log('Failed to load card number field: ' + err.message);
+                    showError('Failed to load card number field');
+                });
+
+                cvvField.load('#cvv-container').then(() => {
+                    log('CVV field loaded successfully');
+                    fieldsLoaded.cvv = true;
+                    checkAllFieldsLoaded();
+                }).catch(err => {
+                    log('Failed to load CVV field: ' + err.message);
+                    showError('Failed to load CVV field');
+                });
+
+                // Populate expiration dropdowns
+                populateExpiration();
+
+            } catch (error) {
+                log('Flex initialization error: ' + error.message);
+                showError('Failed to initialize secure payment fields: ' + error.message);
+            }
+        }
+
+        function checkAllFieldsLoaded() {
+            if (fieldsLoaded.number && fieldsLoaded.cvv) {
+                log('All Cybersource fields loaded successfully');
+                document.getElementById('status').style.display = 'none';
+                document.getElementById('payment-form').style.display = 'block';
+                document.getElementById('security-note').style.display = 'block';
+            }
+        }
+
+        function populateExpiration() {
+            const monthSelect = document.getElementById('expMonth');
+            const yearSelect = document.getElementById('expYear');
+            
+            // Add months 01-12
+            for (let i = 1; i <= 12; i++) {
+                const monthStr = i.toString().padStart(2, '0');
+                const option = document.createElement('option');
+                option.value = monthStr;
+                option.textContent = monthStr;
+                monthSelect.appendChild(option);
+            }
+            
+            // Add years (current year + 15 years)
+            const currentYear = new Date().getFullYear();
+            for (let i = 0; i < 15; i++) {
+                const year = (currentYear + i).toString();
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+            
+            log('Expiration dropdowns populated');
+        }
+
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('status').style.display = 'none';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        document.getElementById('payment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            hideError();
+            
+            if (!microformInstance) {
+                log('Microform not initialized');
+                showError('Payment system not ready. Please refresh and try again.');
+                return;
+            }
+            
+            const btn = document.getElementById('payButton');
+            const month = document.getElementById('expMonth').value;
+            const year = document.getElementById('expYear').value;
+
+            // Validation
+            if (!month || !year) {
+                showError('Please select expiry month and year');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Processing Payment...';
+            log('Creating payment token...');
+
+            microformInstance.createToken({
+                expirationMonth: month,
+                expirationYear: year
+            }, function(err, token) {
+                btn.disabled = false;
+                btn.textContent = 'Pay Securely';
+                
+                if (err) {
+                    log('Token creation error: ' + JSON.stringify(err));
+                    let errorMsg = 'Payment failed. Please check your card details and try again.';
+                    
+                    if (err.details && err.details.length > 0) {
+                        errorMsg = err.details[0].message || errorMsg;
+                    } else if (err.message) {
+                        errorMsg = err.message;
+                    }
+                    
+                    showError(errorMsg);
+                } else if (token) {
+                    log('Payment token created successfully');
+                    
+                    // Send token back to Flutter
+                    const paymentData = {
+                        type: 'PAYMENT_SUCCESS',
+                        token: token,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // Try multiple channels to communicate with Flutter
+                    if (window.FlutterPayment) {
+                        window.FlutterPayment.postMessage(JSON.stringify(paymentData));
+                    }
+                    
+                    if (window.PaymentChannel) {
+                        window.PaymentChannel.postMessage(JSON.stringify(paymentData));
+                    }
+
+                    // Show success message
+                    btn.textContent = 'Payment Successful ✓';
+                    btn.style.backgroundColor = '#10b981';
+                    
+                    log('Payment token sent to Flutter app');
+                }
+            });
+        });
+
+        // Global error handlers
+        window.addEventListener('error', function(e) {
+            log('JavaScript error: ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            log('Unhandled promise rejection: ' + e.reason);
+        });
+
+        // Debug: Log when Cybersource script loads
+        window.addEventListener('load', function() {
+            log('Page loaded. Flex available: ' + (typeof Flex !== 'undefined'));
+        });
+    </script>
+</body>
+</html>

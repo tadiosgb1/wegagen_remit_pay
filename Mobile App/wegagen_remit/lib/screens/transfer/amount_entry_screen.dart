@@ -49,21 +49,16 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
       context,
       listen: false,
     );
-    _exchangeRate =
-        exchangeProvider.getRate(widget.selectedCurrency, 'ETB') ?? 0.0;
+    _exchangeRate = exchangeProvider.getRate(widget.selectedCurrency, 'ETB') ?? 0.0;
     _calculateAmount();
   }
 
   void _calculateAmount() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
-
     if (amount > 0 && _exchangeRate > 0) {
       setState(() {
-        // Calculate base ETB amount first
         final baseEtbAmount = amount * _exchangeRate;
-        // Calculate Bones fee as 10% of ETB amount
         _fee = _calculateFee(baseEtbAmount);
-        // Add the Bones fee (in ETB) to the ETB amount
         _etbAmount = baseEtbAmount + _fee;
       });
     } else {
@@ -75,78 +70,66 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
   }
 
   double _calculateFee(double etbAmount) {
-    // Bones fee calculation - 10% of ETB amount
     double fee = etbAmount * 0.10;
-    if (fee < 10.0) fee = 10.0; // Minimum 10 ETB
-    if (fee > 500.0) fee = 500.0; // Maximum 500 ETB
+    if (fee < 10.0) fee = 10.0;
+    if (fee > 500.0) fee = 500.0;
     return fee;
   }
 
   String get _transferTitle {
     switch (widget.transferType) {
-      case 'wegagen_bank':
-        return 'Bank Account Transfer';
-      case 'wegagen_ebirr':
-        return 'Wegagen E-birr Transfer';
-      case 'cash_pickup':
-        return 'Cash Pickup Transfer';
-      case 'other_banks':
-        return 'Other Banks Transfer';
-      case 'school_pay':
-        return 'School Payment';
-      default:
-        return 'Money Transfer';
+      case 'wegagen_bank': return 'Bank Account Transfer';
+      case 'wegagen_ebirr': return 'Wegagen E-birr Transfer';
+      case 'cash_pickup': return 'Cash Pickup Transfer';
+      case 'other_banks': return 'Other Banks Transfer';
+      case 'school_pay': return 'School Payment';
+      default: return 'Money Transfer';
     }
   }
 
   IconData get _transferIcon {
     switch (widget.transferType) {
-      case 'wegagen_bank':
-        return Icons.account_balance;
-      case 'wegagen_ebirr':
-        return Icons.phone_android;
-      case 'cash_pickup':
-        return Icons.send;
-      case 'other_banks':
-        return Icons.account_balance_outlined;
-      case 'school_pay':
-        return Icons.school;
-      default:
-        return Icons.send;
+      case 'wegagen_bank': return Icons.account_balance;
+      case 'wegagen_ebirr': return Icons.phone_android;
+      case 'cash_pickup': return Icons.send;
+      case 'other_banks': return Icons.account_balance_outlined;
+      case 'school_pay': return Icons.school;
+      default: return Icons.send;
+    }
+  }
+
+  String _getCurrencyFlag(String code) {
+    switch (code) {
+      case 'USD': return '🇺🇸';
+      case 'EUR': return '🇪🇺';
+      case 'GBP': return '🇬🇧';
+      case 'SAR': return '🇸🇦';
+      case 'AED': return '🇦🇪';
+      default: return '💱';
     }
   }
 
   Widget _buildProgressStep(bool isActive) {
     return Container(
-      width: isActive ? 24 : 8,
+      width: isActive ? 28 : 8,
       height: 4,
       decoration: BoxDecoration(
         color: isActive ? const Color(0xFFF37021) : Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 
-  Widget _buildProgressConnector(bool isActive) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        color: isActive ? const Color(0xFFF37021) : Colors.grey.shade300,
-      ),
-    );
-  }
-
+  // ==================== IMPORTANT: KYC & Navigation Logic ====================
   Future<void> _proceedToRecipientDetails() async {
     if (_amountController.text.isNotEmpty && _etbAmount > 0) {
       final amount = double.parse(_amountController.text);
       if (amount >= 10) {
-        // Get user's KYC status from AuthProvider
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final user = authProvider.user;
-        
+
         if (mounted) {
           if (user?.kyc != null && user!.kyc!.verified) {
-            // KYC is verified, proceed to recipient details
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => RecipientDetailsScreen(
@@ -161,17 +144,12 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
               ),
             );
           } else {
-            // KYC not verified, show KYC requirement screen
-            // Determine KYC status from user data
-            KycStatus kycStatus;
-            if (user?.kyc == null) {
-              kycStatus = KycStatus.notStarted;
-            } else if (!user!.kyc!.verified) {
-              kycStatus = KycStatus.underReview;
-            } else {
-              kycStatus = KycStatus.approved;
-            }
-            
+            KycStatus kycStatus = user?.kyc == null
+                ? KycStatus.notStarted
+                : !user!.kyc!.verified
+                    ? KycStatus.underReview
+                    : KycStatus.approved;
+
             final result = await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => KycRequirementScreen(
@@ -185,12 +163,10 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                 ),
               ),
             );
-            
-            // If user completed KYC, check updated user data and proceed
-            if (result == true) {
-              // Refresh user data from AuthProvider
+
+            if (result == true && mounted) {
               final updatedUser = authProvider.user;
-              if (updatedUser?.kyc != null && updatedUser!.kyc!.verified && mounted) {
+              if (updatedUser?.kyc != null && updatedUser!.kyc!.verified) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => RecipientDetailsScreen(
@@ -214,328 +190,269 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currencyFlag = _getCurrencyFlag(widget.selectedCurrency);
+
     return AuthGuard(
       redirectMessage: 'Please login to continue with your transfer',
       child: Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(_transferIcon, size: 20, color: Colors.black87),
-            const SizedBox(width: 8),
-            Text(
-              _transferTitle,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_transferIcon, size: 22, color: Colors.black87),
+              const SizedBox(width: 10),
+              Text(
+                _transferTitle,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
-            ),
-          ],
+            ],
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Column(
-          children: [
-            // Progress Indicator
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                children: [
-                  _buildProgressStep(true),
-                  _buildProgressConnector(true),
-                  _buildProgressStep(true),
-                  _buildProgressConnector(false),
-                  _buildProgressStep(false),
-                  _buildProgressConnector(false),
-                  _buildProgressStep(false),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  24,
-                  24,
-                  24 + MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Progress Indicator
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Enter Amount',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    _buildProgressStep(true),
+                    const SizedBox(width: 6),
+                    _buildProgressStep(true),
+                    const SizedBox(width: 6),
+                    _buildProgressStep(false),
+                    const SizedBox(width: 6),
+                    _buildProgressStep(false),
+                  ],
+                ),
+              ),
+
+              // Scrollable Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Enter Amount',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sending with us ${widget.selectedCurrency == 'USD' ? 'US Dollar' : widget.selectedCurrency}',
-                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Amount Input Card
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                      const SizedBox(height: 6),
+                      Text(
+                        'How much would you like to send?',
+                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'You send',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _amountController,
-                            keyboardType: TextInputType.number,
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: '100',
-                              hintStyle: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade300,
-                              ),
-                              border: InputBorder.none,
-                              suffixText: widget.selectedCurrency,
-                              suffixStyle: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
+                      const SizedBox(height: 32),
 
-                          const SizedBox(height: 24),
-                          const Divider(),
-                          const SizedBox(height: 16),
-
-                          Text(
-                            'Recipient gets',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _etbAmount > 0
-                                    ? _etbAmount.toStringAsFixed(2)
-                                    : '0.00',
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFF37021),
-                                ),
-                              ),
-                              const Text(
-                                'ETB',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Exchange Rate Info
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Consumer<ExchangeRateProvider>(
-                        builder: (context, exchangeProvider, child) {
-                          final exchangeRate = exchangeProvider.getExchangeRate(widget.selectedCurrency);
-                          
-                          return Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.blue.shade600,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Exchange Rate',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue.shade700,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        if (exchangeRate != null)
-                                          Text(
-                                            '1 ${widget.selectedCurrency} = ${exchangeRate.buyingRate.toStringAsFixed(2)} ETB',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blue.shade700,
-                                            ),
-                                          )
-                                        else
-                                          Text(
-                                            '1 ${widget.selectedCurrency} = ${_exchangeRate.toStringAsFixed(2)} ETB',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.blue.shade700,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Fee Breakdown
-                    if (_etbAmount > 0) ...[
+                      // Amount Input Card
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withValues(alpha: 0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              color: Colors.grey.withValues(alpha: 0.12),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Amount',
-                                  style: TextStyle(fontSize: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Text(currencyFlag, style: const TextStyle(fontSize: 32)),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _amountController,
+                                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                                    decoration: InputDecoration(
+                                      hintText: '0.00',
+                                      hintStyle: TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade300,
+                                      ),
+                                      border: InputBorder.none,
+                                    ),
+                                  ),
                                 ),
                                 Text(
-                                  '${_amountController.text} ${widget.selectedCurrency}',
+                                  widget.selectedCurrency,
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const Divider(height: 32),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Bones',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  '${_fee.toStringAsFixed(2)} ETB',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                Text('Recipient gets', style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
+                                Row(
+                                  children: [
+                                    Text(
+                                      _etbAmount > 0 ? _etbAmount.toStringAsFixed(2) : '0.00',
+                                      style: const TextStyle(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFF37021),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text('ETB', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey)),
+                                  ],
                                 ),
                               ],
                             ),
                           ],
                         ),
                       ),
+
+                      const SizedBox(height: 24),
+
+                      // Exchange Rate
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: [Colors.blue.shade50, Colors.white]),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.blue.shade100),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.swap_horiz, color: Color(0xFFF37021), size: 28),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Consumer<ExchangeRateProvider>(
+                                builder: (context, provider, _) {
+                                  final rate = provider.getExchangeRate(widget.selectedCurrency);
+                                  return Text(
+                                    '1 ${widget.selectedCurrency} = ${(rate?.buyingRate ?? _exchangeRate).toStringAsFixed(2)} ETB',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Fee Breakdown
+                      if (_etbAmount > 0)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4)),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              const Text('Breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 16),
+                              _buildFeeRow('You send', '${_amountController.text} ${widget.selectedCurrency}'),
+                              const Divider(),
+                              _buildFeeRow('Bones Fee', '${_fee.toStringAsFixed(2)} ETB'),
+                              const Divider(),
+                              _buildFeeRow('Total (ETB)', _etbAmount.toStringAsFixed(2), isTotal: true),
+                            ],
+                          ),
+                        ),
                     ],
+                  ),
+                ),
+              ),
+
+              // Fixed Bottom Button
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
                   ],
                 ),
-              ),
-            ),
-
-            // Continue Button
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed:
-                      _etbAmount > 0 &&
-                          double.tryParse(_amountController.text) != null &&
-                          double.parse(_amountController.text) >= 10
-                      ? _proceedToRecipientDetails
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF37021),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 58,
+                  child: ElevatedButton(
+                    onPressed: _etbAmount > 0 &&
+                            double.tryParse(_amountController.text) != null &&
+                            double.parse(_amountController.text) >= 10
+                        ? _proceedToRecipientDetails
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF37021),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    child: const Text('Continue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-      ),
+    );
+  }
+
+  Widget _buildFeeRow(String label, String value, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            color: isTotal ? Colors.black87 : Colors.grey.shade700,
+            fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+            color: isTotal ? const Color(0xFFF37021) : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 }

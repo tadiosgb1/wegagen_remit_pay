@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
-import 'payment_webview_screen.dart';
+import '../../widgets/bonus_display_widget.dart';
 import 'payment_working_screen.dart';
 import 'payment_mobile_optimized_screen.dart';
-import 'payment_debug_mobile_screen.dart';
 
 class BillingInfoScreen extends ConsumerStatefulWidget {
   const BillingInfoScreen({super.key});
@@ -24,9 +23,9 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
   final _localityController = TextEditingController();
   final _administrativeAreaController = TextEditingController();
   final _postalCodeController = TextEditingController();
-  
+
   String _selectedCountry = 'ET';
-  
+
   final List<Map<String, String>> _countries = [
     {'code': 'ET', 'name': 'Ethiopia'},
     {'code': 'US', 'name': 'United States'},
@@ -71,6 +70,8 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                 _buildPersonalInfoSection(),
                 const SizedBox(height: 24),
                 _buildAddressSection(),
+                const SizedBox(height: 24),
+                _buildPaymentSummarySection(),
                 const SizedBox(height: 32),
                 _buildContinueButton(),
                 const SizedBox(height: 16),
@@ -93,19 +94,12 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: Colors.blue.shade600,
-            size: 24,
-          ),
+          Icon(Icons.info_outline, color: Colors.blue.shade600, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Please provide your billing information for secure payment processing.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.blue.shade700,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.blue.shade700),
             ),
           ),
         ],
@@ -139,7 +133,7 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
@@ -162,7 +156,9 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                     return null;
                   },
                   onChanged: (value) {
-                    ref.read(paymentFormProvider.notifier).updateFirstName(value.trim());
+                    ref
+                        .read(paymentFormProvider.notifier)
+                        .updateFirstName(value.trim());
                   },
                 ),
               ),
@@ -187,15 +183,17 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                     return null;
                   },
                   onChanged: (value) {
-                    ref.read(paymentFormProvider.notifier).updateLastName(value.trim());
+                    ref
+                        .read(paymentFormProvider.notifier)
+                        .updateLastName(value.trim());
                   },
                 ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           TextFormField(
             controller: _emailController,
             decoration: const InputDecoration(
@@ -250,7 +248,7 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           TextFormField(
             controller: _address1Controller,
             decoration: const InputDecoration(
@@ -269,12 +267,14 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
               return null;
             },
             onChanged: (value) {
-              ref.read(paymentFormProvider.notifier).updateAddress1(value.trim());
+              ref
+                  .read(paymentFormProvider.notifier)
+                  .updateAddress1(value.trim());
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
@@ -294,7 +294,9 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                     return null;
                   },
                   onChanged: (value) {
-                    ref.read(paymentFormProvider.notifier).updateLocality(value.trim());
+                    ref
+                        .read(paymentFormProvider.notifier)
+                        .updateLocality(value.trim());
                   },
                 ),
               ),
@@ -316,15 +318,17 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                     return null;
                   },
                   onChanged: (value) {
-                    ref.read(paymentFormProvider.notifier).updateAdministrativeArea(value.trim());
+                    ref
+                        .read(paymentFormProvider.notifier)
+                        .updateAdministrativeArea(value.trim());
                   },
                 ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
@@ -343,7 +347,9 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                     return null;
                   },
                   onChanged: (value) {
-                    ref.read(paymentFormProvider.notifier).updatePostalCode(value.trim());
+                    ref
+                        .read(paymentFormProvider.notifier)
+                        .updatePostalCode(value.trim());
                   },
                 ),
               ),
@@ -367,7 +373,9 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                       setState(() {
                         _selectedCountry = value;
                       });
-                      ref.read(paymentFormProvider.notifier).updateCountry(value);
+                      ref
+                          .read(paymentFormProvider.notifier)
+                          .updateCountry(value);
                     }
                   },
                   validator: (value) {
@@ -382,6 +390,101 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPaymentSummarySection() {
+    final formData = ref.watch(paymentFormProvider);
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Payment Summary',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFF37021),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Basic payment information
+          _buildSummaryRow('Recipient', formData.toAccountHolder),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Account', formData.toAccount),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Amount Sending', '${formData.amount.toStringAsFixed(2)} ${formData.currency}'),
+          
+          if (formData.exchangeRate > 0) ...[
+            const SizedBox(height: 8),
+            _buildSummaryRow('Exchange Rate', '1 ${formData.currency} = ${formData.exchangeRate.toStringAsFixed(2)} ETB'),
+          ],
+          
+          if (formData.remark.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _buildSummaryRow('Remark', formData.remark),
+          ],
+          
+          const SizedBox(height: 16),
+          const Divider(),
+          
+          // Bonus calculation display (ETB only)
+          if (formData.bonusCalculation != null) ...[
+            const SizedBox(height: 16),
+            BonusDisplayWidget(
+              bonusCalculation: formData.bonusCalculation,
+              showDetailed: true,
+            ),
+          ] else if (formData.amount > 0 && formData.exchangeRate > 0) ...[
+            const SizedBox(height: 16),
+            _buildSummaryRow(
+              'Total Recipient Gets', 
+              '${(formData.amount * formData.exchangeRate).toStringAsFixed(2)} ETB',
+              isTotal: true,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: isTotal ? 16 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+              color: isTotal ? const Color(0xFFF37021) : Colors.grey.shade600,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+            color: isTotal ? const Color(0xFFF37021) : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 
@@ -401,10 +504,7 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
         ),
         child: const Text(
           'Continue to Payment',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -420,19 +520,12 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.security,
-            color: Colors.green.shade600,
-            size: 20,
-          ),
+          Icon(Icons.security, color: Colors.green.shade600, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Your information is encrypted and secure. We use industry-standard security measures.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.green.shade700,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.green.shade700),
             ),
           ),
         ],
@@ -446,13 +539,13 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
       if (_selectedCountry.isNotEmpty) {
         ref.read(paymentFormProvider.notifier).updateCountry(_selectedCountry);
       }
-      
-      // Navigate to debug screen first to detect mobile origin
+
+      // Navigate to the appropriate payment screen
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => kIsWeb 
+          builder: (context) => kIsWeb
               ? const PaymentWorkingScreen()
-              : const PaymentDebugMobileScreen(), // Debug screen for mobile
+              : const PaymentMobileOptimizedScreen(), // Use the fixed mobile screen
         ),
       );
     }

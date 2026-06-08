@@ -117,192 +117,200 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height - 
+                         MediaQuery.of(context).padding.top - 
+                         MediaQuery.of(context).padding.bottom - 100, // Account for app bar
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Logo
+                Center(
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF37021),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.account_balance,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          );
+                        },
                       ),
-                    ],
+                    ),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF37021),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.account_balance,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        );
+                ),
+                const SizedBox(height: 32),
+
+                // Header
+                const Text(
+                  'Create Your PIN',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Create a secure 4-digit PIN to protect your account',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 40),
+
+                // PIN Input Section
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Create your 4-digit PIN',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    PinInputField(
+                      key: _pinController.key,
+                      length: 4,
+                      obscureText: _obscurePin,
+                      errorText: _pinController.errorText,
+                      onChanged: (pin) {
+                        _pinController.updatePin(pin);
                       },
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              // Header
-              const Text(
-                'Create Your PIN',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Create a secure 4-digit PIN to protect your account',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 60),
-
-              // PIN Input Section
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Create your 4-digit PIN',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  PinInputField(
-                    key: _pinController.key,
-                    length: 4,
-                    obscureText: _obscurePin,
-                    errorText: _pinController.errorText,
-                    onChanged: (pin) {
-                      _pinController.updatePin(pin);
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                  const Text(
-                    'Confirm your 4-digit PIN',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  PinInputField(
-                    key: _confirmPinController.key,
-                    length: 4,
-                    obscureText: _obscureConfirmPin,
-                    errorText: _confirmPinController.errorText,
-                    onChanged: (pin) {
-                      _confirmPinController.updatePin(pin);
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _obscurePin ? 'Show PIN' : 'Hide PIN',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Confirm your 4-digit PIN',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _obscurePin = !_obscurePin;
-                            _obscureConfirmPin = !_obscureConfirmPin;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF37021).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Icon(
-                            _obscurePin ? Icons.visibility : Icons.visibility_off,
-                            size: 18,
-                            color: const Color(0xFFF37021),
+                    ),
+                    const SizedBox(height: 16),
+                    PinInputField(
+                      key: _confirmPinController.key,
+                      length: 4,
+                      obscureText: _obscureConfirmPin,
+                      errorText: _confirmPinController.errorText,
+                      onChanged: (pin) {
+                        _confirmPinController.updatePin(pin);
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _obscurePin ? 'Show PIN' : 'Hide PIN',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
-              const Spacer(),
-
-              // Create Account Button
-              Consumer<AuthProvider>(
-                builder: (context, authProvider, child) {
-                  if (authProvider.error != null) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(authProvider.error!),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      authProvider.clearError();
-                    });
-                  }
-
-                  return ElevatedButton(
-                    onPressed: authProvider.isLoading ? null : _createAccount,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF37021),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: authProvider.isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Create Account',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _obscurePin = !_obscurePin;
+                              _obscureConfirmPin = !_obscureConfirmPin;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              _obscurePin ? Icons.visibility : Icons.visibility_off,
+                              size: 18,
+                              color: const Color(0xFFF37021),
                             ),
                           ),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 20 : 60),
+
+                // Create Account Button
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    if (authProvider.error != null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(authProvider.error!),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        authProvider.clearError();
+                      });
+                    }
+
+                    return ElevatedButton(
+                      onPressed: authProvider.isLoading ? null : _createAccount,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF37021),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: authProvider.isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Create Account',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

@@ -16,19 +16,25 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _referralCodeController = TextEditingController();
 
   bool _agreeToTerms = false;
-  bool _agreeToPrivacy = false;
-
-  // Simpg Country object from country_picker library - Default to Ethiopia
   Country? _selectedCountry;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with Ethiopia as default - we'll use a fallback approach
-    _selectedCountry = null; // Will be set in the first build
+    _selectedCountry = Country(
+      phoneCode: '251',
+      countryCode: 'ET',
+      e164Sc: 251,
+      geographic: true,
+      level: 1,
+      name: 'Ethiopia',
+      displayName: 'Ethiopia',
+      displayNameNoCountryCode: 'Ethiopia',
+      e164Key: '',
+      example: '911234567',
+    );
   }
 
   @override
@@ -37,32 +43,25 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _referralCodeController.dispose();
     super.dispose();
   }
 
   void _continueToPin() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    if (!_agreeToTerms || !_agreeToPrivacy) {
+    if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please agree to Terms & Conditions and Privacy Policy',
-          ),
+          content: Text('Please agree to Terms & Conditions'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    // Use default Ethiopia phone code if no country selected
     final phoneCode = _selectedCountry?.phoneCode ?? '251';
     final fullPhoneNumber = '+$phoneCode${_phoneController.text.trim()}';
 
-    // Navigate to PIN creation screen
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => CreatePinScreen(
@@ -70,21 +69,57 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           lastName: _lastNameController.text.trim(),
           email: _emailController.text.trim(),
           phoneNumber: fullPhoneNumber,
-          referralCode: _referralCodeController.text.trim().isEmpty
-              ? null
-              : _referralCodeController.text.trim(),
         ),
       ),
     );
   }
 
+  void _showSuccessAndNavigateToLogin() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Account created successfully! Please sign in to continue.',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        action: SnackBarAction(
+          label: 'Sign In',
+          textColor: Colors.white,
+          onPressed: () => _navigateToLogin(),
+        ),
+      ),
+    );
+
+    // Auto-navigate to login after 4 seconds
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        _navigateToLogin();
+      }
+    });
+  }
+
+  void _navigateToLogin() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   String? _validateName(String? value, String fieldName) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your $fieldName';
-    }
-    if (value.length < 2) {
-      return '$fieldName must be at least 2 characters';
-    }
+    if (value == null || value.isEmpty) return 'Please enter your $fieldName';
+    if (value.length < 2) return '$fieldName must be at least 2 characters';
     if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
       return '$fieldName can only contain letters';
     }
@@ -92,9 +127,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your email';
-    }
+    if (value == null || value.isEmpty) return 'Please enter your email';
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
       return 'Please enter a valid email';
     }
@@ -102,10 +135,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   String? _validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your phone number';
-    }
-    // Remove any spaces and validate digits only (without country code)
+    if (value == null || value.isEmpty) return 'Please enter your phone number';
     final cleanPhone = value.replaceAll(' ', '');
     if (!RegExp(r'^\d{7,15}$').hasMatch(cleanPhone)) {
       return 'Please enter a valid phone number';
@@ -117,337 +147,241 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF37021), Color(0xFFFF8A4D), Colors.white],
+            stops: [0.0, 0.28, 1.0],
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
-                        'assets/images/logo.png',
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF37021),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Icons.account_balance,
-                              color: Colors.white,
-                              size: 30,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                // Header
-                const Text(
-                  'Create Account',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Join Wegagen Remit and start sending money worldwide',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
                 const SizedBox(height: 40),
 
-                // First Name & Last Name
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _firstNameController,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: InputDecoration(
-                          labelText: 'First Name',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFF37021),
-                            ),
-                          ),
-                        ),
-                        validator: (value) =>
-                            _validateName(value, 'First name'),
+                // Glowing Logo
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withOpacity(0.45),
+                        blurRadius: 45,
+                        spreadRadius: 15,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _lastNameController,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: InputDecoration(
-                          labelText: 'Last Name',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFF37021),
-                            ),
-                          ),
-                        ),
-                        validator: (value) => _validateName(value, 'Last name'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // Email
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFF37021)),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 105,
+                    height: 105,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.account_balance,
+                      size: 90,
+                      color: Color(0xFFF37021),
                     ),
                   ),
-                  validator: _validateEmail,
                 ),
-                const SizedBox(height: 20),
 
-                // Phone Number with Country Picker
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Country Picker Button with Flag
-                    GestureDetector(
-                      onTap: () {
-                        showCountryPicker(
-                          context: context,
-                          showPhoneCode: true,
-                          onSelect: (Country country) {
-                            setState(() {
-                              _selectedCountry = country;
-                            });
-                          },
-                          // Optional: Customize the picker
-                          countryListTheme: CountryListThemeData(
-                            flagSize: 25,
-                            backgroundColor: Colors.white,
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.blueGrey,
+                const SizedBox(height: 10),
+
+                const Text(
+                  "Create Account",
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 8),
+                const Text(
+                  "Join Wegagen Remit today",
+                  style: TextStyle(fontSize: 17, color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 10),
+
+                // Form Card
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(34),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.13),
+                        blurRadius: 55,
+                        offset: const Offset(0, 25),
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // First & Last Name (Stacked)
+                        Column(
+                          children: [
+                            _buildModernField(
+                              controller: _firstNameController,
+                              label: "First Name",
+                              icon: Icons.person_outline,
+                              validator: (v) => _validateName(v, 'First name'),
                             ),
-                            bottomSheetHeight: 500,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(20.0),
-                              topRight: Radius.circular(20.0),
+                            const SizedBox(height: 20),
+                            _buildModernField(
+                              controller: _lastNameController,
+                              label: "Last Name",
+                              icon: Icons.person_outline,
+                              validator: (v) => _validateName(v, 'Last name'),
                             ),
-                            inputDecoration: InputDecoration(
-                              labelText: 'Search',
-                              hintText: 'Start typing to search',
-                              prefixIcon: const Icon(Icons.search),
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: const Color(
-                                    0xFFF37021,
-                                  ).withValues(alpha: 0.2),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Email Field (Only one)
+                        _buildModernField(
+                          controller: _emailController,
+                          label: "Email Address",
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _validateEmail,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Phone Number
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                showCountryPicker(
+                                  context: context,
+                                  showPhoneCode: true,
+                                  onSelect: (Country country) {
+                                    setState(() => _selectedCountry = country);
+                                  },
+                                  countryListTheme: CountryListThemeData(
+                                    flagSize: 28,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                width: 110,
+                                height: 68,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        _selectedCountry?.flagEmoji ?? '🇪🇹',
+                                        style: const TextStyle(fontSize: 26),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '+${_selectedCountry?.phoneCode ?? '251'}',
+                                        style: const TextStyle(
+                                          fontSize: 15.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.arrow_drop_down,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 120,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _selectedCountry?.flagEmoji ?? '🇪🇹',
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '+${_selectedCountry?.phoneCode ?? '251'}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: _buildModernField(
+                                controller: _phoneController,
+                                label: "Phone Number",
+                                icon: Icons.phone_outlined,
+                                keyboardType: TextInputType.phone,
+                                validator: _validatePhone,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_drop_down, size: 20),
                           ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Phone Number Field
-                    Expanded(
-                      child: TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: 'Phone Number',
-                          prefixIcon: const Icon(Icons.phone_outlined),
-                          hintText: '911234567',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+
+                        const SizedBox(height: 10),
+
+                        // Terms Checkbox
+                        CheckboxListTile(
+                          value: _agreeToTerms,
+                          onChanged: (v) =>
+                              setState(() => _agreeToTerms = v ?? false),
+                          activeColor: const Color(0xFFF37021),
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            "I agree to the Terms & Conditions",
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFF37021),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Continue Button
+                        ElevatedButton(
+                          onPressed: _continueToPin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF37021),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          child: const Text(
+                            "Continue",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        validator: _validatePhone,
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-                // const SizedBox(height: 20),
-
-                // Referral Code (Optional)
-                // TextFormField(
-                //   controller: _referralCodeController,
-                //   textCapitalization: TextCapitalization.characters,
-                //   decoration: InputDecoration(
-                //     labelText: 'Referral Code (Optional)',
-                //     prefixIcon: const Icon(Icons.card_giftcard_outlined),
-                //     border: OutlineInputBorder(
-                //       borderRadius: BorderRadius.circular(12),
-                //     ),
-                //     focusedBorder: OutlineInputBorder(
-                //       borderRadius: BorderRadius.circular(12),
-                //       borderSide: const BorderSide(color: Color(0xFFF37021)),
-                //     ),
-                //   ),
-                // ),
-                const SizedBox(height: 24),
-
-                // Terms and Privacy Checkboxes
-                CheckboxListTile(
-                  value: _agreeToTerms,
-                  onChanged: (value) {
-                    setState(() {
-                      _agreeToTerms = value ?? false;
-                    });
-                  },
-                  activeColor: const Color(0xFFF37021),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text(
-                    'I agree to the Terms & Conditions',
-                    style: TextStyle(fontSize: 14),
                   ),
                 ),
-                CheckboxListTile(
-                  value: _agreeToPrivacy,
-                  onChanged: (value) {
-                    setState(() {
-                      _agreeToPrivacy = value ?? false;
-                    });
-                  },
-                  activeColor: const Color(0xFFF37021),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text(
-                    'I agree to the Privacy Policy',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ),
+
                 const SizedBox(height: 30),
-
-                // Continue Button
-                ElevatedButton(
-                  onPressed: _continueToPin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF37021),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 20),
 
                 // Login Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Already have an account? "),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
-                      },
+                    GestureDetector(
+                      onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      ),
                       child: const Text(
-                        'Sign In',
+                        "Sign In",
                         style: TextStyle(
                           color: Color(0xFFF37021),
                           fontWeight: FontWeight.bold,
@@ -456,11 +390,44 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModernField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFFF37021)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFF37021), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 18,
+          horizontal: 16,
+        ),
+      ),
+      validator: validator,
     );
   }
 }
