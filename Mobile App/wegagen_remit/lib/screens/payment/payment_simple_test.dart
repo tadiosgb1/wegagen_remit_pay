@@ -1,6 +1,14 @@
+
+
+
 import 'dart:convert';
-import 'dart:html' as html if (dart.library.html) 'dart:async' as html;
-import 'dart:ui_web' as ui_web if (dart.library.ui_web) 'dart:async' as ui_web;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+// Use these imports if you are targeting Web specifically
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
+
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

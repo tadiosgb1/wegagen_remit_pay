@@ -17,7 +17,8 @@ class UrlContainer {
   static String get resetPin => '$baseUrl/users/reset-pin';
 
   // User endpoints
-  static String get profile => '$baseUrl/users/profile';
+  static String getProfile(String userId) => '$baseUrl/kyc/$userId';
+  static String get profile => '$baseUrl/users/me'; // Current user profile endpoint
   static String get updateProfile => '$baseUrl/users/profile';
   static String get changePassword => '$baseUrl/users/change-password';
   static String get uploadDocument => '$baseUrl/users/documents';

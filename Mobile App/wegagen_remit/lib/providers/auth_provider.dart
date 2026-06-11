@@ -25,13 +25,22 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      print('🔍 DEBUG: AuthProvider.login - Starting login for: $email');
       final authResponse = await _authService.login(email, pin);
+      print('🔍 DEBUG: AuthProvider.login - AuthService returned: $authResponse');
+      print('🔍 DEBUG: AuthProvider.login - User from response: ${authResponse.user}');
+      
       _user = authResponse.user;
       
       _isLoading = false;
       notifyListeners();
+      print('🔍 DEBUG: AuthProvider.login - SUCCESS! User set to: $_user');
       return true;
     } catch (e) {
+      print('🚨 DEBUG: AuthProvider.login - EXCEPTION caught: $e');
+      print('🚨 DEBUG: AuthProvider.login - Exception type: ${e.runtimeType}');
+      print('🚨 DEBUG: AuthProvider.login - Stack trace: ${StackTrace.current}');
+      
       _error = e.toString().replaceFirst('AuthException: ', '');
       _isLoading = false;
       notifyListeners();

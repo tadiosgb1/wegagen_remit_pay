@@ -1,19 +1,125 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
-import 'package:http/browser_client.dart' if (dart.library.html) 'package:http/browser_client.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/environment.dart';
 import '../config/url_container.dart';
+
+// Platform-specific imports
+import 'dart:io' if (dart.library.io) 'dart:io';
+import 'package:dio/io.dart' if (dart.library.io) 'package:dio/io.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart' if (dart.library.io) 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:cookie_jar/cookie_jar.dart' if (dart.library.io) 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart' if (dart.library.io) 'package:path_provider/path_provider.dart';
+
+// Web-specific imports
+import 'dart:html' as html if (dart.library.html) 'dart:html';
+
+// Conditional File import for cross-platform compatibility
+import 'dart:io' show File if (dart.library.io) 'dart:io' show File;
+
+// Custom adapter for web platform with credentials support
+class WebHttpClientAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream, Future? cancelFuture) async {
+    final completer = Completer<ResponseBody>();
+    
+    if (!kIsWeb) {
+      throw UnsupportedError('WebHttpClientAdapter is only supported on web platform');
+    }
+    
+    final request = html.HttpRequest();
+    
+    // CRITICAL: Set withCredentials BEFORE opening the request
+    request.withCredentials = true;
+    
+    request.open(options.method, options.uri.toString());
+    
+    // Set headers
+    options.headers.forEach((key, value) {
+      try {
+        request.setRequestHeader(key, value.toString());
+      } catch (e) {
+        if (kDebugMode) print('⚠️ Could not set header $key: $e');
+      }
+    });
+    
+    // Set response type
+    request.responseType = 'text';
+    
+    // Handle load event (success)
+    request.onLoad.listen((_) {
+      final headers = <String, List<String>>{};
+      final responseText = request.responseText ?? '';
+      
+      if (kDebugMode) print('🌐 Web request completed: ${request.status} - ${responseText.length} bytes');
+      
+      completer.complete(ResponseBody(
+        Stream.value(Uint8List.fromList(responseText.codeUnits)),
+        request.status ?? 200,
+        headers: headers,
+      ));
+    });
+    
+    // Handle error event
+    request.onError.listen((_) {
+      if (kDebugMode) print('🌐 Web request error: ${request.status} - ${request.statusText}');
+      completer.completeError(DioException(
+        requestOptions: options,
+        error: 'Network error: ${request.statusText}',
+        type: DioExceptionType.connectionError,
+        response: Response(
+          requestOptions: options,
+          statusCode: request.status,
+          statusMessage: request.statusText,
+        ),
+      ));
+    });
+    
+    // Handle timeout if specified
+    if (options.receiveTimeout != null) {
+      request.timeout = options.receiveTimeout!.inMilliseconds;
+    }
+    
+    // Send request with data
+    try {
+      if (requestStream != null) {
+        final data = await requestStream.fold<List<int>>([], (previous, element) => previous..addAll(element));
+        if (data.isNotEmpty) {
+          final body = String.fromCharCodes(data);
+          request.send(body);
+        } else {
+          request.send();
+        }
+      } else {
+        request.send();
+      }
+    } catch (e) {
+      completer.completeError(DioException(
+        requestOptions: options,
+        error: 'Failed to send request: $e',
+        type: DioExceptionType.connectionError,
+      ));
+    }
+    
+    return completer.future;
+  }
+  
+  @override
+  void close({bool force = false}) {
+    // Nothing to close for web
+  }
+}
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
 
-  http.Client? _client;
+  late final Dio _dio;
+  CookieJar? _cookieJar; // Make nullable for web compatibility
   String? _authToken;
   bool _isInitialized = false;
   String _currentBaseUrl = Environment.baseUrl;
@@ -21,38 +127,93 @@ class ApiService {
   // Getter to check if initialized
   bool get isInitialized => _isInitialized;
 
-  // Initialize client with SSL handling and credentials
-  void _initializeClient() {
-    if (_client != null) return; // Already initialized
-    
+  // Initialize Dio with SSL handling and cookie management
+  Future<void> _initializeDio() async {
+    _dio = Dio(BaseOptions(
+      baseUrl: _currentBaseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-API-Key': Environment.apiKey
+      },
+    ));
+
+    // Configure for web vs mobile platforms
     if (kIsWeb) {
-      // For web, use BrowserClient with credentials enabled for HTTP-only cookies
-      try {
-        _client = BrowserClient()..withCredentials = true;
-      } catch (e) {
-        debugPrint('Failed to create BrowserClient with credentials, falling back to regular client: $e');
-        _client = http.Client();
-      }
-    } else if (Environment.isDevelopment) {
-      // For mobile development, create HTTP client that accepts self-signed certificates
-      final httpClient = HttpClient()
-        ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      httpClient.connectionTimeout = const Duration(seconds: 15);
-      httpClient.idleTimeout = const Duration(seconds: 30);
-      _client = IOClient(httpClient);
+      // For web, use our custom adapter that properly sets withCredentials
+      if (kDebugMode) print('🌐 Web platform: Using custom adapter with credentials');
+      _dio.httpClientAdapter = WebHttpClientAdapter();
     } else {
-      _client = http.Client();
+      // Initialize cookie jar for persistent cookies on mobile
+      try {
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final cookiePath = "${appDocDir.path}/.cookies/";
+        _cookieJar = PersistCookieJar(
+          ignoreExpires: true,
+          storage: FileStorage(cookiePath),
+        );
+        if (kDebugMode) print('📁 Cookie storage path: $cookiePath');
+        
+        // Add cookie manager interceptor ONLY for mobile
+        _dio.interceptors.add(CookieManager(_cookieJar!));
+      } catch (e) {
+        if (kDebugMode) print('⚠️ Cookie jar initialization failed: $e');
+        // Fallback to memory-only cookies for mobile
+        _cookieJar = CookieJar();
+        _dio.interceptors.add(CookieManager(_cookieJar!));
+      }
     }
+
+    // Configure SSL for development
+    if (!kIsWeb && Environment.isDevelopment) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      };
+    }
+
+    // Add interceptors
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (kDebugMode) {
+            print('🔄 Making request to: ${options.uri}');
+            if (kIsWeb) {
+              print('🌐 Web: Cookies handled by browser');
+            } else {
+              print('📱 Mobile: Cookies handled by cookie manager');
+            }
+          }
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (kDebugMode) {
+            print('✅ Response received: ${response.statusCode}');
+          }
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          if (kDebugMode) {
+            print('❌ API Error: ${error.message}');
+          }
+          handler.next(error);
+        },
+      ),
+    );
+
+    _isInitialized = true;
   }
 
   // Initialize with stored token
   Future<void> initialize() async {
     if (_isInitialized) return; // Already initialized
     
-    _initializeClient(); // Initialize the HTTP client
+    await _initializeDio(); // Initialize Dio (now async)
     final prefs = await SharedPreferences.getInstance();
     _authToken = prefs.getString('auth_token');
-    _isInitialized = true;
     
     // Test backend connectivity
     await _testBackendConnectivity();
@@ -62,23 +223,27 @@ class ApiService {
   Future<void> _testBackendConnectivity() async {
     for (final url in Environment.allBackendUrls) {
       try {
-        final response = await _client!.get(
-          Uri.parse('$url/'),
-          headers: {'Content-Type': 'application/json'},
-        ).timeout(const Duration(seconds: 5));
+        final response = await _dio.get(
+          '/',
+          options: Options(
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+          ),
+        );
         
         if (response.statusCode == 200) {
           _currentBaseUrl = url;
-          debugPrint('✅ Connected to backend: $url');
+          _dio.options.baseUrl = url;
+          if (kDebugMode) print('✅ Connected to backend: $url');
           return;
         }
       } catch (e) {
-        debugPrint('❌ Failed to connect to: $url - $e');
+        if (kDebugMode) print('❌ Failed to connect to: $url - $e');
         continue;
       }
     }
     
-    debugPrint('⚠️ No backend servers responded, using default: $_currentBaseUrl');
+    if (kDebugMode) print('⚠️ No backend servers responded, using default: $_currentBaseUrl');
   }
 
   // Set auth token
@@ -86,150 +251,151 @@ class ApiService {
     _authToken = token;
   }
 
-  // Clear auth token
-  void clearAuthToken() {
+  // Clear auth token and cookies
+  Future<void> clearAuthToken() async {
     _authToken = null;
+    // Clear all cookies to log out completely
+    await clearCookies();
+  }
+
+  // Clear all cookies
+  Future<void> clearCookies() async {
+    if (_isInitialized && !kIsWeb && _cookieJar != null) {
+      await _cookieJar!.deleteAll();
+      if (kDebugMode) print('🍪 All cookies cleared');
+    } else if (kIsWeb) {
+      if (kDebugMode) print('🌐 Web: Cookies will be cleared by server logout response');
+    }
+  }
+
+  // Get cookies for debugging
+  Future<List<Cookie>> getCookies(String url) async {
+    if (_isInitialized && !kIsWeb && _cookieJar != null) {
+      final uri = Uri.parse(url);
+      return await _cookieJar!.loadForRequest(uri);
+    }
+    return [];
   }
 
   // Get current working base URL
   String get workingBaseUrl => _currentBaseUrl;
 
-  // Get headers
-  Map<String, String> _getHeaders({bool includeAuth = true}) {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-API-Key': Environment.apiKey,
-      'User-Agent': 'WegagenRemit-Mobile/1.0.0',
-    };
-
-    // For web, rely on HTTP-only cookies for authentication
-    // For mobile, use Bearer token if available
-    if (includeAuth && !kIsWeb && _authToken != null) {
-      headers['Authorization'] = 'Bearer $_authToken';
-    }
-
-    return headers;
-  }
-
-  // Handle response with better error handling
-  Map<String, dynamic> _handleResponse(http.Response response) {
-    debugPrint('API Response: ${response.statusCode} - ${response.body.length} bytes');
+  // Handle Dio response
+  Map<String, dynamic> _handleResponse(Response response) {
+    if (kDebugMode) print('API Response: ${response.statusCode} - ${response.data.toString().length} bytes');
     
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      // Try to parse as JSON first
-      try {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        return data;
-      } catch (e) {
-        // If JSON parsing fails, check if it's a raw string (like JWT token)
-        final body = response.body.trim();
-        if (body.isNotEmpty) {
-          // Return the raw string wrapped in a map for consistency
-          return {'data': body, 'success': true};
-        } else {
-          return {'success': true};
-        }
+    if (response.statusCode! >= 200 && response.statusCode! < 300) {
+      // Dio automatically handles JSON parsing
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else if (response.data is String) {
+        // Return raw string wrapped in a map for consistency
+        return {'data': response.data, 'success': true};
+      } else {
+        return {'data': response.data, 'success': true};
       }
     } else {
-      // Try to parse error response as JSON
-      try {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        throw ApiException(
-          message: data['message'] ?? data['error'] ?? 'An error occurred',
-          statusCode: response.statusCode,
-          errors: data['errors'],
-        );
-      } catch (e) {
-        // If error response is not JSON, use raw body
-        throw ApiException(
-          message: response.body.isNotEmpty ? response.body : 'An error occurred',
-          statusCode: response.statusCode,
-        );
+      throw ApiException(
+        message: response.data?['message'] ?? response.data?['error'] ?? 'An error occurred',
+        statusCode: response.statusCode ?? 0,
+        errors: response.data?['errors'],
+      );
+    }
+  }
+Future<Map<String, dynamic>> _makeRequest(
+  String method,
+  String url, {
+  Map<String, dynamic>? data,
+  Map<String, String>? queryParams,
+  bool includeAuth = true,
+  int maxRetries = 2,
+}) async {
+  if (!_isInitialized) {
+    throw ApiException(message: 'ApiService not initialized', statusCode: 0);
+  }
+
+  for (int attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      Response response;
+
+      // 1. Prepare options with Credentials and Auth Headers
+      final options = Options(
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-API-Key': Environment.apiKey,
+          if (includeAuth && _authToken != null)
+            'Authorization': 'Bearer $_authToken',
+        },
+        // 2. This flag is critical for HttpOnly cookie propagation
+        extra: {'withCredentials': true},
+      );
+
+      // 3. Execute Request
+      response = await _dio.request(
+        url,
+        data: data,
+        queryParameters: queryParams,
+        options: options.copyWith(method: method.toUpperCase()),
+      );
+
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      if (attempt < maxRetries && _shouldRetry(e)) {
+        if (kDebugMode) print('🔄 Retrying request (attempt ${attempt + 2}): ${e.message}');
+        await Future.delayed(Duration(seconds: attempt + 1));
+        continue;
       }
+      throw _handleDioError(e);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(message: 'Network error: $e', statusCode: 0);
     }
   }
 
-  // Generic request method with retry logic
-  Future<Map<String, dynamic>> _makeRequest(
-    String method,
-    String url, {
-    Map<String, dynamic>? data,
-    Map<String, String>? queryParams,
-    bool includeAuth = true,
-    int maxRetries = 2,
-  }) async {
-    if (_client == null) {
-      throw ApiException(message: 'ApiService not initialized', statusCode: 0);
-    }
+  throw ApiException(message: 'Request failed after $maxRetries retries', statusCode: 0);
+}
 
-    Uri uri = Uri.parse(url);
-    if (queryParams != null) {
-      uri = uri.replace(queryParameters: queryParams);
-    }
+  // Check if we should retry the request
+  bool _shouldRetry(DioException e) {
+    return e.type == DioExceptionType.connectionTimeout ||
+           e.type == DioExceptionType.receiveTimeout ||
+           e.type == DioExceptionType.connectionError;
+  }
 
-    for (int attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        http.Response response;
+  // Handle Dio errors
+  ApiException _handleDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return ApiException(
+          message: 'Connection timeout. Please check your internet connection.',
+          statusCode: 0,
+        );
+      case DioExceptionType.badResponse:
+        final statusCode = e.response?.statusCode ?? 0;
+        final errorData = e.response?.data;
+        String message = 'An error occurred';
         
-        switch (method.toUpperCase()) {
-          case 'GET':
-            response = await _client!.get(
-              uri,
-              headers: _getHeaders(includeAuth: includeAuth),
-            ).timeout(const Duration(seconds: 30));
-            break;
-          case 'POST':
-            response = await _client!.post(
-              uri,
-              headers: _getHeaders(includeAuth: includeAuth),
-              body: data != null ? json.encode(data) : null,
-            ).timeout(const Duration(seconds: 30));
-            break;
-          case 'PUT':
-            response = await _client!.put(
-              uri,
-              headers: _getHeaders(includeAuth: includeAuth),
-              body: data != null ? json.encode(data) : null,
-            ).timeout(const Duration(seconds: 30));
-            break;
-          case 'DELETE':
-            response = await _client!.delete(
-              uri,
-              headers: _getHeaders(includeAuth: includeAuth),
-            ).timeout(const Duration(seconds: 30));
-            break;
-          default:
-            throw ApiException(message: 'Unsupported HTTP method: $method', statusCode: 0);
+        if (errorData is Map<String, dynamic>) {
+          message = errorData['message'] ?? errorData['error'] ?? message;
+        } else if (errorData is String) {
+          message = errorData;
         }
-
-        return _handleResponse(response);
-      } on SocketException catch (e) {
-        if (attempt < maxRetries) {
-          debugPrint('🔄 Retrying request (attempt ${attempt + 2}): $e');
-          await Future.delayed(Duration(seconds: attempt + 1));
-          continue;
-        }
-        throw ApiException(message: 'No internet connection', statusCode: 0);
-      } on HttpException catch (e) {
-        if (attempt < maxRetries) {
-          debugPrint('🔄 Retrying request (attempt ${attempt + 2}): $e');
-          await Future.delayed(Duration(seconds: attempt + 1));
-          continue;
-        }
-        throw ApiException(message: 'Network error: ${e.message}', statusCode: 0);
-      } catch (e) {
-        if (e is ApiException) rethrow;
-        if (attempt < maxRetries) {
-          debugPrint('🔄 Retrying request (attempt ${attempt + 2}): $e');
-          await Future.delayed(Duration(seconds: attempt + 1));
-          continue;
-        }
-        throw ApiException(message: 'Network error occurred: $e', statusCode: 0);
-      }
+        
+        return ApiException(
+          message: message,
+          statusCode: statusCode,
+          errors: errorData is Map ? errorData['errors'] : null,
+        );
+      case DioExceptionType.cancel:
+        return ApiException(message: 'Request was cancelled', statusCode: 0);
+      case DioExceptionType.connectionError:
+        return ApiException(message: 'Connection error. Please check your internet connection.', statusCode: 0);
+      default:
+        return ApiException(message: e.message ?? 'Unknown error occurred', statusCode: 0);
     }
-    
-    throw ApiException(message: 'Request failed after $maxRetries retries', statusCode: 0);
   }
 
   // GET request
@@ -271,14 +437,14 @@ class ApiService {
   Future<Map<String, dynamic>> getCaptureContext() async {
     // Try primary endpoint first, then fallback
     try {
-      debugPrint('🔄 Fetching capture context from: ${UrlContainer.generateCaptureContext}');
+      if (kDebugMode) print('🔄 Fetching capture context from: ${UrlContainer.generateCaptureContext}');
       return await get(UrlContainer.generateCaptureContext);
     } catch (e) {
-      debugPrint('❌ Primary capture context failed, trying fallback...');
+      if (kDebugMode) print('❌ Primary capture context failed, trying fallback...');
       try {
         return await get(UrlContainer.generateCaptureContextAlt);
       } catch (fallbackError) {
-        debugPrint('❌ Fallback capture context also failed: $fallbackError');
+        if (kDebugMode) print('❌ Fallback capture context also failed: $fallbackError');
         throw ApiException(
           message: 'Failed to get capture context from all endpoints',
           statusCode: 503,
@@ -290,14 +456,14 @@ class ApiService {
   Future<Map<String, dynamic>> processPayment(Map<String, dynamic> paymentData) async {
     // Try primary endpoint first, then fallback
     try {
-      debugPrint('🔄 Processing payment via: ${UrlContainer.processPayment}');
+      if (kDebugMode) print('🔄 Processing payment via: ${UrlContainer.processPayment}');
       return await post(UrlContainer.processPayment, paymentData);
     } catch (e) {
-      debugPrint('❌ Primary payment processing failed, trying fallback...');
+      if (kDebugMode) print('❌ Primary payment processing failed, trying fallback...');
       try {
         return await post(UrlContainer.processPaymentAlt, paymentData);
       } catch (fallbackError) {
-        debugPrint('❌ Fallback payment processing also failed: $fallbackError');
+        if (kDebugMode) print('❌ Fallback payment processing also failed: $fallbackError');
         throw ApiException(
           message: 'Failed to process payment on all endpoints',
           statusCode: 503,
@@ -306,7 +472,7 @@ class ApiService {
     }
   }
 
-  // Upload file
+  // Upload file using Dio
   Future<Map<String, dynamic>> uploadFile(
     String url,
     File file, {
@@ -314,35 +480,38 @@ class ApiService {
     Map<String, String>? additionalFields,
     bool includeAuth = true,
   }) async {
-    if (_client == null) {
-      throw ApiException(message: 'ApiService not initialized', statusCode: 0);
-    }
-    
     try {
-      final request = http.MultipartRequest('POST', Uri.parse(url));
-
-      // Add headers
-      request.headers.addAll(_getHeaders(includeAuth: includeAuth));
+      final formData = FormData();
 
       // Add file
-      request.files.add(
-        await http.MultipartFile.fromPath(fieldName, file.path),
-      );
+      formData.files.add(MapEntry(
+        fieldName,
+        await MultipartFile.fromFile(file.path),
+      ));
 
       // Add additional fields
       if (additionalFields != null) {
-        request.fields.addAll(additionalFields);
+        for (final entry in additionalFields.entries) {
+          formData.fields.add(MapEntry(entry.key, entry.value));
+        }
       }
 
-      final streamedResponse = await _client!.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
+      final response = await _dio.post(
+        url,
+        data: formData,
+        options: Options(
+          headers: {
+            if (includeAuth && _authToken != null && !kIsWeb)
+              'Authorization': 'Bearer $_authToken',
+          },
+        ),
+      );
 
       return _handleResponse(response);
-    } on SocketException {
-      throw ApiException(message: 'No internet connection', statusCode: 0);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      if (e is ApiException) rethrow;
-      throw ApiException(message: 'File upload failed', statusCode: 0);
+      throw ApiException(message: 'File upload failed: $e', statusCode: 0);
     }
   }
 
@@ -382,7 +551,7 @@ class ApiService {
 
   // Dispose
   void dispose() {
-    _client?.close();
+    _dio.close();
   }
 }
 

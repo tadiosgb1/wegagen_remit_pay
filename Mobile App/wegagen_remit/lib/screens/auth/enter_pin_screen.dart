@@ -21,6 +21,15 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
   String _pin = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Clear any existing authentication errors from startup checks
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AuthProvider>(context, listen: false).clearError();
+    });
+  }
+
+  @override
   void dispose() {
     for (var controller in _pinControllers) controller.dispose();
     for (var node in _focusNodes) node.dispose();
@@ -290,8 +299,22 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                 // Sign In Button
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
+                    // DEBUG: Let's see what's happening
                     if (authProvider.error != null) {
+                      print('🔍 DEBUG: AuthProvider error detected: "${authProvider.error}"');
+                      print('🔍 DEBUG: Loading state: ${authProvider.isLoading}');
+                      print('🔍 DEBUG: PIN length: ${_pin.length}');
+                      print('🔍 DEBUG: User: ${authProvider.user}');
+                    }
+
+                    // Only show errors for ACTUAL login attempts that failed
+                    // Check if user completed PIN entry AND login failed AND user is null
+                    if (authProvider.error != null && 
+                        !authProvider.isLoading && 
+                        _pin.length == 4 &&
+                        authProvider.user == null) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
+                        print('🚨 SHOWING ERROR: ${authProvider.error}');
                         _showError(authProvider.error!);
                         authProvider.clearError();
                       });

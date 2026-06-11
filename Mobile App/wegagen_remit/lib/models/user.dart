@@ -40,8 +40,15 @@ class User {
 
   // Check if user needs KYC verification
   bool get needsKycVerification {
-    return kyc == null || (kyc != null && !kyc!.verified);
+    // If no KYC data exists, verification is needed
+    if (kyc == null) return true;
+    
+    // If KYC data exists but is not verified, verification is needed
+    return !kyc!.verified;
   }
+
+  // Convenience getter for KYC verified status
+  bool get kycVerified => kyc?.verified ?? false;
 
   // Factory constructor from JSON string
   factory User.fromJson(String jsonString) {
@@ -51,26 +58,94 @@ class User {
 
   // Factory constructor from Map
   factory User.fromMap(Map<String, dynamic> json) {
-    return User(
-      id: json['id']?.toString() ?? '',
-      firstName: json['first_name'] ?? json['firstName'] ?? '',
-      lastName: json['last_name'] ?? json['lastName'] ?? '',
-      email: json['email'] ?? '',
-      phoneNumber: json['phone_number'] ?? json['phoneNumber'] ?? '',
-      isVerified: json['is_verified'] ?? json['isVerified'] ?? false,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at'])
-          : json['createdAt'] != null
-              ? DateTime.parse(json['createdAt'])
-              : DateTime.now(),
-      kyc: json['kyc'] != null ? KycData.fromMap(json['kyc']) : null,
-      roles: json['roles'] != null 
-          ? (json['roles'] as List).map((role) => role['name']?.toString() ?? '').toList()
-          : null,
-      permissions: json['permissions'] != null
-          ? (json['permissions'] as List).map((perm) => perm.toString()).toList()
-          : null,
+    print('DEBUG: User.fromMap - Input JSON: $json');
+    
+    // Handle both integer and string IDs from API
+    final id = json['id']?.toString() ?? '';
+    final firstName = json['first_name'] ?? json['firstName'] ?? '';
+    final lastName = json['last_name'] ?? json['lastName'] ?? '';
+    final email = json['email'] ?? '';
+    final phoneNumber = json['phone_number'] ?? json['phoneNumber'] ?? '';
+    final isVerified = json['is_verified'] ?? json['isVerified'] ?? false;
+    
+    print('DEBUG: User.fromMap - Parsed fields: id=$id, firstName=$firstName, lastName=$lastName, email=$email');
+    
+    DateTime createdAt;
+    if (json['created_at'] != null) {
+      createdAt = DateTime.parse(json['created_at']);
+    } else if (json['createdAt'] != null) {
+      createdAt = DateTime.parse(json['createdAt']);
+    } else {
+      createdAt = DateTime.now();
+    }
+    
+    KycData? kyc;
+    if (json['kyc'] != null) {
+      try {
+        print('DEBUG: User.fromMap - Found KYC data: ${json['kyc']}');
+        kyc = KycData.fromMap(json['kyc']);
+        print('DEBUG: User.fromMap - Parsed KYC: verified=${kyc.verified}');
+      } catch (e) {
+        print('DEBUG: User.fromMap - KYC parsing failed: $e');
+        kyc = null;
+      }
+    }
+    
+    List<String>? roles;
+    if (json['roles'] != null) {
+      try {
+        roles = (json['roles'] as List).map((role) {
+          // Handle both string roles and object roles safely
+          if (role is String) {
+            return role;
+          } else if (role is Map) {
+            return (role['name'] ?? role.toString()).toString();
+          } else {
+            return role.toString();
+          }
+        }).toList();
+        print('DEBUG: User.fromMap - Parsed roles: $roles');
+      } catch (e) {
+        print('DEBUG: User.fromMap - Roles parsing failed: $e');
+        roles = null;
+      }
+    }
+    
+    List<String>? permissions;
+    if (json['permissions'] != null) {
+      try {
+        permissions = (json['permissions'] as List).map((perm) {
+          // Handle both string permissions and object permissions safely
+          if (perm is String) {
+            return perm;
+          } else if (perm is Map) {
+            return (perm['name'] ?? perm.toString()).toString();
+          } else {
+            return perm.toString();
+          }
+        }).toList();
+        print('DEBUG: User.fromMap - Parsed permissions: $permissions');
+      } catch (e) {
+        print('DEBUG: User.fromMap - Permissions parsing failed: $e');
+        permissions = null;
+      }
+    }
+    
+    final user = User(
+      id: id,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phoneNumber: phoneNumber,
+      isVerified: isVerified,
+      createdAt: createdAt,
+      kyc: kyc,
+      roles: roles,
+      permissions: permissions,
     );
+    
+    print('DEBUG: User.fromMap - Final user: $user');
+    return user;
   }
 
   // Convert to JSON string
@@ -126,7 +201,7 @@ class User {
 
   @override
   String toString() {
-    return 'User(id: $id, firstName: $firstName, lastName: $lastName, email: $email, kycVerified: ${kyc?.verified ?? false})';
+    return 'User(id: $id, firstName: $firstName, lastName: $lastName, email: $email, kycVerified: $kycVerified)';
   }
 
   @override
@@ -169,20 +244,66 @@ class KycData {
   });
 
   factory KycData.fromMap(Map<String, dynamic> json) {
-    return KycData(
-      id: json['id'] ?? 0,
-      userId: json['user_id'] ?? 0,
-      idType: json['id_type'] ?? '',
-      dob: json['dob'] ?? '',
-      address: json['address'] ?? '',
-      city: json['city'] ?? '',
-      country: json['country'] ?? '',
-      idPhotoPath: json['id_photo_path'],
-      selfiePhotoPath: json['selfie_photo_path'],
-      verified: json['verified'] ?? false,
-      verifiedAt: json['verified_at'] != null ? DateTime.parse(json['verified_at']) : null,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
-    );
+    try {
+      print('DEBUG: KycData.fromMap - Starting with JSON: $json');
+      
+      final id = int.tryParse(json['id'].toString()) ?? 0;
+      print('DEBUG: KycData.fromMap - Parsed id: $id');
+      
+      final userId = int.tryParse(json['user_id'].toString()) ?? 0;
+      print('DEBUG: KycData.fromMap - Parsed userId: $userId');
+      
+      final idType = json['id_type'] ?? '';
+      final dob = json['dob'] ?? '';
+      final address = json['address'] ?? '';
+      final city = json['city'] ?? '';
+      final country = json['country'] ?? '';
+      final idPhotoPath = json['id_photo_path'];
+      final selfiePhotoPath = json['selfie_photo_path'];
+      final verified = json['verified'] ?? false;
+      
+      print('DEBUG: KycData.fromMap - Basic fields parsed successfully');
+      
+      DateTime? verifiedAt;
+      try {
+        verifiedAt = json['verified_at'] != null ? DateTime.parse(json['verified_at']) : null;
+        print('DEBUG: KycData.fromMap - Parsed verifiedAt: $verifiedAt');
+      } catch (e) {
+        print('DEBUG: KycData.fromMap - verifiedAt parsing failed: $e');
+        verifiedAt = null;
+      }
+      
+      DateTime createdAt;
+      try {
+        createdAt = json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now();
+        print('DEBUG: KycData.fromMap - Parsed createdAt: $createdAt');
+      } catch (e) {
+        print('DEBUG: KycData.fromMap - createdAt parsing failed: $e');
+        createdAt = DateTime.now();
+      }
+      
+      final kycData = KycData(
+        id: id,
+        userId: userId,
+        idType: idType,
+        dob: dob,
+        address: address,
+        city: city,
+        country: country,
+        idPhotoPath: idPhotoPath,
+        selfiePhotoPath: selfiePhotoPath,
+        verified: verified,
+        verifiedAt: verifiedAt,
+        createdAt: createdAt,
+      );
+      
+      print('DEBUG: KycData.fromMap - KycData creation successful: $kycData');
+      return kycData;
+    } catch (e, stackTrace) {
+      print('DEBUG: KycData.fromMap - FAILED with error: $e');
+      print('DEBUG: KycData.fromMap - Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toMap() {

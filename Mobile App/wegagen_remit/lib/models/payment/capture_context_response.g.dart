@@ -7,20 +7,20 @@ part of 'capture_context_response.dart';
 // **************************************************************************
 
 CaptureContextResponse _$CaptureContextResponseFromJson(
-  Map<String, dynamic> json,
-) => CaptureContextResponse(
-  status: json['status'] as String,
-  data: CaptureContextData.fromJson(json['data'] as Map<String, dynamic>),
-  message: json['message'] as String?,
-);
+        Map<String, dynamic> json) =>
+    CaptureContextResponse(
+      status: json['status'] as String,
+      data: CaptureContextData.fromJson(json['data'] as Map<String, dynamic>),
+      message: json['message'] as String?,
+    );
 
 Map<String, dynamic> _$CaptureContextResponseToJson(
-  CaptureContextResponse instance,
-) => <String, dynamic>{
-  'status': instance.status,
-  'data': instance.data,
-  'message': instance.message,
-};
+        CaptureContextResponse instance) =>
+    <String, dynamic>{
+      'status': instance.status,
+      'data': instance.data,
+      'message': instance.message,
+    };
 
 CaptureContextData _$CaptureContextDataFromJson(Map<String, dynamic> json) =>
     CaptureContextData(

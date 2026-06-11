@@ -1,250 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CyberSource Payment Frame</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      color: #333;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Important: Allow Cybersource domain -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self' https://testflex.cybersource.com https://flex.cybersource.com;
+                   script-src 'self' 'unsafe-inline' https://testflex.cybersource.com https://flex.cybersource.com;
+                   frame-src 'self' https://testflex.cybersource.com;
+                   style-src 'self' 'unsafe-inline';
+                   connect-src 'self' https://testflex.cybersource.com;">
 
-    .container {
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 20px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
-    }
-
-    .field {
-      margin: 12px 0;
-    }
-
-    .field label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-
-    .input-placeholder,
-    .microform-field {
-      min-height: 54px;
-      border: 2px solid #e1e1e1;
-      border-radius: 10px;
-      padding: 10px;
-      background: #fff;
-      box-sizing: border-box;
-      width: 100%;
-      position: relative;
-    }
-
-    .microform-field iframe {
-      width: 100%;
-      height: 100%;
-      min-height: 54px;
-      border: none;
-      display: block;
-    }
-
-    .message {
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 14px;
-      margin-bottom: 14px;
-    }
-
-    .message.info { background: #e7f3ff; color: #0f4b7d; }
-    .message.error { background: #ffe5e5; color: #a90404; }
-    .message.success { background: #e8f7ec; color: #1f6f2d; }
-
-    .button {
-      width: 100%;
-      border: none;
-      background: #f37021;
-      color: white;
-      padding: 16px;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-
-    .debug {
-      font-size: 12px;
-      color: #555;
-      margin-top: 16px;
-      white-space: pre-wrap;
-      background: #f9f9f9;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #e1e1e1;
-    }
-  </style>
+    <title>Secure Payment</title>
+    <style>
+        body { margin:0; padding:16px; background:#f8f9fa; font-family:system-ui; }
+        .container { background:white; border-radius:16px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
+        h2 { text-align:center; margin-bottom:8px; color:#1f2937; }
+        .microform-field { width:100% !important; height:58px !important; border:2px solid #ddd; border-radius:10px; margin:12px 0; }
+        .pay-button { width:100%; background:#F37021; color:white; border:none; padding:16px; border-radius:12px; font-size:17px; font-weight:600; margin-top:20px; }
+        #status { text-align:center; margin:15px 0; color:#666; font-size:15px; }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div id="message" class="message info">Waiting for secure payment setup...</div>
-
-    <div class="field">
-      <label>Card Number</label>
-      <div id="cardNumber-container" class="microform-field"></div>
+    <div class="container">
+        <h2>Secure Payment</h2>
+        <div id="status">Loading secure payment form...</div>
+        
+        <form id="payment-form">
+            <label>Card Number</label>
+            <div id="cardNumber-container" class="microform-field"></div>
+            
+            <div style="display:flex; gap:12px;">
+                <div style="flex:1;">
+                    <label>Month</label>
+                    <select id="expMonth" style="width:100%; padding:14px; border:2px solid #ddd; border-radius:8px;"></select>
+                </div>
+                <div style="flex:1;">
+                    <label>Year</label>
+                    <select id="expYear" style="width:100%; padding:14px; border:2px solid #ddd; border-radius:8px;"></select>
+                </div>
+                <div style="flex:1;">
+                    <label>CVV</label>
+                    <div id="securityCode-container" class="microform-field"></div>
+                </div>
+            </div>
+            
+            <button type="submit" class="pay-button">Pay Securely</button>
+        </form>
     </div>
 
-    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-      <div style="flex: 1; min-width: 120px;" class="field">
-        <label>Expiry Month</label>
-        <input id="expirationMonth" class="input-placeholder" type="text" placeholder="MM" maxlength="2" inputmode="numeric" />
-      </div>
-      <div style="flex: 1; min-width: 120px;" class="field">
-        <label>Expiry Year</label>
-        <input id="expirationYear" class="input-placeholder" type="text" placeholder="YY" maxlength="2" inputmode="numeric" />
-      </div>
-      <div style="flex: 1; min-width: 120px;" class="field">
-        <label>CVV</label>
-        <div id="securityCode-container" class="microform-field"></div>
-      </div>
-    </div>
+    <script src="https://testflex.cybersource.com/microform/bundle/v2.9.0/flex-microform.min.js"></script>
+    <script>
+        let microformInstance = null;
 
-    <button id="pay-button" class="button" disabled>Pay Now</button>
-    <div id="debug" class="debug"></div>
-  </div>
-
-  <script src="https://testflex.cybersource.com/microform/bundle/v2.9.0/flex-microform.min.js"></script>
-  <script>
-    const debugEl = document.getElementById('debug');
-    const messageEl = document.getElementById('message');
-    const payButton = document.getElementById('pay-button');
-    let captureContext = null;
-    let flex = null;
-    let microform = null;
-    let numberField = null;
-    let cvvField = null;
-    let monthField = null;
-    let yearField = null;
-
-    function log(text) {
-      debugEl.textContent += new Date().toISOString() + ' - ' + text + '\n';
-      console.log(text);
-    }
-
-    function setMessage(text, type) {
-      messageEl.textContent = text;
-      messageEl.className = 'message ' + type;
-    }
-
-    function showError(text) {
-      setMessage(text, 'error');
-      log('ERROR: ' + text);
-    }
-
-    function initMicroform() {
-      if (!captureContext) {
-        showError('Missing capture context.');
-        return;
-      }
-
-      if (typeof Flex === 'undefined') {
-        showError('CyberSource Flex library not loaded.');
-        return;
-      }
-
-      try {
-        setMessage('Creating secure payment form...', 'info');
-        log('Creating Flex instance');
-
-        flex = new Flex(captureContext);
-        microform = flex.microform('card', {
-          styles: {
-            'input': {
-              'font-size': '15px',
-              'color': '#333',
-              'padding': '0',
-              'border': 'none',
-              'outline': 'none',
-              'width': '100%',
-              'height': '100%'
-            },
-            ':focus': {
-              'color': '#F37021'
-            },
-            '.valid': { 'color': '#28a745' },
-            '.invalid': { 'color': '#dc3545' }
-          }
+        window.addEventListener('flutter', function(e) {
+            if (e.detail && e.detail.captureContext) {
+                initFlex(e.detail.captureContext);
+            }
         });
 
-        log('Microform created');
+        async function initFlex(captureContext) {
+            document.getElementById('status').textContent = 'Initializing secure fields...';
+            
+            try {
+                const flex = new Flex(captureContext);
+                microformInstance = flex.microform('card');
 
-        try {
-          numberField = microform.createField('number', { placeholder: '1234 5678 9012 3456' });
-          cvvField = microform.createField('securityCode', { placeholder: '123' });
-          log('Using createField API for card number and CVV');
-        } catch (fieldError) {
-          log('createField failed, trying field API: ' + fieldError.message);
-          numberField = microform.field('number');
-          cvvField = microform.field('securityCode');
+                const numberField = microformInstance.createField('number', {
+                    placeholder: '•••• •••• •••• ••••'
+                });
+                const cvvField = microformInstance.createField('securityCode', {
+                    placeholder: '•••'
+                });
+
+                numberField.load('#cardNumber-container');
+                cvvField.load('#securityCode-container');
+
+                document.getElementById('status').textContent = '';
+                populateExpirationDates();
+
+            } catch (e) {
+                console.error('Flex init error:', e);
+                document.getElementById('status').innerHTML = 
+                    `<span style="color:red">Failed to initialize payment form</span>`;
+            }
         }
 
-        numberField.load('#cardNumber-container');
-        cvvField.load('#securityCode-container');
-
-        setMessage('Secure payment fields loaded. You can now enter card details.', 'success');
-        payButton.disabled = false;
-        log('Microform fields loaded');
-      } catch (error) {
-        showError('Microform initialization failed: ' + (error.message || error));
-      }
-    }
-
-    function handleParentMessage(event) {
-      if (event.source !== window.parent) return;
-      if (!event.data || event.data.type !== 'captureContext') return;
-      captureContext = event.data.captureContext;
-      log('Received captureContext from parent. Length: ' + (captureContext ? captureContext.length : 'null'));
-      initMicroform();
-    }
-
-    window.addEventListener('message', handleParentMessage);
-
-    window.onload = function() {
-      log('Iframe loaded. Sending ready event to parent.');
-      window.parent.postMessage({ type: 'paymentIframeReady' }, '*');
-    };
-
-    payButton.addEventListener('click', function() {
-      if (!microform) {
-        showError('Microform is not ready.');
-        return;
-      }
-
-      payButton.disabled = true;
-      setMessage('Assembling payment token...', 'info');
-
-      const expirationMonth = document.getElementById('expirationMonth').value.trim();
-      const expirationYear = document.getElementById('expirationYear').value.trim();
-      const tokenPayload = {};
-      if (expirationMonth) tokenPayload.expirationMonth = expirationMonth;
-      if (expirationYear) tokenPayload.expirationYear = expirationYear;
-
-      microform.createToken(tokenPayload, function(err, token) {
-        if (err) {
-          showError('Token creation failed: ' + (err.message || err));
-          payButton.disabled = false;
-          return;
+        function populateExpirationDates() {
+            const monthSelect = document.getElementById('expMonth');
+            const yearSelect = document.getElementById('expYear');
+            
+            for (let i = 1; i <= 12; i++) {
+                const opt = document.createElement('option');
+                opt.value = i.toString().padStart(2, '0');
+                opt.textContent = i.toString().padStart(2, '0');
+                monthSelect.appendChild(opt);
+            }
+            
+            const currentYear = new Date().getFullYear();
+            for (let i = 0; i < 15; i++) {
+                const opt = document.createElement('option');
+                opt.value = (currentYear + i).toString();
+                opt.textContent = (currentYear + i).toString();
+                yearSelect.appendChild(opt);
+            }
         }
 
-        setMessage('Token created successfully. Sending to parent...', 'success');
-        window.parent.postMessage(JSON.stringify({ type: 'PAYMENT_TOKEN', token: token, expirationMonth: expirationMonth, expirationYear: expirationYear }), '*');
-      });
-    });
-  </script>
+        document.getElementById('payment-form').addEventListener('submit', e => {
+            e.preventDefault();
+            
+            const month = document.getElementById('expMonth').value;
+            const year = document.getElementById('expYear').value;
+
+            if (!microformInstance) return;
+
+            microformInstance.createToken({
+                expirationMonth: month,
+                expirationYear: year
+            }, (err, token) => {
+                if (err) {
+                    console.error('Create Token Error:', err);
+                    document.getElementById('status').innerHTML = 
+                        `<span style="color:red">Error creating token</span>`;
+                    return;
+                }
+                if (token) {
+                    window.PaymentChannel.postMessage(JSON.stringify({
+                        type: 'PAYMENT_TOKEN',
+                        token: token
+                    }));
+                }
+            });
+        });
+    </script>
 </body>
 </html>

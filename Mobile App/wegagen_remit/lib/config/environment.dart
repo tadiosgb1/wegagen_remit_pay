@@ -1,12 +1,12 @@
 class Environment {
   static const String _baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.195.49.21:3001', // Updated to new backend URL
+    defaultValue: 'http://10.195.49.21:3001', // Change to localhost for web development
   );
 
   static const String _fallbackUrl = String.fromEnvironment(
     'FALLBACK_URL',
-    defaultValue: 'http://10.195.49.18:3001', // Fallback to previous URL
+    defaultValue: 'http://10.195.49.21:3001', // Fallback to previous URL
   );
 
   static const String _apiVersion = String.fromEnvironment(
@@ -33,10 +33,10 @@ class Environment {
 
   // Multiple backend URLs for failover
   static const List<String> _backendUrls = [
-    'http://10.195.49.21:3001',   // Primary - Updated to new backend
-    'http://10.195.49.18:3001',   // Secondary - Previous backend
-    'https://10.195.49.21:3001',  // HTTPS fallback
-    'https://10.195.49.18:3001',  // HTTPS fallback
+    // 'http://localhost:3001',      // Primary - Localhost for web development
+    // 'http://127.0.0.1:3001',      // Alternative localhost
+    'http://10.195.49.21:3001',   // Internal IP - Primary backend
+    // 'http://10.195.49.18:3001',   // Internal IP - Secondary backend
   ];
   
   // All backend URLs for connectivity testing

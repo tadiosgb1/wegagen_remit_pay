@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
+import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import '../config/environment.dart';
 import '../config/url_container.dart';
 import '../models/kyc_data.dart';
@@ -17,114 +18,84 @@ class KycService {
 
   final ApiService _apiService = ApiService();
 
-  // Submit KYC data
+  // Submit KYC data using Dio
   Future<KycSubmissionResponse> submitKyc(KycData kycData) async {
     try {
-      // Use multipart form data for the single KYC endpoint
-      final uri = Uri.parse(UrlContainer.submitKyc);
-      final request = http.MultipartRequest('POST', uri);
-      
-      // Add headers (get auth headers from API service)
-      final headers = await _getAuthHeaders(isMultipart: true);
-      request.headers.addAll(headers);
+      // Create FormData for multipart upload
+      final formData = FormData();
       
       // Add form fields
-      final formData = kycData.toFormData();
-      request.fields.addAll(formData);
+      final fields = kycData.toFormData();
+      for (final entry in fields.entries) {
+        formData.fields.add(MapEntry(entry.key, entry.value));
+      }
       
-      print('Adding form fields: ${request.fields}');
+      if (kDebugMode) print('Adding form fields: $fields');
       
       // Debug: Print file information before adding
       if (kycData.idPhoto != null) {
-        print('ID Photo - Name: ${kycData.idPhoto!.name}, Path: ${kycData.idPhoto!.path}');
+        if (kDebugMode) print('ID Photo - Path: ${kycData.idPhoto!.path}');
       }
       if (kycData.selfie != null) {
-        print('Selfie - Name: ${kycData.selfie!.name}, Path: ${kycData.selfie!.path}');
+        if (kDebugMode) print('Selfie - Path: ${kycData.selfie!.path}');
       }
       
       // Add ID photo if available
       if (kycData.idPhoto != null) {
         try {
-          // Use XFile.readAsBytes() which works on both web and mobile
           final bytes = await kycData.idPhoto!.readAsBytes();
           if (bytes.isNotEmpty) {
-            request.files.add(
-              http.MultipartFile.fromBytes(
-                'id_photo',
+            formData.files.add(MapEntry(
+              'id_photo',
+              MultipartFile.fromBytes(
                 bytes,
                 filename: 'id_document.jpg',
                 contentType: MediaType('image', 'jpeg'),
               ),
-            );
-            print('Added ID photo as bytes (${bytes.length} bytes) with filename: id_document.jpg');
+            ));
+            if (kDebugMode) print('Added ID photo as bytes (${bytes.length} bytes) with filename: id_document.jpg');
           }
         } catch (e) {
-          print('Error adding ID photo: $e');
-          // Continue without the file rather than failing completely
+          if (kDebugMode) print('Error adding ID photo: $e');
         }
       }
       
       // Add selfie if available
       if (kycData.selfie != null) {
         try {
-          // Use XFile.readAsBytes() which works on both web and mobile
           final bytes = await kycData.selfie!.readAsBytes();
           if (bytes.isNotEmpty) {
-            request.files.add(
-              http.MultipartFile.fromBytes(
-                'selfie',
+            formData.files.add(MapEntry(
+              'selfie',
+              MultipartFile.fromBytes(
                 bytes,
                 filename: 'selfie_photo.jpg',
                 contentType: MediaType('image', 'jpeg'),
               ),
-            );
-            print('Added selfie as bytes (${bytes.length} bytes) with filename: selfie_photo.jpg');
+            ));
+            if (kDebugMode) print('Added selfie as bytes (${bytes.length} bytes) with filename: selfie_photo.jpg');
           }
         } catch (e) {
-          print('Error adding selfie: $e');
-          // Continue without the file rather than failing completely
+          if (kDebugMode) print('Error adding selfie: $e');
         }
       }
 
-      print('Total files to upload: ${request.files.length}');
+      if (kDebugMode) print('Total files to upload: ${formData.files.length}');
       
-      // Debug: Print all request details
-      print('Request URL: ${request.url}');
-      print('Request headers: ${request.headers}');
-      print('Request fields: ${request.fields}');
-      print('Request files: ${request.files.map((f) => '${f.field}: ${f.filename} (${f.length} bytes)').join(', ')}');
+      // Use ApiService to submit
+      final response = await _apiService.post(UrlContainer.submitKyc, formData.fields.asMap().map((key, value) => MapEntry(value.key, value.value)));
       
-      final client = _createMultipartClient();
-      final streamedResponse = await client.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
-      client.close();
-      
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-      
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return KycSubmissionResponse(
-          success: true,
-          message: 'KYC submitted successfully. We will review your documents within 24-48 hours.',
-          status: KycStatus.underReview,
-        );
-      } else {
-        String errorMessage = 'Failed to submit KYC';
-        try {
-          final errorData = json.decode(response.body);
-          errorMessage = errorData['message'] ?? errorMessage;
-        } catch (e) {
-          // If JSON parsing fails, use default message
-        }
-        
-        return KycSubmissionResponse(
-          success: false,
-          message: errorMessage,
-          status: KycStatus.notStarted,
-        );
+      if (kDebugMode) {
+        print('Response: $response');
       }
+      
+      return KycSubmissionResponse(
+        success: true,
+        message: 'KYC submitted successfully. We will review your documents within 24-48 hours.',
+        status: KycStatus.underReview,
+      );
     } catch (e) {
-      print('KYC submission error: $e');
+      if (kDebugMode) print('KYC submission error: $e');
       return KycSubmissionResponse(
         success: false,
         message: _getErrorMessage(e),
@@ -133,7 +104,7 @@ class KycService {
     }
   }
 
-  // Get auth headers for multipart requests
+  // Get auth headers for multipart requests (not needed with new implementation)
   Future<Map<String, String>> _getAuthHeaders({bool isMultipart = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final authToken = prefs.getString('auth_token');
@@ -142,7 +113,6 @@ class KycService {
       'Accept': 'application/json',
     };
 
-    // Don't set Content-Type for multipart requests - let http package handle it
     if (!isMultipart) {
       headers['Content-Type'] = 'application/json';
     }
@@ -154,23 +124,46 @@ class KycService {
     return headers;
   }
 
-  http.Client _createMultipartClient() {
-    if (kIsWeb || !Environment.isDevelopment) {
-      return http.Client();
-    }
-
-    final ioHttpClient = HttpClient()
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-    return IOClient(ioHttpClient);
-  }
-
-  // Get KYC status
+  // Get KYC status from user profile
   Future<KycStatus> getKycStatus() async {
     try {
-      final response = await _apiService.get(UrlContainer.kycStatus);
-      return _parseKycStatus(response['status']);
+      // Ensure ApiService is initialized
+      if (!_apiService.isInitialized) {
+        await _apiService.initialize();
+      }
+      
+      // Get user profile which includes KYC data
+      final response = await _apiService.get(UrlContainer.profile);
+      
+      if (kDebugMode) print('KYC Status Check - Profile response: $response');
+      
+      // Check if user has KYC data
+      final userData = response['user'] ?? response['data']?['user'];
+      if (userData != null && userData['kyc'] != null) {
+        final kycData = userData['kyc'];
+        
+        if (kDebugMode) print('KYC Data found: $kycData');
+        
+        // Check if KYC is verified
+        if (kycData['verified'] == true) {
+          if (kDebugMode) print('✅ KYC is VERIFIED');
+          return KycStatus.approved;
+        } else if (kycData['id_photo_path'] != null || kycData['selfie_photo_path'] != null) {
+          // Has uploaded documents but not verified yet
+          if (kDebugMode) print('📋 KYC documents uploaded, under review');
+          return KycStatus.underReview;
+        } else {
+          // No documents uploaded
+          if (kDebugMode) print('📝 KYC not started - no documents');
+          return KycStatus.notStarted;
+        }
+      } else {
+        // No KYC data at all
+        if (kDebugMode) print('❌ No KYC data found in user profile');
+        return KycStatus.notStarted;
+      }
     } catch (e) {
+      if (kDebugMode) print('Error getting KYC status: $e');
       return KycStatus.notStarted;
     }
   }

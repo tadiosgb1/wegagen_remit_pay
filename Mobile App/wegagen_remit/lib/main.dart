@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,15 +17,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    print('🚀 Starting app initialization...');
-    print('🌐 API URL: ${Environment.apiUrl}');
+    if (kDebugMode) print('🚀 Starting app initialization...');
+    if (kDebugMode) print('🌐 API URL: ${Environment.apiUrl}');
     
     await ApiService().initialize();
-    print('✅ API service initialized successfully');
+    if (kDebugMode) print('✅ API service initialized successfully');
     
     runApp(const ProviderScope(child: MyApp()));
   } catch (e) {
-    print('❌ App initialization failed: $e');
+    if (kDebugMode) print('❌ App initialization failed: $e');
     runApp(const ProviderScope(child: MyApp()));
   }
 }
@@ -45,7 +46,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF37021)),
           useMaterial3: true,
-          fontFamily: 'Poppins', // Add this if you have Poppins font
+          fontFamily: 'Poppins',
         ),
         home: const AuthWrapper(),
         debugShowCheckedModeBanner: false,
@@ -80,27 +81,55 @@ class _AuthWrapperState extends State<AuthWrapper> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final hasSeenOnboarding = prefs.getBool('onboarding_completed') ?? false;
-      final token = prefs.getString('auth_token');
 
       if (!hasSeenOnboarding) {
         setState(() => _status = AuthStatus.onboarding);
         return;
       }
 
-      if (token == null) {
-        setState(() => _status = AuthStatus.login);
-        return;
+      // Check authentication differently for web vs mobile
+      // Important: Use direct API calls here, NOT AuthProvider to avoid triggering error states
+      bool isAuthenticated = false;
+      
+      if (kIsWeb) {
+        // For web, check if we're logged in via HTTP-only cookie
+        // by attempting to access a protected endpoint
+        try {
+          await ApiService().get(UrlContainer.profile);
+          isAuthenticated = true;
+          if (kDebugMode) print('✅ User authenticated via HTTP-only cookie');
+        } catch (e) {
+          // Expected behavior when user is not logged in - don't show error
+          isAuthenticated = false;
+          await prefs.setBool('is_logged_in', false);
+          if (kDebugMode) print('ℹ️ User not authenticated (expected during startup)');
+        }
+      } else {
+        // For mobile, check both token and login state
+        final token = prefs.getString('auth_token');
+        final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+        
+        if (token != null || isLoggedIn) {
+          try {
+            await ApiService().get(UrlContainer.profile);
+            isAuthenticated = true;
+            if (kDebugMode) print('✅ User authenticated via stored token');
+          } catch (e) {
+            // Expected behavior when token is invalid - clear and continue silently
+            await prefs.remove('auth_token');
+            await prefs.setBool('is_logged_in', false);
+            await ApiService().clearAuthToken();
+            isAuthenticated = false;
+            if (kDebugMode) print('ℹ️ Invalid token cleared (expected during startup)');
+          }
+        } else {
+          if (kDebugMode) print('ℹ️ No stored authentication found');
+        }
       }
 
-      try {
-        await ApiService().get(UrlContainer.profile);
-        setState(() => _status = AuthStatus.home);
-      } catch (e) {
-        await prefs.remove('auth_token');
-        setState(() => _status = AuthStatus.login);
-      }
+      setState(() => _status = isAuthenticated ? AuthStatus.home : AuthStatus.login);
     } catch (e) {
-      print('❌ Error in _initializeApp: $e');
+      if (kDebugMode) print('❌ Error in _initializeApp: $e');
       setState(() => _status = AuthStatus.login);
     }
   }
@@ -192,12 +221,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.6),
+                              color: Colors.white.withValues(alpha: 0.6),
                               blurRadius: 60,
                               spreadRadius: 20,
                             ),
                             BoxShadow(
-                              color: Colors.orange.withOpacity(0.4),
+                              color: Colors.orange.withValues(alpha: 0.4),
                               blurRadius: 80,
                               spreadRadius: 10,
                             ),

@@ -14,18 +14,37 @@ class AuthService {
   // Login
   Future<AuthResponse> login(String email, String pin) async {
     try {
+      print('DEBUG: Starting login process for email: $email');
+      
+      // Ensure ApiService is initialized
+      if (!_apiService.isInitialized) {
+        await _apiService.initialize();
+      }
+      
+      print('DEBUG: Making API call to login endpoint');
       final response = await _apiService.post(UrlContainer.login, {
         'email': email,
         'pin': pin,
       }, includeAuth: false);
 
+      print('DEBUG: API call successful, response received: $response');
+      print('DEBUG: Starting AuthResponse.fromJson parsing...');
+      
       final authResponse = AuthResponse.fromJson(response);
+      print('DEBUG: AuthResponse.fromJson completed successfully');
+      print('DEBUG: Parsed user: ${authResponse.user}');
+      print('DEBUG: Parsed access token: ${authResponse.accessToken}');
 
       // Store token and user data
+      print('DEBUG: Starting _storeAuthData...');
       await _storeAuthData(authResponse);
+      print('DEBUG: _storeAuthData completed successfully');
 
+      print('DEBUG: Login process completed successfully');
       return authResponse;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG: Login failed with error: $e');
+      print('DEBUG: Stack trace: $stackTrace');
       throw _handleAuthError(e);
     }
   }
@@ -41,7 +60,12 @@ class AuthService {
     String? referralCode,
   }) async {
     try {
-      print('DEBUG: Making registration API call to ${UrlContainer.register}');
+      // Ensure ApiService is initialized
+      if (!_apiService.isInitialized) {
+        await _apiService.initialize();
+      }
+      
+      if (kDebugMode) print('DEBUG: Making registration API call to ${UrlContainer.register}');
       final requestData = {
         'first_name': firstName,
         'last_name': lastName,
@@ -50,7 +74,7 @@ class AuthService {
         'pin': pin,
         if (referralCode != null) 'referral_code': referralCode,
       };
-      print('DEBUG: Request data: $requestData');
+      if (kDebugMode) print('DEBUG: Request data: $requestData');
 
       final response = await _apiService.post(
         UrlContainer.register,
@@ -58,17 +82,17 @@ class AuthService {
         includeAuth: false,
       );
 
-      print('DEBUG: API Response: $response');
+      if (kDebugMode) print('DEBUG: API Response: $response');
 
       final authResponse = AuthResponse.fromJson(response);
-      print('DEBUG: Parsed AuthResponse - User: ${authResponse.user}');
+      if (kDebugMode) print('DEBUG: Parsed AuthResponse - User: ${authResponse.user}');
 
       // Store token and user data
       await _storeAuthData(authResponse);
 
       return authResponse;
     } catch (e) {
-      print('DEBUG: Registration error: $e');
+      if (kDebugMode) print('DEBUG: Registration error: $e');
       throw _handleAuthError(e);
     }
   }
@@ -76,10 +100,18 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     try {
+      // Ensure ApiService is initialized
+      if (!_apiService.isInitialized) {
+        await _apiService.initialize();
+      }
+      
+      // Call server logout endpoint to clear HTTP-only cookies
       await _apiService.post(UrlContainer.logout, {});
     } catch (e) {
       // Continue with logout even if API call fails
+      if (kDebugMode) print('Logout API call failed: $e');
     } finally {
+      // Clear local auth data and cookies
       await _clearAuthData();
     }
   }
@@ -248,13 +280,15 @@ class AuthService {
     await prefs.setString('user_data', authResponse.user.toJson());
     await prefs.setBool('is_logged_in', true);
 
-    // For mobile apps, still store tokens in SharedPreferences
-    // For web, rely on HTTP-only cookies set by the server
-    if (!kIsWeb) {
+    // For mobile apps, store tokens only if they're not placeholder values
+    // For web with HTTP-only cookies, we rely on cookies set by the server
+    if (!kIsWeb && authResponse.accessToken != 'http-only-cookie') {
       await prefs.setString('auth_token', authResponse.accessToken);
       await prefs.setString('refresh_token', authResponse.refreshToken);
       // Set token in API service for mobile
       _apiService.setAuthToken(authResponse.accessToken);
+    } else {
+      print('DEBUG: Using HTTP-only cookie authentication - no token storage needed');
     }
 
     print('DEBUG: Auth data stored successfully');
@@ -268,12 +302,12 @@ class AuthService {
     await prefs.remove('user_data');
     await prefs.setBool('is_logged_in', false);
 
-    // For mobile, also clear tokens
+    // For mobile, also clear tokens and cookies
     if (!kIsWeb) {
       await prefs.remove('auth_token');
       await prefs.remove('refresh_token');
-      // Clear token from API service
-      _apiService.clearAuthToken();
+      // Clear token and cookies from API service
+      await _apiService.clearAuthToken();
     }
     // For web, HTTP-only cookies will be cleared by the server on logout
   }
@@ -302,50 +336,33 @@ class AuthResponse {
     required this.expiresIn,
   });
 
+
+
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    // Handle different response structures
-    Map<String, dynamic> userData;
-    String accessToken = '';
-    String refreshToken = '';
+  // 1. Safely navigate the nested structure without aggressive casting
+  // We look for 'data' key, if it's not a Map, we stop drilling.
+  final dynamic dataLevel1 = json['data'];
+  
+  // 2. If 'data' exists and is a map, look for inner 'data'
+  final Map<String, dynamic> finalData = (dataLevel1 is Map && dataLevel1['data'] is Map) 
+      ? dataLevel1['data'] 
+      : (dataLevel1 is Map ? dataLevel1 : json);
 
-    if (json['data'] != null) {
-      // Check if this is a login response with tokens
-      if (json['data']['access_token'] != null &&
-          json['data']['user'] != null) {
-        // Login response structure: {status: success, data: {access_token: ..., user: {...}}}
-        accessToken = json['data']['access_token'] ?? '';
-        refreshToken = json['data']['refresh_token'] ?? '';
-        userData = json['data']['user'];
-      } else if (json['data']['data'] != null) {
-        // Registration response structure: {status: success, data: {status: success, data: {...}}}
-        userData = json['data']['data'];
-        accessToken = json['data']['access_token'] ?? '';
-        refreshToken = json['data']['refresh_token'] ?? '';
-      } else {
-        userData = json['data'];
-        accessToken = json['data']['access_token'] ?? '';
-        refreshToken = json['data']['refresh_token'] ?? '';
-      }
-    } else if (json['user'] != null) {
-      // Direct user structure
-      userData = json['user'];
-      accessToken = json['access_token'] ?? '';
-      refreshToken = json['refresh_token'] ?? '';
-    } else {
-      // Fallback
-      userData = json;
-      accessToken = json['access_token'] ?? '';
-      refreshToken = json['refresh_token'] ?? '';
-    }
+  // 3. Extract user
+  final Map<String, dynamic> userData = (finalData['user'] is Map) 
+      ? finalData['user'] 
+      : (finalData is Map ? finalData : {});
 
-    return AuthResponse(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-      user: User.fromMap(userData),
-      tokenType: json['token_type'] ?? json['data']?['token_type'] ?? 'Bearer',
-      expiresIn: json['expires_in'] ?? json['data']?['expires_in'] ?? 3600,
-    );
-  }
+  return AuthResponse(
+    accessToken: '', // Cookies handle this
+    refreshToken: '',
+    user: User.fromMap(userData),
+    tokenType: 'Bearer',
+    expiresIn: 3600,
+  );
+}
+
+  
 }
 
 class ApiResponse {
