@@ -1,4 +1,5 @@
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class KycData {
   final String idType;
@@ -19,6 +20,7 @@ class KycData {
     this.selfie,
   });
 
+  // Convert to regular form data (without files)
   Map<String, String> toFormData() {
     return {
       'id_type': idType,
@@ -27,6 +29,52 @@ class KycData {
       'city': city,
       'country': country,
     };
+  }
+
+  // Convert to JSON for API submission
+  Map<String, dynamic> toJson() {
+    return {
+      'id_type': idType,
+      'dob': dob,
+      'address': address,
+      'city': city,
+      'country': country,
+    };
+  }
+
+  // Helper method to get files as File objects
+  Future<File?> getIdPhotoFile() async {
+    if (idPhoto == null) return null;
+    return File(idPhoto!.path);
+  }
+
+  Future<File?> getSelfieFile() async {
+    if (selfie == null) return null;
+    return File(selfie!.path);
+  }
+
+  // Check if all required fields are filled
+  bool get isComplete {
+    return idType.isNotEmpty &&
+        dob.isNotEmpty &&
+        address.isNotEmpty &&
+        city.isNotEmpty &&
+        country.isNotEmpty &&
+        idPhoto != null &&
+        selfie != null;
+  }
+
+  // Get missing fields for validation
+  List<String> get missingFields {
+    final missing = <String>[];
+    if (idType.isEmpty) missing.add('ID Type');
+    if (dob.isEmpty) missing.add('Date of Birth');
+    if (address.isEmpty) missing.add('Address');
+    if (city.isEmpty) missing.add('City');
+    if (country.isEmpty) missing.add('Country');
+    if (idPhoto == null) missing.add('ID Photo');
+    if (selfie == null) missing.add('Selfie Photo');
+    return missing;
   }
 }
 
@@ -116,7 +164,7 @@ class LivenessChallenge {
         instruction: 'Open your mouth',
       ),
     ];
-    
+
     challenges.shuffle();
     return challenges.take(3).toList(); // Return 3 random challenges
   }

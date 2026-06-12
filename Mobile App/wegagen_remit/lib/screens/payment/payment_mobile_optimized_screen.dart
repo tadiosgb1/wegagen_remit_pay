@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-import '../../providers/payment_providers.dart';
-import '../../config/url_container.dart';
 
 class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
   final String? captureContext;
@@ -101,8 +99,9 @@ class _PaymentMobileOptimizedScreenState
               return NavigationDecision.navigate;
             }
 
-            // Allow your backend domains
+            // Allow your backend domains including nginx
             if (request.url.contains('10.195.49.18') ||
+                request.url.contains('10.195.49.21') ||
                 request.url.contains('localhost') ||
                 request.url.startsWith('https://')) {
               return NavigationDecision.navigate;
@@ -136,235 +135,27 @@ class _PaymentMobileOptimizedScreenState
   }
 
   void _loadPaymentPage() {
-    // Load the assets HTML file that has proper Cybersource configuration
-    const htmlContent = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; frame-src *; child-src *; connect-src *;">
-    <title>Secure Payment</title>
-    <style>
-        body { margin:0; padding:16px; background:#f8f9fa; font-family:system-ui; }
-        .container { background:white; border-radius:16px; padding:24px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
-        h2 { text-align:center; margin-bottom:8px; color:#1f2937; }
-        label { display:block; margin:12px 0 6px; font-weight:600; color:#374151; }
-        .microform-field { 
-            width:100% !important; 
-            height:58px !important; 
-            border:2px solid #e5e7eb; 
-            border-radius:10px; 
-            margin-bottom:8px;
-            box-sizing: border-box;
-            background: white;
-        }
-        .pay-button { width:100%; background:#F37021; color:white; border:none; padding:16px; border-radius:12px; font-size:17px; margin-top:20px; cursor:pointer; }
-        .pay-button:disabled { background:#ccc; cursor:not-allowed; }
-        #status { text-align:center; margin:20px 0; color:#666; font-size:15px; }
-        .error { color:red; text-align:center; margin:10px 0; display:none; }
-        .row { display:flex; gap:12px; }
-        .col { flex:1; }
-        select { width:100%; padding:14px; border:2px solid #e5e7eb; border-radius:8px; background:white; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>🔒 Secure Payment</h2>
-        <div id="status">Initializing secure payment form...</div>
-        <div id="error" class="error"></div>
+    // Load the backend payment session page directly from nginx
+    const paymentSessionUrl = 'http://10.195.49.21/payments/session';
 
-        <form id="payment-form" style="display:none;">
-            <label for="number-container">Card Number *</label>
-            <div id="number-container" class="microform-field"></div>
+    debugPrint('🔄 Loading payment session from: $paymentSessionUrl');
 
-            <div class="row">
-                <div class="col">
-                    <label for="expMonth">Expiry Month *</label>
-                    <select id="expMonth" required></select>
-                </div>
-                <div class="col">
-                    <label for="expYear">Expiry Year *</label>
-                    <select id="expYear" required></select>
-                </div>
-                <div class="col">
-                    <label for="cvv-container">CVV *</label>
-                    <div id="cvv-container" class="microform-field"></div>
-                </div>
-            </div>
+    // Set additional headers for better compatibility
+    controller.setUserAgent(
+        'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36 FlutterWebView');
 
-            <button type="submit" id="payButton" class="pay-button">Pay Securely</button>
-        </form>
-    </div>
-
-    <script src="https://testflex.cybersource.com/microform/bundle/v2.0/flex-microform.min.js"></script>
-    <script>
-        function log(msg) {
-            console.log(msg);
-            if (window.ConsoleChannel) {
-                window.ConsoleChannel.postMessage(String(msg));
-            }
-        }
-
-        let flexInstance = null;
-        let microformInstance = null;
-
-        // Initialize immediately with test capture context for now
-        // In production, this should come from your backend
-        initializePayment();
-
-        async function initializePayment() {
-            try {
-                // Get capture context from your backend
-                const response = await fetch('http://10.195.49.21:3001/payments/session');
-                const data = await response.json();
-                
-                if (data.captureContext) {
-                    initFlex(data.captureContext);
-                } else {
-                    throw new Error('No capture context received from backend');
-                }
-            } catch (error) {
-                log('❌ Failed to get capture context: ' + error.message);
-                document.getElementById('error').textContent = 'Failed to initialize payment. Please check your connection.';
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('status').style.display = 'none';
-            }
-        }
-
-        function initFlex(captureContext) {
-            log('🔄 Starting Flex initialization...');
-            
-            try {
-                // Create Flex instance
-                flexInstance = new Flex(captureContext);
-                
-                // Create microform instance
-                microformInstance = flexInstance.microform();
-
-                // Create and load fields
-                const numberField = microformInstance.createField('number', {
-                    placeholder: '•••• •••• •••• ••••'
-                });
-                
-                const cvvField = microformInstance.createField('securityCode', {
-                    placeholder: '•••'
-                });
-
-                // Load fields into containers
-                numberField.load('#number-container');
-                cvvField.load('#cvv-container');
-
-                // Populate expiration dropdowns
-                populateExpiration();
-
-                // Show form and hide status
-                document.getElementById('status').style.display = 'none';
-                document.getElementById('payment-form').style.display = 'block';
-                
-                log('✅ Cybersource Flex initialized successfully');
-
-            } catch (error) {
-                log('❌ Flex initialization error: ' + error.message);
-                document.getElementById('error').textContent = 'Failed to load secure payment fields: ' + error.message;
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('status').style.display = 'none';
-            }
-        }
-
-        function populateExpiration() {
-            const monthSelect = document.getElementById('expMonth');
-            const yearSelect = document.getElementById('expYear');
-            
-            // Add placeholder options
-            monthSelect.add(new Option('Month', '', true, true));
-            yearSelect.add(new Option('Year', '', true, true));
-            
-            // Add months 01-12
-            for (let i = 1; i <= 12; i++) {
-                const monthStr = i.toString().padStart(2, '0');
-                monthSelect.add(new Option(monthStr, monthStr));
-            }
-            
-            // Add years (current year + 15 years)
-            const currentYear = new Date().getFullYear();
-            for (let i = 0; i < 15; i++) {
-                const year = (currentYear + i).toString();
-                yearSelect.add(new Option(year, year));
-            }
-        }
-
-        document.getElementById('payment-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (!microformInstance) {
-                log('❌ Microform not initialized');
-                return;
-            }
-            
-            const btn = document.getElementById('payButton');
-            const month = document.getElementById('expMonth').value;
-            const year = document.getElementById('expYear').value;
-
-            if (!month || !year) {
-                document.getElementById('error').textContent = 'Please select expiry month and year';
-                document.getElementById('error').style.display = 'block';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
-            document.getElementById('error').style.display = 'none';
-
-            log('🔄 Creating payment token...');
-
-            microformInstance.createToken({
-                expirationMonth: month,
-                expirationYear: year
-            }, function(err, token) {
-                btn.disabled = false;
-                btn.textContent = 'Pay Securely';
-                
-                if (err) {
-                    log('❌ Token creation error: ' + JSON.stringify(err));
-                    document.getElementById('error').textContent = 'Payment error: ' + (err.message || 'Invalid card details');
-                    document.getElementById('error').style.display = 'block';
-                } else if (token) {
-                    log('✅ Payment token created successfully');
-                    
-                    // Send token back to Flutter
-                    const paymentData = {
-                        type: 'PAYMENT_SUCCESS',
-                        token: token,
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    if (window.FlutterPayment) {
-                        window.FlutterPayment.postMessage(JSON.stringify(paymentData));
-                    }
-                    
-                    if (window.PaymentChannel) {
-                        window.PaymentChannel.postMessage(JSON.stringify(paymentData));
-                    }
-                }
-            });
-        });
-
-        // Handle errors
-        window.addEventListener('error', function(e) {
-            log('❌ JavaScript error: ' + e.message);
-        });
-
-        // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(e) {
-            log('❌ Unhandled promise rejection: ' + e.reason);
-        });
-    </script>
-</body>
-</html>
-    ''';
-
-    controller.loadHtmlString(htmlContent);
+    // Load the payment session URL directly
+    controller.loadRequest(
+      Uri.parse(paymentSessionUrl),
+      headers: {
+        'Accept':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      },
+    );
   }
 
   void _handlePaymentMessage(String message) {
