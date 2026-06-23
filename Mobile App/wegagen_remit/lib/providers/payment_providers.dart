@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/payment/capture_context_response.dart';
 import '../models/payment/payment_form_data.dart';
@@ -170,6 +171,10 @@ class PaymentProcessingNotifier extends StateNotifier<AsyncValue<PaymentResponse
     try {
       final request = PaymentRequest(
         transientToken: paymentToken,
+        amount: formData.amount,
+        toAccount: formData.toAccount,
+        toAccountHolder: formData.toAccountHolder,
+        remark: formData.remark,
         firstName: formData.firstName,
         lastName: formData.lastName,
         address1: formData.address1,
@@ -180,6 +185,9 @@ class PaymentProcessingNotifier extends StateNotifier<AsyncValue<PaymentResponse
         email: formData.email,
         exchangeRate: formData.exchangeRate,
       );
+
+      final payload = request.toJson();
+      debugPrint('Final /pay payload: $payload');
 
       final response = await _repository.processPayment(request);
       state = AsyncValue.data(response);

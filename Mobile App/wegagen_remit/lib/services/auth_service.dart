@@ -30,39 +30,76 @@ class AuthService {
     return auth;
   }
 
-  // ================= REGISTER =================
-  Future<AuthResponse> register({
-    required String firstName,
-    required String lastName,
-    required String email,
-    required String phoneNumber,
-    required String pin,
-    required String confirmPin,
-    String? referralCode,
-  }) async {
+  // ================= CHECK EMAIL EXISTS =================
+  Future<bool> checkEmailExists(String email) async {
     if (!_apiService.isInitialized) {
       await _apiService.initialize();
     }
 
-    final res = await _apiService.post(
-      UrlContainer.register,
-      {
-        'first_name': firstName,
-        'last_name': lastName,
-        'email': email,
-        'phone_number': phoneNumber,
-        'pin': pin,
-        'confirm_pin': confirmPin,
-        if (referralCode != null) 'referral_code': referralCode,
-      },
-      includeAuth: false,
-    );
+    try {
+      final res = await _apiService.post(
+        UrlContainer.checkEmail,
+        {'email': email},
+        includeAuth: false,
+      );
 
-    final auth = AuthResponse.fromJson(res);
-    await _storeAuth(auth);
-
-    return auth;
+      // Expected response: {"status":"success", "data":{"exists":true}}
+      if (res is Map<String, dynamic>) {
+        final data = res['data'] as Map<String, dynamic>?;
+        return data?['exists'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ DEBUG: checkEmailExists failed: $e');
+      rethrow;
+    }
   }
+
+  // ================= REGISTER =================
+ // ================= REGISTER =================
+Future<AuthResponse> register({
+  required String firstName,
+  required String lastName,
+  required String email,
+  required String phoneNumber,
+  required String pin,
+  required String confirmPin,
+  String? referralCode,
+}) async {
+  if (!_apiService.isInitialized) {
+    await _apiService.initialize();
+  }
+
+  // 1. Prepare ONLY the fields the backend validator expects.
+  // 2. Map to 'snake_case' as required by your backend.
+  // 3. Removed 'confirm_pin' because the server explicitly forbids it.
+  final Map<String, dynamic> requestBody = {
+    'first_name': firstName,
+    'last_name': lastName,
+    'email': email,
+    'phone_number': phoneNumber,
+    'pin': pin,
+  };
+
+  // Only add referral_code if it is provided
+  if (referralCode != null && referralCode.isNotEmpty) {
+    requestBody['referral_code'] = referralCode;
+  }
+
+  print("DEBUG: Sending payload to backend: $requestBody");
+
+  // Perform the request
+  final res = await _apiService.post(
+    UrlContainer.register,
+    requestBody,
+    includeAuth: false, // Registration usually doesn't require a token
+  );
+
+  final auth = AuthResponse.fromJson(res);
+  await _storeAuth(auth);
+
+  return auth;
+}
 
   // ================= LOGOUT =================
   Future<void> logout() async {
@@ -190,15 +227,15 @@ class AuthService {
     await prefs.setString('user_data', auth.user.toJson());
     await prefs.setBool('is_logged_in', true);
 
+    // With cookie authentication, tokens are handled by the backend
+    // Just store for reference/debugging if needed
     if (auth.accessToken.isNotEmpty) {
       await prefs.setString('auth_token', auth.accessToken);
       await prefs.setString('refresh_token', auth.refreshToken);
-
-      _apiService.setAuthToken(auth.accessToken);
     }
 
     if (kDebugMode) {
-      print("TOKEN STORED: ${auth.accessToken}");
+      print("✅ AUTH STORED - Cookie authentication active");
     }
   }
 
@@ -211,7 +248,12 @@ class AuthService {
     await prefs.remove('refresh_token');
     await prefs.setBool('is_logged_in', false);
 
-    await _apiService.clearAuthToken();
+    // Clear cookies instead of tokens
+    await _apiService.clearCookies();
+    
+    if (kDebugMode) {
+      print("✅ AUTH CLEARED - Cookies cleared");
+    }
   }
 }
 

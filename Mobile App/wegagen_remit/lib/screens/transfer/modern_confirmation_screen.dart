@@ -87,13 +87,14 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => StreamlinedBillingScreen(
-          toAccountHolder: toAccountHolder,
-          toAccount: toAccount,
-          amount: widget.etbAmount,
-          currency: 'ETB',
-          exchangeRate: widget.exchangeRate,
-          originalUsdAmount: widget.amount, // Pass the original USD amount
+          builder: (context) => StreamlinedBillingScreen(
+            toAccountHolder: toAccountHolder,
+            toAccount: toAccount,
+            amount: widget.etbAmount,
+            currency: 'ETB',
+            exchangeRate: widget.exchangeRate,
+            originalAmount: widget.amount,
+            originalCurrency: widget.currency,
         ),
       ),
     );
@@ -182,16 +183,18 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('${widget.amount.toStringAsFixed(2)} ${widget.currency}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                                    Text('You are sending', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                                    Text('Amount Sent', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                                   ],
                                 ),
                               ),
                             ],
                           ),
                           const Divider(height: 32),
-                          _buildDetailRow('Recipient Gets', '${widget.etbAmount.toStringAsFixed(2)} ETB', highlight: true),
+                          _buildDetailRow('Amount Received', '${widget.etbAmount.toStringAsFixed(2)} ETB', highlight: true),
                           const SizedBox(height: 12),
-                          _buildDetailRow('Service Fee', '${widget.fee.toStringAsFixed(2)} ETB'),
+                          _buildDetailRow('Bonus', '+${widget.fee.toStringAsFixed(2)} ETB'),
+                          const SizedBox(height: 12),
+                          _buildDetailRow('Exchange Rate', '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(2)} ETB'),
                         ],
                       ),
                     ),
@@ -219,27 +222,27 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                     const SizedBox(height: 24),
 
                     // Warning
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.amber.shade200),
-                      ),
-                      child: const Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.amber, size: 24),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              'This transfer cannot be cancelled once confirmed. Please double-check all details.',
-                              style: TextStyle(fontSize: 14, height: 1.4),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   padding: const EdgeInsets.all(20),
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.amber.shade50,
+                    //     borderRadius: BorderRadius.circular(16),
+                    //     border: Border.all(color: Colors.amber.shade200),
+                    //   ),
+                    //   child: const Row(
+                    //     crossAxisAlignment: CrossAxisAlignment.start,
+                    //     // children: [
+                    //     //   Icon(Icons.info_outline, color: Colors.amber, size: 24),
+                    //     //   SizedBox(width: 16),
+                    //     //   Expanded(
+                    //     //     child: Text(
+                    //     //       'This transfer cannot be cancelled once confirmed. Please double-check all details.',
+                    //     //       style: TextStyle(fontSize: 14, height: 1.4),
+                    //     //     ),
+                    //     //   ),
+                    //     // ],
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

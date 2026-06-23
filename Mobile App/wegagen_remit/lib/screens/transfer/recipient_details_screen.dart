@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'modern_confirmation_screen.dart';
-import '../../services/transfer_service.dart';
+import '../../services/account_service.dart'; // Updated import
+import '../../models/account_info_response.dart'; // Updated import
 
 class RecipientDetailsScreen extends StatefulWidget {
   final String transferType;
@@ -40,8 +42,10 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   bool _isPhoneVerified = false;
   String _ebirrHolderName = '';
 
-  final TransferService _transferService = TransferService();
+  final AccountService _accountService = AccountService(); // Updated service
   bool _isVerifying = false;
+  Timer? _accountVerificationTimer;
+  String _lastVerifiedAccountNumber = '';
   final _recipientPhoneController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -50,6 +54,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
 
   @override
   void dispose() {
+    _accountVerificationTimer?.cancel();
     _accountNumberController.dispose();
     _phoneNumberController.dispose();
     _recipientPhoneController.dispose();
@@ -145,8 +150,10 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     );
   }
 
-  Future<void> _verifyAccount() async {
-    if (_accountNumberController.text.isEmpty) return;
+  Future<void> _verifyAccount([String? accountNumberArg]) async {
+    final accountNumber = accountNumberArg?.trim() ?? _accountNumberController.text.trim();
+    if (accountNumber.isEmpty) return;
+    if (_isVerifying && accountNumber == _lastVerifiedAccountNumber) return;
 
     setState(() {
       _isVerifying = true;
@@ -154,38 +161,105 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     });
 
     try {
-      final response = await _transferService.getAccountInfo(
-        _accountNumberController.text,
+      print('🔍 Starting account verification for: $accountNumber');
+      
+      // Use the new AccountService instead of TransferService
+      final response = await _accountService.getAccountInfo(
+        accountNumber,
       );
 
+      print('📱 Received response: ${response.success}');
+      if (response.account != null) {
+        print('👤 Account holder: ${response.account!.accountHolderName}');
+        print('🏦 Account type: ${response.account!.accountTypeDescription}');
+        print('✅ Can receive: ${response.account!.canReceiveMoney}');
+        print('🔴 Is active: ${response.account!.isActive}');
+      }
+
       if (mounted) {
-        if (response.success && response.data != null) {
-          setState(() {
-            _isAccountVerified = true;
-            _accountHolderName = response.data!.accountHolderName;
-            _accountType = response.data!.accountType ?? 'Savings Account';
-            _isVerifying = false;
-          });
+        // Check if response is successful AND has valid account data
+        if (response.success && response.account != null) {
+          final accountData = response.account!;
+          
+          // Validate that the account data is actually valid (not empty)
+          final isValidAccount = _isValidAccountData(accountData);
+          
+          print('🎯 Account validation result: $isValidAccount');
+          
+          if (isValidAccount) {
+            setState(() {
+              _isAccountVerified = true;
+              _accountHolderName = accountData.accountHolderName;
+              _accountType = accountData.accountTypeDescription;
+              _isVerifying = false;
+            });
+            _lastVerifiedAccountNumber = accountNumber;
+
+            print('✅ Account verified successfully!');
+            print('👤 Display name: $_accountHolderName');
+            print('🏦 Display type: $_accountType');
+            
+          } else {
+            // Backend returned empty/invalid account data
+            setState(() {
+              _isAccountVerified = false;
+              _isVerifying = false;
+            });
+            _lastVerifiedAccountNumber = '';
+            print('❌ Account data validation failed');
+            _showErrorMessage('Account not found. Please verify the account number and try again.');
+          }
         } else {
           setState(() {
             _isAccountVerified = false;
             _isVerifying = false;
           });
-          _showErrorMessage(response.message);
+          _lastVerifiedAccountNumber = '';
+          print('❌ Response unsuccessful or no account data');
+          _showErrorMessage(response.message?.isNotEmpty == true
+              ? response.message! 
+              : 'Account not found. Please verify the account number.');
         }
       }
     } catch (e) {
+      print('❌ Account verification error: $e');
+      
       if (mounted) {
         setState(() {
           _isAccountVerified = false;
           _isVerifying = false;
         });
-        _showErrorMessage('Failed to verify account. Please try again.');
+        _lastVerifiedAccountNumber = '';
+        _showErrorMessage('Failed to verify account. Please check your connection and try again.');
       }
     }
   }
 
+  /// Validate that account data contains actual valid information
+  /// Updated to work with the new AccountInfo model
+  bool _isValidAccountData(AccountInfo accountData) {
+    // Check if account holder name is empty or null
+    if (accountData.accountHolderName.trim().isEmpty) {
+      return false;
+    }
+    
+    // Check if account holder name is just whitespace or placeholder text
+    final name = accountData.accountHolderName.trim().toLowerCase();
+    if (name == 'null' || name == 'n/a' || name == 'unknown' || name.length < 2) {
+      return false;
+    }
+    
+    // Check if account is active and can receive money
+    if (!accountData.isActive || !accountData.canReceiveMoney) {
+      return false;
+    }
+    
+    // Account data looks valid
+    return true;
+  }
+
   void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -288,6 +362,8 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    const double _extraBottomPadding = 12.0; // raise button a little above inset
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       resizeToAvoidBottomInset: true,
@@ -356,30 +432,33 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                 ),
               ),
             ),
-            // Continue Button
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _canProceed ? _proceedToConfirmation : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF37021),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
+            const SizedBox.shrink(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: EdgeInsets.fromLTRB(24, 8, 24, bottomInset + _extraBottomPadding),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 0),
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _canProceed ? _proceedToConfirmation : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF37021),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                elevation: 4,
+              ),
+              child: const Text(
+                'Continue',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -460,11 +539,16 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             return null;
           },
           onChanged: (value) {
+            _accountVerificationTimer?.cancel();
             setState(() {
               _isAccountVerified = false;
             });
-            if (value.length >= 10) {
-              _verifyAccount();
+            if (value.trim().length >= 10) {
+              _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
+                if (mounted) {
+                  _verifyAccount(value.trim());
+                }
+              });
             }
           },
         ),
@@ -819,11 +903,16 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             return null;
           },
           onChanged: (value) {
+            _accountVerificationTimer?.cancel();
             setState(() {
               _isAccountVerified = false;
             });
-            if (value.length >= 10) {
-              _verifyAccount();
+            if (value.trim().length >= 10) {
+              _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
+                if (mounted) {
+                  _verifyAccount(value.trim());
+                }
+              });
             }
           },
         ),

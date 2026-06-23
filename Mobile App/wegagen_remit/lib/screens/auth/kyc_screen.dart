@@ -4,9 +4,12 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../main_navigation_screen.dart';
 import '../../models/kyc_data.dart';
 import '../../services/kyc_service.dart';
+import '../../providers/kyc_provider.dart';
+import '../../providers/auth_provider.dart';
 import 'liveness_detection_screen.dart';
 
 class KycScreen extends StatefulWidget {
@@ -1040,11 +1043,18 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
         selfie: _selfiePhoto,
       );
 
-      final response = await _kycService.submitKyc(kycData);
+      // Use KycProvider to submit KYC and automatically refresh status
+      final kycProvider = Provider.of<KycProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      print('📤 KYC SCREEN - Submitting through KycProvider...');
+      final response = await kycProvider.submitKyc(kycData, authProvider: authProvider);
+      print('📤 KYC SCREEN - Submission complete: ${response.success}');
 
       if (!mounted) return;
 
       if (response.success) {
+        print('📤 KYC SCREEN - SUCCESS! Showing success dialog...');
         _showSuccessDialog();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

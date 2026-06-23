@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import 'enter_pin_screen.dart';
 import 'create_account_screen.dart';
 import 'forgot_pin_screen.dart';
@@ -15,6 +17,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  bool _isCheckingEmail = false;
 
   @override
   void dispose() {
@@ -22,14 +25,62 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _continueToPin() {
+  Future<void> _continueToPin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => EnterPinScreen(email: _emailController.text.trim()),
-      ),
-    );
+    final email = _emailController.text.trim();
+    final authProvider = context.read<AuthProvider>();
+
+    setState(() => _isCheckingEmail = true);
+
+    try {
+      print('🔍 Checking if email exists: $email');
+      final emailExists = await authProvider.checkEmailExists(email);
+
+      if (!mounted) return;
+
+      if (!emailExists) {
+        // Email does not exist - show error snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No account found. Please create an account first.',
+              style: TextStyle(fontSize: 16),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        setState(() => _isCheckingEmail = false);
+        return;
+      }
+
+      // Email exists - proceed to PIN screen
+      setState(() => _isCheckingEmail = false);
+      
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => EnterPinScreen(email: email),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      print('❌ Error checking email: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error: ${e.toString()}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      setState(() => _isCheckingEmail = false);
+    }
   }
 
   String? _validateEmail(String? value) {
@@ -96,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
 
                   // Welcome Text
                   const Text(
@@ -116,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 20),
 
                   // Login Card
                   Container(
@@ -164,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           // Continue Button
                           ElevatedButton(
-                            onPressed: _continueToPin,
+                            onPressed: _isCheckingEmail ? null : _continueToPin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFF37021),
                               foregroundColor: Colors.white,
@@ -173,14 +224,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               elevation: 0,
+                              disabledBackgroundColor: Colors.grey.shade400,
                             ),
-                            child: const Text(
-                              "Log In",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: _isCheckingEmail
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Log In",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
 
                           const SizedBox(height: 5),

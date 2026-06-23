@@ -132,6 +132,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           kycStatus = KycStatus.approved;
                         }
                         
+                        // DEBUG: Print the profile screen KYC status
+                        print('👤 PROFILE SCREEN - User KYC: ${user.kyc}');
+                        print('👤 PROFILE SCREEN - KYC Status: $kycStatus, Verified: ${user.kyc?.verified}');
+                        
                         return KycStatusWidget(
                           status: kycStatus,
                           onKycComplete: _onKycStatusChanged,

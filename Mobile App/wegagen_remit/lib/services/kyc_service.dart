@@ -86,30 +86,68 @@ class KycService {
   }
 
   /// STATUS CHECK
-  Future<KycStatus> getKycStatus() async {
+  Future<KycStatus> getKycStatus({bool forceRefresh = true}) async {
     try {
       if (!_api.isInitialized) {
         await _api.initialize();
       }
 
-      final res = await _api.get(UrlContainer.profile);
+      // Add a 'no-cache' header to ensure we get the latest DB status
+      final options = Options(
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      );
 
-      final user = res['user'] ?? res['data']?['user'];
-      final kyc = user?['kyc'];
+      // Get fresh user data from /users/me endpoint
+      final res = await _api.dio.get(
+        UrlContainer.profile, // This calls /users/me
+        options: forceRefresh ? options : null,
+      );
+
+      final userData = res.data;
+      
+      if (kDebugMode) {
+        print('🔍 KYC Service - Raw response: $userData');
+      }
+
+      // The response has structure: {status: "success", data: {user data}}
+      final actualUserData = userData['data'] ?? userData;
+      final kyc = actualUserData['kyc'];
+
+      if (kDebugMode) {
+        print('🔍 KYC Service - Actual user data: $actualUserData');
+        print('🔍 KYC Service - KYC data: $kyc');
+      }
 
       if (kyc == null) return KycStatus.notStarted;
-
+      
+      // Check verified status first
       if (kyc['verified'] == true) {
+        if (kDebugMode) {
+          print('✅ KYC Service - Status: APPROVED (verified=true)');
+        }
         return KycStatus.approved;
       }
 
+      // Check for pending/under review - if documents uploaded but not verified
       if ((kyc['id_photo_path'] ?? '').toString().isNotEmpty ||
           (kyc['selfie_photo_path'] ?? '').toString().isNotEmpty) {
+        if (kDebugMode) {
+          print('⏳ KYC Service - Status: UNDER_REVIEW (documents uploaded)');
+        }
         return KycStatus.underReview;
       }
 
+      if (kDebugMode) {
+        print('❌ KYC Service - Status: NOT_STARTED');
+      }
       return KycStatus.notStarted;
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ KYC Status check error: $e');
+      }
       return KycStatus.notStarted;
     }
   }

@@ -20,8 +20,10 @@
     
     <!-- Your backend with HTTPS and self-signed certificates -->
     <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">cybersource.wegagenbanksc.com.et</domain>
         <domain includeSubdomains="true">10.195.49.18</domain>
         <domain includeSubdomains="true">10.195.49.21</domain>
+        <domain includeSubdomains="true">192.168.2.34</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
         <trust-anchors>

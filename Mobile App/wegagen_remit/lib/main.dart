@@ -118,7 +118,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
             // Expected behavior when token is invalid - clear and continue silently
             await prefs.remove('auth_token');
             await prefs.setBool('is_logged_in', false);
-            await ApiService().clearAuthToken();
+            await ApiService().clearCookies();
             isAuthenticated = false;
             if (kDebugMode) print('ℹ️ Invalid token cleared (expected during startup)');
           }

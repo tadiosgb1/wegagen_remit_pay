@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/payment_providers.dart';
+import '../../services/bonus_service.dart';
 import '../../widgets/activity_tracker.dart';
 import '../transfer/transfer_success_screen.dart';
 
@@ -39,7 +40,9 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       curve: Curves.easeInOut,
     ));
     
-    _processPayment();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _processPayment();
+    });
   }
 
   @override
@@ -75,9 +78,13 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
             builder: (context) => TransferSuccessScreen(
               transferType: 'card_payment',
               recipientName: formData.toAccountHolder,
-              amount: formData.amount / formData.exchangeRate, // USD amount
-              currency: 'USD',
-              etbAmount: formData.amount, // ETB amount
+              // Show the exact sender input amount and currency
+              amount: formData.amount,
+              currency: formData.currency,
+              // ETB amount should include the bonus if available
+              etbAmount: formData.bonusCalculation?.totalRecipientETB ?? (formData.amount * formData.exchangeRate),
+              exchangeRate: formData.exchangeRate,
+              bonusCalculation: formData.bonusCalculation,
               transactionId: 'TXN${DateTime.now().millisecondsSinceEpoch}',
             ),
           ),

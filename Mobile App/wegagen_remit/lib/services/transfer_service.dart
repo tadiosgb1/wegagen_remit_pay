@@ -36,10 +36,21 @@ class AccountInfoResponse {
   });
 
   factory AccountInfoResponse.fromJson(Map<String, dynamic> json) {
+    dynamic payload = json['data'];
+
+    if (payload == null) {
+      if (json['QUERYCUSTACC_IOFS_RES'] != null) {
+        payload = json['QUERYCUSTACC_IOFS_RES']
+            ['FCUBS_BODY']?['Cust-Account-Full'];
+      } else if (json['ACC'] != null && json['CUSTNAME'] != null) {
+        payload = json;
+      }
+    }
+
     return AccountInfoResponse(
       success: json['status'] == 'success' || json['success'] == true,
       message: json['message'] ?? 'Operation completed',
-      data: json['data'] != null ? AccountInfo.fromJson(json['data']) : null,
+      data: payload != null ? AccountInfo.fromJson(payload as Map<String, dynamic>) : null,
     );
   }
 }
@@ -59,10 +70,10 @@ class AccountInfo {
 
   factory AccountInfo.fromJson(Map<String, dynamic> json) {
     return AccountInfo(
-      accountNumber: json['account_number'] ?? '',
-      accountHolderName: json['account_holder_name'] ?? json['name'] ?? '',
-      accountType: json['account_type'],
-      bankName: json['bank_name'],
+      accountNumber: json['account_number'] ?? json['ACC'] ?? json['CLRACNO'] ?? '',
+      accountHolderName: json['account_holder_name'] ?? json['CUSTNAME'] ?? json['ADESC'] ?? json['name'] ?? '',
+      accountType: json['account_type'] ?? json['ACCTYPE'] ?? json['ACCLSTYP'],
+      bankName: json['bank_name'] ?? json['BRN'] ?? 'Wegagen Bank',
     );
   }
 }

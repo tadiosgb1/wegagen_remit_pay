@@ -9,6 +9,10 @@ part of 'payment_request.dart';
 PaymentRequest _$PaymentRequestFromJson(Map<String, dynamic> json) =>
     PaymentRequest(
       transientToken: json['transientToken'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      toAccount: json['toAccount'] as String,
+      toAccountHolder: json['toAccountHolder'] as String,
+      remark: json['remark'] as String,
       firstName: json['firstName'] as String,
       lastName: json['lastName'] as String,
       address1: json['address1'] as String,
@@ -23,6 +27,10 @@ PaymentRequest _$PaymentRequestFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PaymentRequestToJson(PaymentRequest instance) =>
     <String, dynamic>{
       'transientToken': instance.transientToken,
+      'amount': instance.amount,
+      'toAccount': instance.toAccount,
+      'toAccountHolder': instance.toAccountHolder,
+      'remark': instance.remark,
       'firstName': instance.firstName,
       'lastName': instance.lastName,
       'address1': instance.address1,
@@ -32,4 +40,4 @@ Map<String, dynamic> _$PaymentRequestToJson(PaymentRequest instance) =>
       'country': instance.country,
       'email': instance.email,
       'exchange_rate': instance.exchangeRate,
-    };
+    }; 

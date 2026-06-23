@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
+import '../services/transfer_service.dart';
 import '../config/url_container.dart';
 
 class AccountSearchScreen extends StatefulWidget {
@@ -13,7 +14,7 @@ class AccountSearchScreen extends StatefulWidget {
 class _AccountSearchScreenState extends State<AccountSearchScreen> {
   final TextEditingController _accountController = TextEditingController();
   final ApiService _apiService = ApiService();
-  
+
   bool _isLoading = false;
   Map<String, dynamic>? _accountInfo;
   String? _errorMessage;
@@ -40,22 +41,43 @@ class _AccountSearchScreenState extends State<AccountSearchScreen> {
     });
 
     try {
-      final response = await _apiService.searchAccount(_accountController.text.trim());
+      final transferService = TransferService();
+      final response = await transferService.getAccountInfo(_accountController.text.trim());
 
-      if (response['success'] == true && response['data'] != null) {
-        setState(() {
-          _accountInfo = response['data'];
-          _errorMessage = null;
-        });
+      if (response.success && response.data != null) {
+        final accountData = response.data!;
+        
+        // Validate that the account data is actually valid (not empty)
+        final isValidAccount = _isValidAccountData(accountData);
+        
+        if (isValidAccount) {
+          setState(() {
+            _accountInfo = {
+              'accountNumber': accountData.accountNumber,
+              'accountHolderName': accountData.accountHolderName,
+              'accountType': accountData.accountType ?? 'Savings Account',
+              'bankName': accountData.bankName ?? 'Wegagen Bank',
+              'status': 'Active'
+            };
+            _errorMessage = null;
+          });
+        } else {
+          setState(() {
+            _errorMessage = 'Account not found. Please verify the account number and try again.';
+            _accountInfo = null;
+          });
+        }
       } else {
         setState(() {
-          _errorMessage = 'Invalid account or account not found';
+          _errorMessage = response.message.isNotEmpty 
+              ? response.message 
+              : 'Account not found. Please verify the account number.';
           _accountInfo = null;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Invalid account or account not found';
+        _errorMessage = 'Failed to search account. Please check your connection and try again.';
         _accountInfo = null;
       });
     } finally {
@@ -63,6 +85,23 @@ class _AccountSearchScreenState extends State<AccountSearchScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Validate that account data contains actual valid information
+  bool _isValidAccountData(AccountInfo accountData) {
+    // Check if account holder name is empty or null
+    if (accountData.accountHolderName.trim().isEmpty) {
+      return false;
+    }
+    
+    // Check if account holder name is just whitespace or placeholder text
+    final name = accountData.accountHolderName.trim().toLowerCase();
+    if (name == 'null' || name == 'n/a' || name == 'unknown' || name.length < 2) {
+      return false;
+    }
+    
+    // Account data looks valid
+    return true;
   }
 
   @override
@@ -334,14 +373,22 @@ class _AccountSearchScreenState extends State<AccountSearchScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _buildInfoRow('Account Number', _accountInfo!['accountNumber']?.toString() ?? 'N/A'),
-                    _buildInfoRow('Account Holder', _accountInfo!['accountHolderName']?.toString() ?? 'N/A'),
-                    _buildInfoRow('Bank Name', _accountInfo!['bankName']?.toString() ?? 'N/A'),
-                    _buildInfoRow('Branch', _accountInfo!['branchName']?.toString() ?? 'N/A'),
+                    _buildInfoRow('Account Number',
+                        _accountInfo!['accountNumber']?.toString() ?? 'N/A'),
+                    _buildInfoRow(
+                        'Account Holder',
+                        _accountInfo!['accountHolderName']?.toString() ??
+                            'N/A'),
+                    _buildInfoRow('Bank Name',
+                        _accountInfo!['bankName']?.toString() ?? 'N/A'),
+                    _buildInfoRow('Branch',
+                        _accountInfo!['branchName']?.toString() ?? 'N/A'),
                     if (_accountInfo!['accountType'] != null)
-                      _buildInfoRow('Account Type', _accountInfo!['accountType']?.toString() ?? 'N/A'),
+                      _buildInfoRow('Account Type',
+                          _accountInfo!['accountType']?.toString() ?? 'N/A'),
                     if (_accountInfo!['status'] != null)
-                      _buildInfoRow('Status', _accountInfo!['status']?.toString() ?? 'N/A'),
+                      _buildInfoRow('Status',
+                          _accountInfo!['status']?.toString() ?? 'N/A'),
                   ],
                 ),
               ),

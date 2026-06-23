@@ -8,7 +8,6 @@ import '../../widgets/activity_tracker.dart';
 import '../../models/user.dart';
 import '../../services/api_service.dart';
 import '../../config/url_container.dart';
-import 'payment_working_screen.dart';
 import 'payment_mobile_optimized_screen.dart';
 
 class StreamlinedBillingScreen extends ConsumerStatefulWidget {
@@ -17,7 +16,8 @@ class StreamlinedBillingScreen extends ConsumerStatefulWidget {
   final double amount;
   final String currency;
   final double exchangeRate; // Hidden from UI but used internally
-  final double originalUsdAmount; // Original USD input amount
+  final double originalAmount; // Original sender input amount
+  final String originalCurrency; // Original sender currency
 
   const StreamlinedBillingScreen({
     super.key,
@@ -26,7 +26,8 @@ class StreamlinedBillingScreen extends ConsumerStatefulWidget {
     required this.amount,
     required this.currency,
     required this.exchangeRate,
-    required this.originalUsdAmount,
+    required this.originalAmount,
+    required this.originalCurrency,
   });
 
   @override
@@ -287,9 +288,10 @@ class _StreamlinedBillingScreenState
 
           _buildSummaryRow('To Account', widget.toAccount),
           _buildSummaryRow('Account Holder', widget.toAccountHolder),
+          // Show original sender amount and currency for clarity
           _buildSummaryRow(
             'Amount',
-            '${widget.amount.toStringAsFixed(2)} ${widget.currency}',
+            '${widget.originalAmount.toStringAsFixed(2)} ${widget.originalCurrency}',
           ),
 
           const Divider(height: 24),
@@ -304,11 +306,11 @@ class _StreamlinedBillingScreenState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'You Pay (USD):',
+                  'You Pay:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Text(
-                  '\$${widget.originalUsdAmount.toStringAsFixed(2)}',
+                  '${widget.originalAmount.toStringAsFixed(2)} ${widget.originalCurrency}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -833,7 +835,7 @@ class _StreamlinedBillingScreenState
                   const Icon(Icons.payment, size: 24),
                   const SizedBox(width: 12),
                   Text(
-                    'Pay \$${widget.originalUsdAmount.toStringAsFixed(2)} Now',
+                    'Pay ${widget.originalAmount.toStringAsFixed(2)} ${widget.originalCurrency} Now',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -875,8 +877,9 @@ class _StreamlinedBillingScreenState
           .read(paymentFormProvider.notifier)
           .updateAccountHolder(widget.toAccountHolder);
       ref.read(paymentFormProvider.notifier).updateAccount(widget.toAccount);
-      ref.read(paymentFormProvider.notifier).updateAmount(widget.amount);
-      ref.read(paymentFormProvider.notifier).updateCurrency(widget.currency);
+      // Ensure provider stores the original sender amount and currency
+      ref.read(paymentFormProvider.notifier).updateAmount(widget.originalAmount);
+      ref.read(paymentFormProvider.notifier).updateCurrency(widget.originalCurrency);
       ref
           .read(paymentFormProvider.notifier)
           .updateExchangeRate(widget.exchangeRate);
@@ -912,7 +915,7 @@ class _StreamlinedBillingScreenState
       if (kIsWeb) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const PaymentWorkingScreen()),
+          MaterialPageRoute(builder: (context) => const PaymentMobileOptimizedScreen()),
         );
       } else {
         Navigator.push(

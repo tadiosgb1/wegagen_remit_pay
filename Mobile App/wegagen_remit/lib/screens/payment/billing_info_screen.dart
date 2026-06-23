@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
 import '../../widgets/bonus_display_widget.dart';
-import 'payment_working_screen.dart';
 import 'payment_mobile_optimized_screen.dart';
 
 class BillingInfoScreen extends ConsumerStatefulWidget {
@@ -261,7 +260,7 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
               if (value == null || value.trim().isEmpty) {
                 return 'Street address is required';
               }
-              if (value.trim().length < 5) {
+              if (value.trim().length <2) {
                 return 'Address must be at least 5 characters';
               }
               return null;
@@ -543,9 +542,7 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
       // Navigate to the appropriate payment screen
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => kIsWeb
-              ? const PaymentWorkingScreen()
-              : const PaymentMobileOptimizedScreen(), // Use the fixed mobile screen
+          builder: (context) => const PaymentMobileOptimizedScreen(), // Use the same mobile screen for all platforms
         ),
       );
     }

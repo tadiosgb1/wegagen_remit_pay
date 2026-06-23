@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../services/bonus_service.dart';
 import '../main_navigation_screen.dart';
 import '../transactions/transactions_screen.dart';
 
@@ -8,6 +9,8 @@ class TransferSuccessScreen extends StatelessWidget {
   final double amount;
   final String currency;
   final double etbAmount;
+  final double? exchangeRate;
+  final BonusCalculation? bonusCalculation;
   final String recipientName;
   final String? pickupCode;
   final String transactionId;
@@ -18,6 +21,8 @@ class TransferSuccessScreen extends StatelessWidget {
     required this.amount,
     required this.currency,
     required this.etbAmount,
+    this.exchangeRate,
+    this.bonusCalculation,
     required this.recipientName,
     this.pickupCode,
     required this.transactionId,
@@ -154,7 +159,7 @@ class TransferSuccessScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${etbAmount.toStringAsFixed(0)} ETB',
+                            '${amount.toStringAsFixed(2)} $currency',
                             style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -169,11 +174,19 @@ class TransferSuccessScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           _buildDetailRow('Country', '🇺🇸 United States'),
                           const SizedBox(height: 16),
-                          _buildDetailRow('Amount Received', '${amount.toStringAsFixed(2)} $currency'),
+                          _buildDetailRow('Amount Received', '${etbAmount.toStringAsFixed(2)} ETB'),
                           const SizedBox(height: 16),
-                          _buildDetailRow('Exchange Rate', '1 ETB = ${(amount / etbAmount).toStringAsFixed(4)} $currency'),
+                          if (exchangeRate != null) ...[
+                            _buildDetailRow('Exchange Rate', '1 $currency = ${exchangeRate!.toStringAsFixed(4)} ETB'),
+                          ] else ...[
+                            _buildDetailRow('Exchange Rate', '1 $currency = ${(etbAmount / amount).toStringAsFixed(4)} ETB'),
+                          ],
                           const SizedBox(height: 16),
-                          _buildDetailRow('Bones', '100.00 ETB'),
+                          if (bonusCalculation != null) ...[
+                            _buildDetailRow('Bonus (${bonusCalculation!.bonusPercentage.toStringAsFixed(0)}% of converted ETB)', bonusCalculation!.formattedBonusETB),
+                          ] else ...[
+                            _buildDetailRow('Bonus', '0.00 ETB'),
+                          ],
                           const SizedBox(height: 16),
                           _buildDetailRow('Transaction ID', transactionId),
                           const SizedBox(height: 16),
@@ -359,17 +372,24 @@ class TransferSuccessScreen extends StatelessWidget {
   }
 
   void _shareReceipt() {
-    final receiptText = '''
-Transfer Receipt - Wegagen Remit
+    final buffer = StringBuffer();
+    buffer.writeln('Transfer Receipt - Wegagen Remit');
+    buffer.writeln();
+    buffer.writeln('Amount Sent: ${amount.toStringAsFixed(2)} $currency');
+    buffer.writeln('Recipient: $recipientName');
+    buffer.writeln('Amount Received: ${etbAmount.toStringAsFixed(2)} ETB');
+    if (exchangeRate != null) {
+      buffer.writeln('Exchange Rate: 1 $currency = ${exchangeRate!.toStringAsFixed(4)} ETB');
+    } else {
+      buffer.writeln('Exchange Rate: 1 $currency = ${(etbAmount / amount).toStringAsFixed(4)} ETB');
+    }
+    buffer.writeln('Bonus: ${bonusCalculation?.formattedBonusETB ?? '0.00 ETB'}');
+    buffer.writeln('Transaction ID: $transactionId');
+    buffer.writeln('Status: Completed');
+    buffer.writeln();
+    buffer.writeln('Thank you for using Wegagen Remit!');
 
-Amount Sent: ${etbAmount.toStringAsFixed(0)} ETB
-Recipient: $recipientName
-Amount Received: ${amount.toStringAsFixed(2)} $currency
-Transaction ID: $transactionId
-Status: Completed
-
-Thank you for using Wegagen Remit!
-    ''';
+    final receiptText = buffer.toString();
 
     Clipboard.setData(ClipboardData(text: receiptText));
     // In a real app, you would use share_plus package here

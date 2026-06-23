@@ -386,7 +386,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                               const SizedBox(height: 16),
                               _buildFeeRow('You send', '${_amountController.text} ${widget.selectedCurrency}'),
                               const Divider(),
-                              _buildFeeRow('Bones Fee', '${_fee.toStringAsFixed(2)} ETB'),
+                              _buildFeeRow('Bones', '${_fee.toStringAsFixed(2)} ETB'),
                               const Divider(),
                               _buildFeeRow('Total (ETB)', _etbAmount.toStringAsFixed(2), isTotal: true),
                             ],

@@ -48,6 +48,30 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> checkEmailExists(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      print('🔍 DEBUG: AuthProvider.checkEmailExists - Checking email: $email');
+      final exists = await _authService.checkEmailExists(email);
+      
+      _isLoading = false;
+      notifyListeners();
+      
+      print('🔍 DEBUG: AuthProvider.checkEmailExists - Email exists: $exists');
+      return exists;
+    } catch (e) {
+      print('🚨 DEBUG: AuthProvider.checkEmailExists - EXCEPTION caught: $e');
+      
+      _error = e.toString().replaceFirst('ApiException: ', '').replaceFirst('AuthException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> register({
     required String firstName,
     required String lastName,
@@ -61,6 +85,20 @@ class AuthProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    // PREPARE THE DATA
+    final Map<String, dynamic> registrationData = {
+      "firstName": firstName,
+      "lastName": lastName,
+      "email": email,
+      "phoneNumber": phoneNumber,
+      "pin": pin,
+      "confirmPin": confirmPin,
+      "referralCode": referralCode,
+    };
+
+    // LOG THE PAYLOAD TO INSPECT IT
+    print("DEBUG: Sending payload: $registrationData");
+
     try {
       final authResponse = await _authService.register(
         firstName: firstName,
@@ -73,12 +111,12 @@ class AuthProvider with ChangeNotifier {
       );
       
       _user = authResponse.user;
-      
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString().replaceFirst('AuthException: ', '');
+      // The error will now show in the console via the ApiService print
+      _error = e.toString().replaceFirst('ApiException: ', '');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -217,6 +255,18 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Refresh current user data from server
+  Future<void> refreshUser() async {
+    if (!isAuthenticated) return;
+    
+    try {
+      _user = await _authService.getCurrentUser();
+      notifyListeners();
+    } catch (e) {
+      print('DEBUG: Error refreshing user data: $e');
     }
   }
 }

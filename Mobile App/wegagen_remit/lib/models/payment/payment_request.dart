@@ -6,6 +6,18 @@ part 'payment_request.g.dart';
 class PaymentRequest {
   @JsonKey(name: 'transientToken')
   final String transientToken;
+
+  @JsonKey(name: 'amount')
+  final double amount;
+
+  @JsonKey(name: 'toAccount')
+  final String toAccount;
+
+  @JsonKey(name: 'toAccountHolder')
+  final String toAccountHolder;
+
+  @JsonKey(name: 'remark')
+  final String remark;
   
   @JsonKey(name: 'firstName')
   final String firstName;
@@ -36,6 +48,10 @@ class PaymentRequest {
 
   const PaymentRequest({
     required this.transientToken,
+    required this.amount,
+    required this.toAccount,
+    required this.toAccountHolder,
+    required this.remark,
     required this.firstName,
     required this.lastName,
     required this.address1,

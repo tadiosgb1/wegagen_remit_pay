@@ -34,7 +34,40 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         listen: false,
       ).loadExchangeRates();
+      
+      // Load fresh KYC status when home screen opens
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      Provider.of<KycProvider>(
+        context,
+        listen: false,
+      ).loadKycStatus(authProvider: authProvider);
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh KYC status if it's stale when screen becomes active
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        Provider.of<KycProvider>(
+          context,
+          listen: false,
+        ).refreshIfNeeded(authProvider: authProvider);
+      }
+    });
+  }
+
+  Future<void> _refreshHomeData() async {
+    final kycProvider = Provider.of<KycProvider>(context, listen: false);
+    final exchangeRateProvider = Provider.of<ExchangeRateProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    await Future.wait([
+      kycProvider.refreshKycStatus(authProvider: authProvider),
+      exchangeRateProvider.loadExchangeRates(),
+    ]);
   }
 
   @override
@@ -98,10 +131,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
       body: ActivityTracker(
         interactionType: 'home_screen',
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: RefreshIndicator(
+          onRefresh: _refreshHomeData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Hero Header
               Container(
                 width: double.infinity,
@@ -167,51 +203,113 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // KYC Status Card
-              Consumer<AuthProvider>(
-                builder: (context, authProvider, child) {
-                  final user = authProvider.user;
-                  if (user != null) {
-                    // Determine KYC status from user data (same logic as profile screen)
-                    KycStatus kycStatus;
-                    if (user.kyc == null) {
-                      kycStatus = KycStatus.notStarted;
-                    } else if (!user.kyc!.verified) {
-                      kycStatus = KycStatus.underReview;
-                    } else {
-                      kycStatus = KycStatus.approved;
-                    }
-
-                    final isKycVerified = user.kyc?.verified ?? false;
-
-                    return GestureDetector(
-                      onTap: () {
-                        // Navigate based on KYC verification status
-                        if (isKycVerified && kycStatus == KycStatus.approved) {
-                          // If verified, show KYC status screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const KycStatusScreen(),
+              // KYC Status Card - Using KycProvider for real-time updates
+              Consumer<KycProvider>(
+                builder: (context, kycProvider, child) {
+                  final kycStatus = kycProvider.kycStatus;
+                  final isKycVerified = kycStatus == KycStatus.approved;
+                  final isLoading = kycProvider.isLoading;
+                  final isPeriodicChecking = kycProvider.isPeriodicCheckingActive;
+                  
+                  // DEBUG: Print the current KYC status
+                  print('🏠 HOME SCREEN - KYC Status: $kycStatus, Verified: $isKycVerified');
+                  
+                  return GestureDetector(
+                    onTap: isLoading ? null : () {
+                      // Navigate based on KYC verification status
+                      if (kycStatus == KycStatus.approved) {
+                        // Verified - show KYC status screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const KycStatusScreen(),
+                          ),
+                        );
+                      } else if (kycStatus == KycStatus.underReview || kycStatus == KycStatus.inProgress) {
+                        // Under review or in progress - show status screen (NOT form)
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const KycStatusScreen(),
+                          ),
+                        );
+                      } else {
+                        // Not started - go to KYC submission form
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const KycScreen(),
+                          ),
+                        );
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        KycStatusCard(
+                          kycStatus: kycStatus,
+                          isKycVerified: isKycVerified,
+                        ),
+                        // Show loading overlay when refreshing
+                        if (isLoading)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFF37021),
+                                  ),
+                                ),
+                              ),
                             ),
-                          );
-                        } else {
-                          // If not verified, go to KYC forms/verification process
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const KycScreen(),
+                          ),
+                        // Show active monitoring indicator for pending KYC
+                        if (isPeriodicChecking && (kycStatus == KycStatus.underReview || kycStatus == KycStatus.inProgress))
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4CAF50).withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Text(
+                                    'Auto-checking',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          );
-                        }
-                      },
-                      child: KycStatusCard(
-                        kycStatus: kycStatus,
-                        isKycVerified: isKycVerified,
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
+                          ),
+                      ],
+                    ),
+                  );
                 },
               ),
 
@@ -340,6 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 50),
             ],
           ),
+        ),
         ),
       ),
     );

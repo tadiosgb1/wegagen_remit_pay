@@ -29,18 +29,17 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
   final _confirmPinController = PinInputController();
   bool _obscurePin = true;
   bool _obscureConfirmPin = true;
-
-  Future<void> _createAccount() async {
-    // Validate PINs
+Future<void> _createAccount() async {
+    // 1. Validate PIN inputs before calling the API
     if (!_validatePins()) {
-      setState(() {}); // Trigger rebuild to show PIN errors
+      setState(() {}); 
       return;
     }
 
+    // 2. Access AuthProvider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    print('DEBUG: Starting registration process...');
     
+    // 3. Attempt registration
     final success = await authProvider.register(
       firstName: widget.firstName,
       lastName: widget.lastName,
@@ -51,35 +50,33 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
       referralCode: widget.referralCode,
     );
 
-    print('DEBUG: Registration success: $success');
-    print('DEBUG: Auth provider authenticated: ${authProvider.isAuthenticated}');
-    print('DEBUG: Auth provider user: ${authProvider.user}');
-    print('DEBUG: Auth provider error: ${authProvider.error}');
-
+    // 4. Handle success scenario
     if (success && mounted) {
-      // Clear the authentication state after successful registration
+      // Clear auth state to ensure a clean session for the next login
       await authProvider.logout();
       
-      print('DEBUG: Navigating to LoginScreen after successful registration...');
-      
-      // Show success message and navigate to login
+      // Provide user feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please login and complete your KYC.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+
+      // 5. Navigate to LoginScreen
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (context) => const LoginScreen(
             message: 'Account created successfully! Please login to continue.',
           ),
         ),
-        (route) => false, // Remove all previous routes
+        (route) => false,
       );
-    } else if (mounted && authProvider.error != null) {
-      print('DEBUG: Registration failed with error: ${authProvider.error}');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Registration failed: ${authProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    } 
+    // Note: Errors are handled by the Consumer in your build() method
   }
 
   bool _validatePins() {
