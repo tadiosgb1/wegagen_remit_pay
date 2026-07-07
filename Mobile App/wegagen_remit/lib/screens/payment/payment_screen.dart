@@ -35,13 +35,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   final _amountController = TextEditingController();
   final _remarkController = TextEditingController();
   final _exchangeRateController = TextEditingController();
-  
-  final _currencyFormatter = NumberFormat.currency(symbol: '', decimalDigits: 2);
-  
+
+  final _currencyFormatter =
+      NumberFormat.currency(symbol: '', decimalDigits: 2);
+
   @override
   void initState() {
     super.initState();
-    
+
     // Pre-populate fields with provided data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Set default or provided values
@@ -51,14 +52,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       final currency = widget.prefilledCurrency ?? 'ETB';
       final exchangeRate = widget.prefilledExchangeRate ?? 55.23;
       final remark = widget.prefilledRemark ?? '';
-      
+
       // Update controllers
       _accountHolderController.text = accountHolder;
       _accountController.text = account;
       _amountController.text = amount > 0 ? amount.toStringAsFixed(2) : '';
       _exchangeRateController.text = exchangeRate.toStringAsFixed(2);
       _remarkController.text = remark;
-      
+
       // Update provider state
       ref.read(paymentFormProvider.notifier).updateAccountHolder(accountHolder);
       ref.read(paymentFormProvider.notifier).updateAccount(account);
@@ -82,7 +83,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final formData = ref.watch(paymentFormProvider);
-    
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -103,20 +104,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 _buildSectionHeader('Recipient Information'),
                 const SizedBox(height: 16),
                 _buildRecipientSection(),
-                
                 const SizedBox(height: 32),
                 _buildSectionHeader('Payment Details'),
                 const SizedBox(height: 16),
                 _buildPaymentSection(),
-                
                 const SizedBox(height: 32),
                 _buildSectionHeader('Exchange Rate'),
                 const SizedBox(height: 16),
                 _buildExchangeRateSection(),
-                
                 const SizedBox(height: 40),
                 _buildProceedButton(),
-                
                 const SizedBox(height: 16),
                 _buildSecurityInfo(),
               ],
@@ -176,9 +173,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               return null;
             },
           ),
-          
           const SizedBox(height: 16),
-          
           TextFormField(
             controller: _accountController,
             readOnly: true, // Make read-only since it's pre-filled
@@ -223,7 +218,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         children: [
           TextFormField(
             controller: _amountController,
-            readOnly: true, // Make read-only since it comes from previous screen
+            readOnly:
+                true, // Make read-only since it comes from previous screen
             decoration: InputDecoration(
               labelText: 'Amount',
               hintText: '0.00',
@@ -250,9 +246,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               return null;
             },
           ),
-          
           const SizedBox(height: 16),
-          
           TextFormField(
             controller: _remarkController,
             decoration: const InputDecoration(
@@ -284,7 +278,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Widget _buildExchangeRateSection() {
     final formData = ref.watch(paymentFormProvider);
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -302,7 +296,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         children: [
           TextFormField(
             controller: _exchangeRateController,
-            readOnly: true, // Make read-only since it comes from previous screen
+            readOnly:
+                true, // Make read-only since it comes from previous screen
             decoration: InputDecoration(
               labelText: 'Exchange Rate (1 USD = ? ETB)',
               hintText: '55.23',
@@ -322,7 +317,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               return null;
             },
           ),
-          
           if (formData.amount > 0 && formData.exchangeRate > 0) ...[
             const SizedBox(height: 16),
             Container(
@@ -370,7 +364,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 ],
               ),
             ),
-            
+
             // Bonus Display - Only shown if bonus applies (non-ETB currencies)
             BonusDisplayWidget(
               bonusCalculation: formData.bonusCalculation,
@@ -384,15 +378,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   Widget _buildProceedButton() {
     final formData = ref.watch(paymentFormProvider);
-    
+
     // Check only the fields that are collected on this screen
     final isBasicInfoValid = formData.toAccountHolder.isNotEmpty &&
-                            formData.toAccount.isNotEmpty &&
-                            formData.amount > 0 &&
-                            formData.currency.isNotEmpty &&
-                            formData.remark.isNotEmpty &&
-                            formData.exchangeRate > 0;
-    
+        formData.toAccount.isNotEmpty &&
+        formData.amount > 0 &&
+        formData.currency.isNotEmpty &&
+        formData.remark.isNotEmpty &&
+        formData.exchangeRate > 0;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(

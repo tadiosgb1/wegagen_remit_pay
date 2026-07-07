@@ -238,22 +238,37 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   /// Validate that account data contains actual valid information
   /// Updated to work with the new AccountInfo model
   bool _isValidAccountData(AccountInfo accountData) {
+    print('🔍 VALIDATING ACCOUNT DATA:');
+    print('   Account Holder Name: "${accountData.accountHolderName}"');
+    print('   Account Holder Name Length: ${accountData.accountHolderName.length}');
+    print('   Account Holder Name Trimmed: "${accountData.accountHolderName.trim()}"');
+    print('   Is Active: ${accountData.isActive}');
+    print('   Can Receive Money: ${accountData.canReceiveMoney}');
+    print('   Account Status: ${accountData.accountStatus}');
+    print('   Is Frozen: ${accountData.frozen}');
+    
     // Check if account holder name is empty or null
     if (accountData.accountHolderName.trim().isEmpty) {
+      print('❌ VALIDATION FAILED: Account holder name is empty');
       return false;
     }
     
     // Check if account holder name is just whitespace or placeholder text
     final name = accountData.accountHolderName.trim().toLowerCase();
     if (name == 'null' || name == 'n/a' || name == 'unknown' || name.length < 2) {
+      print('❌ VALIDATION FAILED: Account holder name is invalid: "$name"');
       return false;
     }
     
     // Check if account is active and can receive money
     if (!accountData.isActive || !accountData.canReceiveMoney) {
+      print('❌ VALIDATION FAILED: Account not active or cannot receive money');
+      print('   Is Active: ${accountData.isActive} (status: ${accountData.accountStatus}, frozen: ${accountData.frozen})');
+      print('   Can Receive: ${accountData.canReceiveMoney}');
       return false;
     }
     
+    print('✅ VALIDATION PASSED: Account data is valid');
     // Account data looks valid
     return true;
   }

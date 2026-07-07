@@ -20,6 +20,7 @@ class AccountService {
 
       if (kDebugMode) {
         print('🔍 AccountService: Fetching account info for: $accountNumber');
+        print('🔍 API Endpoint: ${UrlContainer.accountInfo}');
       }
 
       final response = await _apiService.post(
@@ -29,26 +30,56 @@ class AccountService {
       );
 
       if (kDebugMode) {
-        print('📱 Response body: $response');
+        print('📱 Raw Response: $response');
+        print('📱 Response Type: ${response.runtimeType}');
+        print('📱 Response Keys: ${response.keys}');
+        
+        // Check if response has expected structure
+        if (response.containsKey('data')) {
+          print('📱 Data field exists: ${response['data']}');
+          if (response['data'] is Map) {
+            final data = response['data'] as Map<String, dynamic>;
+            print('📱 Data keys: ${data.keys}');
+            if (data.containsKey('account')) {
+              print('📱 Account field exists: ${data['account']}');
+            } else {
+              print('❌ No account field in data');
+            }
+          }
+        } else {
+          print('❌ No data field in response');
+        }
       }
 
       final accountResponse = AccountInfoResponse.fromJson(response);
 
-      if (accountResponse.success) {
+      if (kDebugMode) {
+        print('📱 Parsed AccountInfoResponse: success=${accountResponse.success}');
+        print('📱 Account exists: ${accountResponse.account != null}');
+        print('📱 Error: ${accountResponse.error}');
+        print('📱 Message: ${accountResponse.message}');
+      }
+
+      if (accountResponse.success && accountResponse.account != null) {
         if (kDebugMode) {
-          print('✅ Account found: ${accountResponse.account?.accountHolderName}');
-          print('💰 Available balance: ${accountResponse.account?.balance.formattedAvailable}');
+          print('✅ Account found: ${accountResponse.account!.accountHolderName}');
+          print('💰 Account Number: ${accountResponse.account!.accountNumber}');
+          print('💰 Available balance: ${accountResponse.account!.balance.formattedAvailable}');
         }
       } else {
         if (kDebugMode) {
-          print('❌ Account lookup failed: ${accountResponse.message}');
+          print('❌ Account lookup failed: ${accountResponse.message ?? accountResponse.error}');
         }
       }
 
       return accountResponse;
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Network error: $e');
+        print('❌ Network/parsing error: $e');
+        print('❌ Error type: ${e.runtimeType}');
+        if (e is Exception) {
+          print('❌ Exception details: ${e.toString()}');
+        }
       }
 
       // Handle network or parsing errors

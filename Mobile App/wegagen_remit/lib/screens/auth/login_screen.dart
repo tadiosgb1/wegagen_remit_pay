@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'enter_pin_screen.dart';
 import 'create_account_screen.dart';
-import 'forgot_pin_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? message;
@@ -34,13 +33,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isCheckingEmail = true);
 
     try {
-      print('🔍 Checking if email exists: $email');
       final emailExists = await authProvider.checkEmailExists(email);
 
       if (!mounted) return;
 
       if (!emailExists) {
-        // Email does not exist - show error snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -55,9 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // Email exists - proceed to PIN screen
       setState(() => _isCheckingEmail = false);
-      
+
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -68,7 +64,6 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      print('❌ Error checking email: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -128,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.orange.withOpacity(0.3),
+                          color: Colors.orange.withValues(alpha: 0.3),
                           blurRadius: 30,
                           spreadRadius: 8,
                         ),
@@ -177,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 40,
                           offset: const Offset(0, 15),
                         ),
@@ -195,15 +190,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: const TextStyle(fontSize: 17),
                             decoration: InputDecoration(
                               labelText: "Email Address",
-                              labelStyle: TextStyle(color: Colors.grey.shade600),
-                              prefixIcon: const Icon(Icons.email_rounded, color: Color(0xFFF37021)),
+                              labelStyle:
+                                  TextStyle(color: Colors.grey.shade600),
+                              prefixIcon: const Icon(Icons.email_rounded,
+                                  color: Color(0xFFF37021)),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: Color(0xFFF37021), width: 2),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFF37021), width: 2),
                               ),
                               filled: true,
                               fillColor: Colors.grey.shade50,
@@ -231,7 +230,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                       strokeWidth: 2,
                                     ),
                                   )
@@ -243,36 +243,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                           ),
-
-                          const SizedBox(height: 5),
-
-                          // Forgot PIN
-                          // Align(
-                          //   alignment: Alignment.center,
-                          //   child: TextButton(
-                          //     onPressed: () {
-                          //       Navigator.push(
-                          //         context,
-                          //         MaterialPageRoute(builder: (_) => const ForgotPinScreen()),
-                          //       );
-                          //     },
-                          //     child: const Text(
-                          //       "Forgot PIN?",
-                          //       style: TextStyle(
-                          //         color: Color(0xFFF37021),
-                          //         fontWeight: FontWeight.w500,
-                          //         fontSize: 16,
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
                         ],
                       ),
                     ),
                   ),
 
-                  // const Spacer(),
-                 SizedBox(height: 30),
+                  const SizedBox(height: 30),
+
                   // Sign Up Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -285,7 +262,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const CreateAccountScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const CreateAccountScreen()),
                           );
                         },
                         child: const Text(

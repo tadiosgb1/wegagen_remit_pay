@@ -36,6 +36,15 @@ class UrlContainer {
   static String get accountInfo => '$baseUrl/internal-transfer/account-info';
   static String get validateRecipient => '$baseUrl/internal-transfer/validate-recipient';
   static String get sendTransfer => '$baseUrl/internal-transfer/send';
+  
+  // Payment and 3DS endpoints
+  static String get processPayment => '$baseUrl/payments/process-payment';
+  static String get checkEnrollment => '$baseUrl/payments/check-enrollment';
+  static String get authenticationResults => '$baseUrl/payments/authentication-results';
+  static String get processPaymentWith3DS => '$baseUrl/payments/pay';
+
+
+
 
   // Exchange rate endpoints
   static String get getExchangeRate => '$baseUrl/internal-transfer/rate';
@@ -48,7 +57,8 @@ class UrlContainer {
   // Payment endpoints - Updated with new backend URLs
   static String get generateCaptureContext =>
       '$baseUrl/payments/generate-capture-context';
-  static String get processPayment => '$baseUrl/payments/pay';
+
+  
   static String get paymentPage => '${Environment.backendUrl}/payment-page';
   static String get paymentSession =>
       '${Environment.backendUrl}/payments/session'; // New CVV and card page endpoint

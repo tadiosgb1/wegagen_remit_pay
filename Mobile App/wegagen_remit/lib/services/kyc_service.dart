@@ -87,8 +87,11 @@ class KycService {
 
   /// STATUS CHECK
   Future<KycStatus> getKycStatus({bool forceRefresh = true}) async {
+    print('🔍 KYC Service - getKycStatus started with forceRefresh: $forceRefresh');
+    
     try {
       if (!_api.isInitialized) {
+        print('🔍 KYC Service - Initializing API...');
         await _api.initialize();
       }
 
@@ -100,16 +103,24 @@ class KycService {
         },
       );
 
+      print('🔍 KYC Service - Making API call to: ${UrlContainer.profile}');
+      
       // Get fresh user data from /users/me endpoint
       final res = await _api.dio.get(
         UrlContainer.profile, // This calls /users/me
         options: forceRefresh ? options : null,
       );
 
+      print('🔍 KYC Service - API call completed successfully');
       final userData = res.data;
       
       if (kDebugMode) {
+        print('🔍 KYC Service - API endpoint called: ${UrlContainer.profile}');
         print('🔍 KYC Service - Raw response: $userData');
+        print('🔍 KYC Service - Response type: ${userData.runtimeType}');
+        if (userData is Map) {
+          print('🔍 KYC Service - Keys in response: ${userData.keys}');
+        }
       }
 
       // The response has structure: {status: "success", data: {user data}}
@@ -121,7 +132,17 @@ class KycService {
         print('🔍 KYC Service - KYC data: $kyc');
       }
 
-      if (kyc == null) return KycStatus.notStarted;
+      if (kyc == null) {
+        print('🔍 KYC Service - No KYC data found, returning notStarted');
+        return KycStatus.notStarted;
+      }
+      
+      if (kDebugMode) {
+        print('🔍 KYC Service - KYC verified value: ${kyc['verified']}');
+        print('🔍 KYC Service - KYC verified type: ${kyc['verified'].runtimeType}');
+        print('🔍 KYC Service - id_photo_path: ${kyc['id_photo_path']}');
+        print('🔍 KYC Service - selfie_photo_path: ${kyc['selfie_photo_path']}');
+      }
       
       // Check verified status first
       if (kyc['verified'] == true) {
@@ -129,6 +150,11 @@ class KycService {
           print('✅ KYC Service - Status: APPROVED (verified=true)');
         }
         return KycStatus.approved;
+      }
+      
+      // ADDITIONAL DEBUG: Check if verified is somehow being misread
+      if (kDebugMode) {
+        print('🔍 KYC Service - verified != true, continuing to check documents...');
       }
 
       // Check for pending/under review - if documents uploaded but not verified
@@ -144,7 +170,9 @@ class KycService {
         print('❌ KYC Service - Status: NOT_STARTED');
       }
       return KycStatus.notStarted;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ KYC Service - EXCEPTION in getKycStatus: $e');
+      print('❌ KYC Service - Stack trace: $stackTrace');
       if (kDebugMode) {
         print('❌ KYC Status check error: $e');
       }

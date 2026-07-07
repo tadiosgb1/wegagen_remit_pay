@@ -1,6 +1,8 @@
 // Mobile-optimized account info response model
 // Matches the backend response format from internal-transfer service
 
+import 'package:flutter/foundation.dart';
+
 class AccountInfoResponse {
   final bool success;
   final AccountInfo? account;
@@ -15,24 +17,86 @@ class AccountInfoResponse {
   });
 
   factory AccountInfoResponse.fromJson(Map<String, dynamic> json) {
-    // Handle the nested response structure from backend
-    // The backend returns: {"status": "success", "data": {"success": true, "account": {...}}}
-    Map<String, dynamic> responseData;
-    
-    if (json.containsKey('data') && json['data'] is Map<String, dynamic>) {
-      // Extract the nested data
-      responseData = json['data'] as Map<String, dynamic>;
-    } else {
-      // Use the json directly if it's already in the expected format
-      responseData = json;
+    try {
+      // Handle the nested response structure from backend
+      // The backend returns: {"status": "success", "data": {"success": true, "account": {...}}}
+      Map<String, dynamic> responseData;
+      
+      if (kDebugMode) {
+        print('🔍 AccountInfoResponse.fromJson - Input JSON: $json');
+        print('🔍 JSON keys: ${json.keys}');
+        print('🔍 Status field: ${json['status']}');
+        print('🔍 Data field type: ${json['data']?.runtimeType}');
+      }
+      
+      if (json.containsKey('data') && json['data'] is Map<String, dynamic>) {
+        // Extract the nested data
+        responseData = json['data'] as Map<String, dynamic>;
+        if (kDebugMode) {
+          print('🔍 Using nested data structure');
+          print('🔍 Data keys: ${responseData.keys}');
+        }
+      } else {
+        // Use the json directly if it's already in the expected format
+        responseData = json;
+        if (kDebugMode) {
+          print('🔍 Using direct JSON structure');
+        }
+      }
+      
+      // Check for different success indicators
+      bool isSuccessful = false;
+      if (responseData.containsKey('success')) {
+        isSuccessful = responseData['success'] == true;
+      } else if (json.containsKey('status')) {
+        isSuccessful = json['status'] == 'success';
+      }
+      
+      if (kDebugMode) {
+        print('🔍 Success determined as: $isSuccessful');
+        print('🔍 Account field exists: ${responseData.containsKey('account')}');
+        if (responseData.containsKey('account')) {
+          print('🔍 Account data type: ${responseData['account']?.runtimeType}');
+          print('🔍 Account data: ${responseData['account']}');
+        }
+      }
+      
+      AccountInfo? account;
+      if (responseData['account'] != null) {
+        if (responseData['account'] is Map<String, dynamic>) {
+          account = AccountInfo.fromJson(responseData['account'] as Map<String, dynamic>);
+        } else {
+          if (kDebugMode) {
+            print('❌ Account data is not a Map: ${responseData['account']}');
+          }
+        }
+      }
+      
+      final result = AccountInfoResponse(
+        success: isSuccessful,
+        account: account,
+        error: responseData['error'] ?? json['error'],
+        message: responseData['message'] ?? json['message'],
+      );
+      
+      if (kDebugMode) {
+        print('🔍 Final AccountInfoResponse: success=${result.success}, hasAccount=${result.account != null}');
+      }
+      
+      return result;
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('❌ Error parsing AccountInfoResponse: $e');
+        print('❌ Stack trace: $stackTrace');
+        print('❌ Original JSON: $json');
+      }
+      
+      return AccountInfoResponse(
+        success: false,
+        error: 'Parsing error: $e',
+        message: 'Failed to parse account info response',
+      );
     }
-    
-    return AccountInfoResponse(
-      success: responseData['success'] ?? false,
-      account: responseData['account'] != null ? AccountInfo.fromJson(responseData['account']) : null,
-      error: responseData['error'],
-      message: responseData['message'],
-    );
   }
 
   Map<String, dynamic> toJson() {

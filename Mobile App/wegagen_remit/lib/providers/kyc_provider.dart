@@ -7,13 +7,26 @@ import 'auth_provider.dart';
 class KycProvider with ChangeNotifier {
   final KycService _kycService = KycService();
   
-  KycStatus _kycStatus = KycStatus.notStarted;
+  KycStatus _kycStatus = KycStatus.notStarted;  // Reset to ensure clean state
   bool _isLoading = false;
   String? _error;
   DateTime? _lastRefresh;
   Timer? _statusCheckTimer;
 
-  KycStatus get kycStatus => _kycStatus;
+  KycStatus get kycStatus {
+    print('🔍 KYC PROVIDER - kycStatus getter called, returning: $_kycStatus');
+    return _kycStatus;
+  }
+  
+  /// Force reset KYC status (useful for new login sessions)
+  void resetStatus() {
+    print('🔄 KYC PROVIDER - Resetting status to notStarted');
+    _kycStatus = KycStatus.notStarted;
+    _lastRefresh = null;
+    _error = null;
+    stopPeriodicStatusCheck();
+    notifyListeners();
+  }
   bool get isLoading => _isLoading;
   String? get error => _error;
   DateTime? get lastRefresh => _lastRefresh;
@@ -31,6 +44,8 @@ class KycProvider with ChangeNotifier {
   }
 
   Future<void> loadKycStatus({AuthProvider? authProvider}) async {
+    print('🔄 KYC PROVIDER - loadKycStatus called, current status: $_kycStatus');
+    
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -38,8 +53,11 @@ class KycProvider with ChangeNotifier {
     try {
       final previousStatus = _kycStatus;
       
+      print('🔄 KYC PROVIDER - Calling KYC service...');
       // Always force refresh to get latest status from server
       _kycStatus = await _kycService.getKycStatus(forceRefresh: true);
+      print('🔄 KYC PROVIDER - KYC service returned: $_kycStatus');
+      
       _lastRefresh = DateTime.now();
       
       // Also refresh the AuthProvider to keep user data in sync
@@ -62,7 +80,10 @@ class KycProvider with ChangeNotifier {
       
       _isLoading = false;
       notifyListeners();
-    } catch (e) {
+      print('🔄 KYC PROVIDER - loadKycStatus completed successfully');
+    } catch (e, stackTrace) {
+      print('❌ KYC PROVIDER ERROR: $e');
+      print('❌ KYC PROVIDER STACK TRACE: $stackTrace');
       _error = e.toString();
       _kycStatus = KycStatus.notStarted;
       _isLoading = false;

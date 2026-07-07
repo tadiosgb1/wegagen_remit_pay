@@ -1,21 +1,24 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import '../../providers/payment_providers.dart';
 import 'payment_processing_screen.dart';
 
-class PaymentMobileOptimizedScreen extends StatefulWidget {
+class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
   const PaymentMobileOptimizedScreen({super.key});
 
   @override
-  State<PaymentMobileOptimizedScreen> createState() =>
+  ConsumerState<PaymentMobileOptimizedScreen> createState() =>
       _PaymentMobileOptimizedScreenState();
 }
 
 class _PaymentMobileOptimizedScreenState
-    extends State<PaymentMobileOptimizedScreen> {
+    extends ConsumerState<PaymentMobileOptimizedScreen> {
   static const String _paymentUrl = 'https://cybersource.wegagenbanksc.com.et:3001/payments/card-form';
 
   late WebViewController controller;
@@ -131,18 +134,68 @@ class _PaymentMobileOptimizedScreenState
 
     if (!mounted) return;
 
+    if (kDebugMode) {
+      print('🚀 === TOKEN RECEIVED - STARTING NAVIGATION ===');
+      print('💳 Token: ${token.substring(0, 30)}...');
+      print('📱 About to navigate to PaymentProcessingScreen...');
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Payment token received. Processing payment...'),
+        content: Text('Payment token received. Processing with 3D Secure...'),
         backgroundColor: Colors.green,
       ),
     );
 
+    // Get payment data from provider - this should now include your $20 amount
+    final formData = ref.read(paymentFormProvider);
+    
+    if (kDebugMode) {
+      print('💰 Form Data Retrieved:');
+      print('   💵 Amount: ${formData.amount} ${formData.currency}');
+      print('   👤 Billing: ${formData.firstName} ${formData.lastName}');
+      print('   📧 Email: ${formData.email}');
+      print('   📱 Recipient: ${formData.toAccountHolder}');
+    }
+    
+    debugPrint('💰 Amount from form provider: ${formData.amount} ${formData.currency}');
+    debugPrint('👤 Billing info: ${formData.firstName} ${formData.lastName}');
+    
+    if (kDebugMode) {
+      print('🎯 Creating PaymentProcessingScreen...');
+    }
+    
+    // Navigate to payment processing screen which handles 3DS
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => PaymentProcessingScreen(paymentToken: token),
+        builder: (context) => PaymentProcessingScreen(
+          paymentToken: token,
+          amount: formData.amount,
+          currency: formData.currency,
+          billingInfo: {
+            'first_name': formData.firstName,
+            'last_name': formData.lastName,
+            'email': formData.email,
+            'address1': formData.address1,
+            'locality': formData.locality,
+            'administrative_area': formData.administrativeArea,
+            'postal_code': formData.postalCode,
+            'country': formData.country,
+            'phone_number': '', // Add if you have phone in form
+          },
+          recipientInfo: {
+            'account_holder': formData.toAccountHolder,
+            'account_number': formData.toAccount,
+          },
+          remark: formData.remark,
+        ),
       ),
     );
+
+    if (kDebugMode) {
+      print('✅ Navigation to PaymentProcessingScreen initiated!');
+      print('🚀 === TOKEN NAVIGATION COMPLETE ===\n');
+    }
   }
 
   @override

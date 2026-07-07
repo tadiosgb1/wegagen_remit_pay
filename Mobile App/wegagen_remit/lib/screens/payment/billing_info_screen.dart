@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
 import '../../widgets/bonus_display_widget.dart';
+import '../../widgets/three_ds_info_widget.dart';
 import 'payment_mobile_optimized_screen.dart';
 
 class BillingInfoScreen extends ConsumerStatefulWidget {
@@ -71,6 +72,11 @@ class _BillingInfoScreenState extends ConsumerState<BillingInfoScreen> {
                 _buildAddressSection(),
                 const SizedBox(height: 24),
                 _buildPaymentSummarySection(),
+                const SizedBox(height: 24),
+                // 3DS Security Information
+                const ThreeDSInfoWidget(
+                  is3DSEnabled: true,
+                ),
                 const SizedBox(height: 32),
                 _buildContinueButton(),
                 const SizedBox(height: 16),

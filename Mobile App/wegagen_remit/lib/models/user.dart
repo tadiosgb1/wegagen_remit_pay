@@ -42,7 +42,7 @@ class User {
   bool get needsKycVerification {
     // If no KYC data exists, verification is needed
     if (kyc == null) return true;
-    
+
     // If KYC data exists but is not verified, verification is needed
     return !kyc!.verified;
   }
@@ -59,7 +59,7 @@ class User {
   // Factory constructor from Map
   factory User.fromMap(Map<String, dynamic> json) {
     print('DEBUG: User.fromMap - Input JSON: $json');
-    
+
     // Handle both integer and string IDs from API
     final id = json['id']?.toString() ?? '';
     final firstName = json['first_name'] ?? json['firstName'] ?? '';
@@ -67,9 +67,10 @@ class User {
     final email = json['email'] ?? '';
     final phoneNumber = json['phone_number'] ?? json['phoneNumber'] ?? '';
     final isVerified = json['is_verified'] ?? json['isVerified'] ?? false;
-    
-    print('DEBUG: User.fromMap - Parsed fields: id=$id, firstName=$firstName, lastName=$lastName, email=$email');
-    
+
+    print(
+        'DEBUG: User.fromMap - Parsed fields: id=$id, firstName=$firstName, lastName=$lastName, email=$email');
+
     DateTime createdAt;
     if (json['created_at'] != null) {
       createdAt = DateTime.parse(json['created_at']);
@@ -78,7 +79,7 @@ class User {
     } else {
       createdAt = DateTime.now();
     }
-    
+
     KycData? kyc;
     if (json['kyc'] != null) {
       try {
@@ -90,7 +91,7 @@ class User {
         kyc = null;
       }
     }
-    
+
     List<String>? roles;
     if (json['roles'] != null) {
       try {
@@ -110,7 +111,7 @@ class User {
         roles = null;
       }
     }
-    
+
     List<String>? permissions;
     if (json['permissions'] != null) {
       try {
@@ -130,7 +131,7 @@ class User {
         permissions = null;
       }
     }
-    
+
     final user = User(
       id: id,
       firstName: firstName,
@@ -143,7 +144,7 @@ class User {
       roles: roles,
       permissions: permissions,
     );
-    
+
     print('DEBUG: User.fromMap - Final user: $user');
     return user;
   }
@@ -246,13 +247,13 @@ class KycData {
   factory KycData.fromMap(Map<String, dynamic> json) {
     try {
       print('DEBUG: KycData.fromMap - Starting with JSON: $json');
-      
+
       final id = int.tryParse(json['id'].toString()) ?? 0;
       print('DEBUG: KycData.fromMap - Parsed id: $id');
-      
+
       final userId = int.tryParse(json['user_id'].toString()) ?? 0;
       print('DEBUG: KycData.fromMap - Parsed userId: $userId');
-      
+
       final idType = json['id_type'] ?? '';
       final dob = json['dob'] ?? '';
       final address = json['address'] ?? '';
@@ -261,27 +262,31 @@ class KycData {
       final idPhotoPath = json['id_photo_path'];
       final selfiePhotoPath = json['selfie_photo_path'];
       final verified = json['verified'] ?? false;
-      
+
       print('DEBUG: KycData.fromMap - Basic fields parsed successfully');
-      
+
       DateTime? verifiedAt;
       try {
-        verifiedAt = json['verified_at'] != null ? DateTime.parse(json['verified_at']) : null;
+        verifiedAt = json['verified_at'] != null
+            ? DateTime.parse(json['verified_at'])
+            : null;
         print('DEBUG: KycData.fromMap - Parsed verifiedAt: $verifiedAt');
       } catch (e) {
         print('DEBUG: KycData.fromMap - verifiedAt parsing failed: $e');
         verifiedAt = null;
       }
-      
+
       DateTime createdAt;
       try {
-        createdAt = json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now();
+        createdAt = json['created_at'] != null
+            ? DateTime.parse(json['created_at'])
+            : DateTime.now();
         print('DEBUG: KycData.fromMap - Parsed createdAt: $createdAt');
       } catch (e) {
         print('DEBUG: KycData.fromMap - createdAt parsing failed: $e');
         createdAt = DateTime.now();
       }
-      
+
       final kycData = KycData(
         id: id,
         userId: userId,
@@ -296,7 +301,7 @@ class KycData {
         verifiedAt: verifiedAt,
         createdAt: createdAt,
       );
-      
+
       print('DEBUG: KycData.fromMap - KycData creation successful: $kycData');
       return kycData;
     } catch (e, stackTrace) {

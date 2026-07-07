@@ -56,50 +56,50 @@ class AuthService {
   }
 
   // ================= REGISTER =================
- // ================= REGISTER =================
-Future<AuthResponse> register({
-  required String firstName,
-  required String lastName,
-  required String email,
-  required String phoneNumber,
-  required String pin,
-  required String confirmPin,
-  String? referralCode,
-}) async {
-  if (!_apiService.isInitialized) {
-    await _apiService.initialize();
+  // ================= REGISTER =================
+  Future<AuthResponse> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phoneNumber,
+    required String pin,
+    required String confirmPin,
+    String? referralCode,
+  }) async {
+    if (!_apiService.isInitialized) {
+      await _apiService.initialize();
+    }
+
+    // 1. Prepare ONLY the fields the backend validator expects.
+    // 2. Map to 'snake_case' as required by your backend.
+    // 3. Removed 'confirm_pin' because the server explicitly forbids it.
+    final Map<String, dynamic> requestBody = {
+      'first_name': firstName,
+      'last_name': lastName,
+      'email': email,
+      'phone_number': phoneNumber,
+      'pin': pin,
+    };
+
+    // Only add referral_code if it is provided
+    if (referralCode != null && referralCode.isNotEmpty) {
+      requestBody['referral_code'] = referralCode;
+    }
+
+    print("DEBUG: Sending payload to backend: $requestBody");
+
+    // Perform the request
+    final res = await _apiService.post(
+      UrlContainer.register,
+      requestBody,
+      includeAuth: false, // Registration usually doesn't require a token
+    );
+
+    final auth = AuthResponse.fromJson(res);
+    await _storeAuth(auth);
+
+    return auth;
   }
-
-  // 1. Prepare ONLY the fields the backend validator expects.
-  // 2. Map to 'snake_case' as required by your backend.
-  // 3. Removed 'confirm_pin' because the server explicitly forbids it.
-  final Map<String, dynamic> requestBody = {
-    'first_name': firstName,
-    'last_name': lastName,
-    'email': email,
-    'phone_number': phoneNumber,
-    'pin': pin,
-  };
-
-  // Only add referral_code if it is provided
-  if (referralCode != null && referralCode.isNotEmpty) {
-    requestBody['referral_code'] = referralCode;
-  }
-
-  print("DEBUG: Sending payload to backend: $requestBody");
-
-  // Perform the request
-  final res = await _apiService.post(
-    UrlContainer.register,
-    requestBody,
-    includeAuth: false, // Registration usually doesn't require a token
-  );
-
-  final auth = AuthResponse.fromJson(res);
-  await _storeAuth(auth);
-
-  return auth;
-}
 
   // ================= LOGOUT =================
   Future<void> logout() async {
@@ -206,12 +206,56 @@ Future<AuthResponse> register({
 
   // ================= GET USER =================
   Future<User?> getCurrentUser() async {
+    // First try to get cached user data
     final prefs = await SharedPreferences.getInstance();
     final json = prefs.getString('user_data');
-
+    
     if (json == null) return null;
-
+    
     return User.fromJson(json);
+  }
+
+  // ================= GET FRESH USER DATA FROM API =================
+  Future<User?> getFreshUserData() async {
+    if (!_apiService.isInitialized) {
+      await _apiService.initialize();
+    }
+    
+    try {
+      print('📡 AuthService - Calling API endpoint: ${UrlContainer.profile}');
+      final res = await _apiService.get(UrlContainer.profile);
+      
+      print('📡 AuthService - Raw API response: $res');
+      print('📡 AuthService - Response type: ${res.runtimeType}');
+      if (res is Map) {
+        print('📡 AuthService - Response keys: ${res.keys}');
+      }
+      
+      // The response has structure: {status: "success", data: {user data}}
+      final actualUserData = res['data'] ?? res;
+      print('📡 AuthService - Extracted user data: $actualUserData');
+      
+      final user = User.fromMap(actualUserData);
+      
+      // Update cached data with fresh data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', user.toJson());
+      
+      if (kDebugMode) {
+        print('📡 AuthService - Fresh user data retrieved: $user');
+        print('📡 AuthService - Parsed User ID: ${user.id}');
+        print('📡 AuthService - Parsed Name: ${user.firstName} ${user.lastName}');
+        print('📡 AuthService - Parsed Email: ${user.email}');
+        print('📡 AuthService - Parsed KYC Verified: ${user.kycVerified}');
+      }
+      
+      return user;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ AuthService - Failed to get fresh user data: $e');
+      }
+      return null;
+    }
   }
 
   // ================= AUTH CHECK =================
@@ -250,7 +294,7 @@ Future<AuthResponse> register({
 
     // Clear cookies instead of tokens
     await _apiService.clearCookies();
-    
+
     if (kDebugMode) {
       print("✅ AUTH CLEARED - Cookies cleared");
     }

@@ -213,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   // DEBUG: Print the current KYC status
                   print('🏠 HOME SCREEN - KYC Status: $kycStatus, Verified: $isKycVerified');
+                  print('🏠 HOME SCREEN - Debug: Status enum value: ${kycStatus.toString()}');
                   
                   return GestureDetector(
                     onTap: isLoading ? null : () {

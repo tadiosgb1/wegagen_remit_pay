@@ -1,16 +1,32 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/three_ds_service.dart';
 import '../../providers/payment_providers.dart';
-import '../../services/bonus_service.dart';
-import '../../widgets/activity_tracker.dart';
 import '../transfer/transfer_success_screen.dart';
+import 'three_ds_auth_screen.dart';
 
 class PaymentProcessingScreen extends ConsumerStatefulWidget {
   final String paymentToken;
+  final double? amount;
+  final String? currency;
+  final Map<String, dynamic>? billingInfo;
+  final Map<String, dynamic>? recipientInfo;
+  final String? remark;
+  final ThreeDSAuthResult? threeDSResult;
+  final String? transactionId;
 
   const PaymentProcessingScreen({
     super.key,
     required this.paymentToken,
+    this.amount,
+    this.currency,
+    this.billingInfo,
+    this.recipientInfo,
+    this.remark,
+    this.threeDSResult,
+    this.transactionId,
   });
 
   @override
@@ -19,18 +35,49 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
 
 class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScreen>
     with TickerProviderStateMixin {
+  
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+  
+  final ThreeDSService _threeDSService = ThreeDSService();
+  
+  String _currentStep = 'Initializing payment...';
   bool _isProcessing = true;
-
+  bool _hasError = false;
+  String? _errorMessage;
+  PaymentResult? _paymentResult;
+  
+  final List<String> _steps = [
+    'Initializing payment...',
+    'Validating card details...',
+    'Processing 3D Secure authentication...',
+    'Completing payment...',
+    'Payment successful!',
+  ];
+  
+  int _currentStepIndex = 0;
+  Timer? _stepTimer;
+  
   @override
   void initState() {
     super.initState();
-    
+    _initializeAnimations();
+    _processPayment();
+  }
+  
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _stepTimer?.cancel();
+    super.dispose();
+  }
+  
+  void _initializeAnimations() {
     _animationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
-    )..repeat(reverse: true);
+    )..repeat();
     
     _scaleAnimation = Tween<double>(
       begin: 0.8,
@@ -40,266 +87,502 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       curve: Curves.easeInOut,
     ));
     
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _processPayment();
-    });
+    _rotationAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(_animationController);
   }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
+  
   Future<void> _processPayment() async {
     try {
+      // Start step animation
+      _startStepAnimation();
+
+      if (kDebugMode) {
+        print('\n🚀 === PAYMENT PROCESSING SCREEN STARTED ===');
+      }
+      
       // Get form data from provider
       final formData = ref.read(paymentFormProvider);
-      
-      // Process payment
-      await ref.read(paymentProcessingProvider.notifier).processPayment(
-        formData,
-        widget.paymentToken,
+
+      // Prepare payment data
+      final billingInfo = widget.billingInfo ?? _getBillingInfoFromForm(formData);
+      final recipientInfo = widget.recipientInfo ?? _getRecipientInfoFromForm(formData);
+      final amount = widget.amount ?? formData.amount;
+      final currency = widget.currency ?? formData.currency;
+
+      if (kDebugMode) {
+        print('💰 Payment Details:');
+        print('   💵 Amount: $amount $currency');
+        print('   👤 Billing: ${billingInfo['first_name']} ${billingInfo['last_name']}');
+        print('   📧 Email: ${billingInfo['email']}');
+        print('   📱 Recipient: ${recipientInfo['account_holder']}');
+        print('   🎫 Token: ${widget.paymentToken.substring(0, 20)}...');
+      }
+
+      if (amount <= 0) {
+        throw Exception('Invalid payment amount');
+      }
+
+      _updateStep(1); // Validating card details
+
+      if (kDebugMode) {
+        print('\n🔄 Starting 3DS flow via ThreeDSService...');
+      }
+
+      // Process payment with 3DS
+      final paymentResult = await _threeDSService.processPaymentWith3DS(
+        paymentToken: widget.paymentToken,
+        amount: amount,
+        currency: currency,
+        billingInfo: billingInfo,
+        recipientInfo: recipientInfo,
+        remark: widget.remark ?? formData.remark,
       );
-      
-      // Wait a bit for animation
-      await Future.delayed(const Duration(seconds: 2));
-      
+
+      if (kDebugMode) {
+        print('\n✅ 3DS Flow completed. Analyzing result...');
+        print('🎯 Payment Result Analysis:');
+        print('   ✅ Success: ${paymentResult.success}');
+        print('   📋 Status: ${paymentResult.status}');
+        print('   🔐 Requires 3DS: ${paymentResult.requires3DS}');
+        print('   🎮 Needs Authentication: ${paymentResult.needsAuthentication}');
+        
+        if (paymentResult.threeDSEnrollment != null) {
+          print('   📊 Enrollment Details:');
+          print('      🔐 Is Enrolled: ${paymentResult.threeDSEnrollment!.isEnrolled}');
+          print('      🔗 Step Up URL: ${paymentResult.threeDSEnrollment!.stepUpUrl != null ? 'Present' : 'Missing'}');
+          print('      🆔 Auth Transaction ID: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+        }
+      }
+
+      _updateStep(2); // Processing 3D Secure authentication
+
+      // Handle 3DS requirement
+      if (paymentResult.needsAuthentication && paymentResult.threeDSEnrollment != null) {
+        if (kDebugMode) {
+          print('\n🎮 === CHALLENGE REQUIRED - OPENING 3DS SCREEN ===');
+          print('📱 Opening ThreeDSAuthScreen...');
+          print('🔗 stepUpUrl: ${paymentResult.threeDSEnrollment!.stepUpUrl}');
+          print('🆔 authTransactionId: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+        }
+
+        await _handle3DSAuthentication(paymentResult, billingInfo, recipientInfo);
+        return;
+      }
+
+      // Payment completed without 3DS - frictionless flow
+      if (kDebugMode) {
+        print('\n📋 === NO CHALLENGE REQUIRED - FRICTIONLESS FLOW ===');
+        print('🎯 Proceeding without 3DS authentication');
+        print('✅ Payment will complete directly');
+      }
+
+      _updateStep(4); // Payment successful
+      await Future.delayed(const Duration(seconds: 1));
+
       setState(() {
+        _paymentResult = paymentResult;
         _isProcessing = false;
       });
+
+      if (kDebugMode) {
+        print('🚀 === PAYMENT PROCESSING COMPLETED ===\n');
+      }
+
+      _navigateToSuccess();
+    } catch (e) {
+      if (kDebugMode) {
+        print('\n❌ === PAYMENT PROCESSING FAILED ===');
+        print('💥 Error: $e');
+        print('🔍 Check logs above for where the flow stopped');
+        print('❌ === PAYMENT PROCESSING ERROR END ===\n');
+      }
       
-      // Navigate to success screen after a short delay
-      await Future.delayed(const Duration(seconds: 1));
+      debugPrint('💳 Payment processing error: $e');
+      setState(() {
+        _hasError = true;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _isProcessing = false;
+      });
+      _animationController.stop();
+    }
+  }
+  
+  Future<void> _handle3DSAuthentication(
+    PaymentResult paymentResult,
+    Map<String, dynamic> billingInfo,
+    Map<String, dynamic> recipientInfo,
+  ) async {
+    // Navigate to 3DS authentication screen
+    if (!mounted) return;
+
+    if (kDebugMode) {
+      print('\n🎮 === _handle3DSAuthentication CALLED ===');
+      print('📱 About to navigate to ThreeDSAuthScreen');
+      print('🔗 stepUpUrl: ${paymentResult.threeDSEnrollment!.stepUpUrl}');
+      print('🆔 authTransactionId: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+      print('💰 Amount: ${paymentResult.amount}');
+      print('💱 Currency: ${paymentResult.currency}');
+      print('🎫 Payment Token: ${paymentResult.transientToken ?? widget.paymentToken}');
+      print('👤 Billing Name: ${billingInfo['first_name']} ${billingInfo['last_name']}');
+      print('📱 Recipient: ${recipientInfo['account_holder']}');
+    }
+    
+    final authResult = await Navigator.of(context).push<ThreeDSAuthResult>(
+      MaterialPageRoute(
+        builder: (context) => ThreeDSAuthScreen(
+          threeDSEnrollment: paymentResult.threeDSEnrollment!,
+          paymentToken: paymentResult.transientToken ?? widget.paymentToken,
+          amount: paymentResult.amount ?? 0,
+          currency: paymentResult.currency ?? 'USD',
+          billingInfo: billingInfo,
+          recipientInfo: recipientInfo,
+          remark: widget.remark,
+        ),
+      ),
+    );
+
+    if (kDebugMode) {
+      print('\n🔙 === RETURNED FROM ThreeDSAuthScreen ===');
+      print('📱 3DS Screen closed, analyzing result...');
+      if (authResult != null) {
+        print('✅ Auth Result received:');
+        print('   🔐 Success: ${authResult.success}');
+        print('   📊 Status: ${authResult.status}');
+        print('   🎯 Is Authenticated: ${authResult.isAuthenticated}');
+        print('   🎲 Is Attempted: ${authResult.isAttempted}');
+        print('   🔑 Auth Transaction ID: ${authResult.authenticationTransactionId}');
+        print('   🛡️ CAVV: ${authResult.cavv}');
+        print('   🔒 ECI: ${authResult.eci}');
+      } else {
+        print('❌ Auth Result is NULL - user cancelled or error occurred');
+      }
+    }
+    
+    if (authResult != null && (authResult.isAuthenticated || authResult.isAttempted)) {
+      if (kDebugMode) {
+        print('\n✅ === 3DS AUTHENTICATION SUCCESSFUL ===');
+        print('🔄 Proceeding to finalize payment...');
+      }
+
+      // 3DS authentication successful, finalize payment
+      _updateStep(3); // Completing payment
       
+      try {
+        if (kDebugMode) {
+          print('💳 Calling finalizePayment with 3DS data...');
+        }
+
+        // Call your backend's /payments/pay endpoint with the 3DS authentication data
+        final finalPaymentResult = await _threeDSService.finalizePayment(
+          transientToken: paymentResult.transientToken ?? widget.paymentToken,
+          customerId: paymentResult.customerId ?? '',
+          amount: paymentResult.amount ?? 0,
+          exchangeRate: 1.0, // Get this from your form data
+          authenticationPayload: {
+            'consumerAuthenticationInformation': {
+              'authenticationTransactionId': authResult.authenticationTransactionId,
+              'cavv': authResult.cavv,
+              'xid': authResult.xid,
+              'eciRaw': authResult.eci,
+              'ucafAuthenticationData': authResult.ucafAuthenticationData,
+              'ucafCollectionIndicator': authResult.ucafCollectionIndicator,
+            }
+          },
+        );
+
+        if (kDebugMode) {
+          print('✅ Payment finalization successful!');
+          print('🆔 Final Transaction ID: ${finalPaymentResult.transactionId}');
+        }
+        
+        _updateStep(4); // Payment successful
+        
+        setState(() {
+          _paymentResult = finalPaymentResult;
+          _isProcessing = false;
+        });
+
+        if (kDebugMode) {
+          print('🎉 === 3DS PAYMENT FLOW COMPLETED SUCCESSFULLY ===\n');
+        }
+        
+        _navigateToSuccess();
+        
+      } catch (e) {
+        if (kDebugMode) {
+          print('\n❌ === PAYMENT FINALIZATION FAILED ===');
+          print('💥 Error during finalization: $e');
+          print('❌ === FINALIZATION ERROR END ===\n');
+        }
+
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Payment finalization failed: ${e.toString()}';
+          _isProcessing = false;
+        });
+        _animationController.stop();
+      }
+      
+    } else {
+      if (kDebugMode) {
+        print('\n❌ === 3DS AUTHENTICATION FAILED ===');
+        print('💥 Reason: ${authResult == null ? 'User cancelled' : 'Authentication not successful'}');
+        print('🔍 Auth result: $authResult');
+        print('❌ === 3DS AUTH FAILURE END ===\n');
+      }
+
+      // 3DS authentication failed or cancelled
+      setState(() {
+        _hasError = true;
+        _errorMessage = '3D Secure authentication failed. Please try again.';
+        _isProcessing = false;
+      });
+      _animationController.stop();
+    }
+  }
+  
+  Map<String, dynamic> _getBillingInfoFromForm(dynamic formData) {
+    return {
+      'first_name': formData.firstName ?? '',
+      'last_name': formData.lastName ?? '',
+      'email': formData.email ?? '',
+      'address1': formData.address1 ?? '',
+      'locality': formData.locality ?? '',
+      'administrative_area': formData.administrativeArea ?? '',
+      'postal_code': formData.postalCode ?? '',
+      'country': formData.country ?? 'ET',
+    };
+  }
+  
+  Map<String, dynamic> _getRecipientInfoFromForm(dynamic formData) {
+    return {
+      'account_holder': formData.toAccountHolder ?? '',
+      'account_number': formData.toAccount ?? '',
+      'amount': formData.amount ?? 0,
+      'currency': formData.currency ?? 'USD',
+    };
+  }
+  
+  void _startStepAnimation() {
+    _stepTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (_currentStepIndex < _steps.length - 1 && _isProcessing) {
+        _updateStep(_currentStepIndex + 1);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+  
+  void _updateStep(int stepIndex) {
+    if (stepIndex < _steps.length && mounted) {
+      setState(() {
+        _currentStepIndex = stepIndex;
+        _currentStep = _steps[stepIndex];
+      });
+    }
+  }
+  
+  void _navigateToSuccess() {
+    Timer(const Duration(seconds: 1), () {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => TransferSuccessScreen(
-              transferType: 'card_payment',
-              recipientName: formData.toAccountHolder,
-              // Show the exact sender input amount and currency
-              amount: formData.amount,
-              currency: formData.currency,
-              // ETB amount should include the bonus if available
-              etbAmount: formData.bonusCalculation?.totalRecipientETB ?? (formData.amount * formData.exchangeRate),
-              exchangeRate: formData.exchangeRate,
-              bonusCalculation: formData.bonusCalculation,
-              transactionId: 'TXN${DateTime.now().millisecondsSinceEpoch}',
+              transactionId: _paymentResult?.transactionId ?? widget.transactionId ?? 'N/A',
+              transferType: 'payment',
+              amount: _paymentResult?.amount ?? widget.amount ?? 0,
+              currency: _paymentResult?.currency ?? widget.currency ?? 'USD',
+              etbAmount: (_paymentResult?.amount ?? widget.amount ?? 0) * 1.0, // exchange rate
+              recipientName: widget.recipientInfo?['account_holder'] ?? 'Recipient',
+              exchangeRate: 1, // You might want to get this from the payment result
             ),
           ),
           (route) => route.isFirst,
         );
       }
-    } catch (error) {
-      setState(() {
-        _isProcessing = false;
-      });
-      
-      if (mounted) {
-        _showErrorDialog(error.toString());
-      }
-    }
+    });
   }
-
-  void _showErrorDialog(String error) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Payment Failed'),
-        content: Text(error),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to payment screen
-            },
-            child: const Text('Try Again'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
-            },
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
+  
   @override
   Widget build(BuildContext context) {
-    final paymentState = ref.watch(paymentProcessingProvider);
-    
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: ActivityTracker(
-        interactionType: 'payment_processing_screen',
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Processing animation
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              
+              // Animation
+              if (_isProcessing) ...[
                 AnimatedBuilder(
-                  animation: _scaleAnimation,
+                  animation: _animationController,
                   builder: (context, child) {
                     return Transform.scale(
                       scale: _scaleAnimation.value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: _isProcessing 
-                              ? const Color(0xFFF37021) 
-                              : Colors.green,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: (_isProcessing 
-                                  ? const Color(0xFFF37021) 
-                                  : Colors.green).withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              spreadRadius: 5,
+                      child: Transform.rotate(
+                        angle: _rotationAnimation.value * 2 * 3.14159,
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFFF37021),
+                                const Color(0xFFF37021).withValues(alpha: 0.6),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          _isProcessing ? Icons.credit_card : Icons.check,
-                          size: 60,
-                          color: Colors.white,
+                          ),
+                          child: const Icon(
+                            Icons.credit_card,
+                            size: 50,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     );
                   },
                 ),
-                
-                const SizedBox(height: 40),
-                
-                // Status text
-                Text(
-                  _isProcessing ? 'Processing Payment...' : 'Payment Successful!',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 16),
-                
-                Text(
-                  _isProcessing 
-                      ? 'Please wait while we securely process your payment'
-                      : 'Your payment has been processed successfully',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // Progress indicator
-                if (_isProcessing) ...[
-                  const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF37021)),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-                
-                // Payment details
+              ] else if (_hasError) ...[
                 Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
+                  width: 120,
+                  height: 120,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.red,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    size: 50,
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildDetailRow('Payment Token', 
-                          '${widget.paymentToken.substring(0, 20)}...'),
-                      const Divider(),
-                      _buildDetailRow('Status', 
-                          _isProcessing ? 'Processing' : 'Completed'),
-                      const Divider(),
-                      _buildDetailRow('Security', 'Bank-level encryption'),
-                    ],
                   ),
                 ),
-                
-                const SizedBox(height: 40),
-                
-                // Security info
+              ] else ...[
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
+                  width: 120,
+                  height: 120,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.green,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.security,
-                        color: Colors.blue.shade600,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Your payment is secured with industry-standard encryption and processed by CyberSource.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: const Icon(
+                    Icons.check,
+                    size: 50,
+                    color: Colors.white,
                   ),
                 ),
               ],
-            ),
+              
+              const SizedBox(height: 32),
+              
+              // Status Text
+              Text(
+                _hasError
+                    ? 'Payment Failed'
+                    : _isProcessing
+                        ? 'Processing Payment'
+                        : 'Payment Successful!',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Current Step or Error
+              Text(
+                _hasError ? _errorMessage! : _currentStep,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: _hasError ? Colors.red : Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              if (_isProcessing) ...[
+                const SizedBox(height: 24),
+                LinearProgressIndicator(
+                  value: (_currentStepIndex + 1) / _steps.length,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF37021)),
+                ),
+              ],
+              
+              const Spacer(),
+              
+              // Action Buttons
+              if (_hasError) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Go Back'),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _hasError = false;
+                            _isProcessing = true;
+                            _currentStepIndex = 0;
+                            _currentStep = _steps[0];
+                          });
+                          _animationController.repeat();
+                          _processPayment();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF37021),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Retry Payment'),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else if (!_isProcessing) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _navigateToSuccess(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF37021),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Continue'),
+                  ),
+                ),
+              ],
+              
+              const SizedBox(height: 32),
+            ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-        ],
       ),
     );
   }

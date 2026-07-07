@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
@@ -136,21 +137,32 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> checkAuthStatus() async {
     try {
-      print('DEBUG: Checking auth status...');
+      if (kDebugMode) {
+        print('DEBUG: Checking auth status...');
+      }
       final isAuth = await _authService.isAuthenticated();
-      print('DEBUG: isAuthenticated from service: $isAuth');
+      if (kDebugMode) {
+        print('DEBUG: isAuthenticated from service: $isAuth');
+      }
       
       if (isAuth) {
-        _user = await _authService.getCurrentUser();
-        print('DEBUG: getCurrentUser returned: $_user');
+        // Get fresh user data from API instead of cached data
+        _user = await _authService.getFreshUserData();
+        if (kDebugMode) {
+          print('DEBUG: getFreshUserData returned: $_user');
+        }
         notifyListeners();
       } else {
-        print('DEBUG: Not authenticated, clearing user');
+        if (kDebugMode) {
+          print('DEBUG: Not authenticated, clearing user');
+        }
         _user = null;
         notifyListeners();
       }
     } catch (e) {
-      print('DEBUG: Error in checkAuthStatus: $e');
+      if (kDebugMode) {
+        print('DEBUG: Error in checkAuthStatus: $e');
+      }
       _user = null;
       notifyListeners();
     }
@@ -263,10 +275,24 @@ class AuthProvider with ChangeNotifier {
     if (!isAuthenticated) return;
     
     try {
-      _user = await _authService.getCurrentUser();
-      notifyListeners();
+      print('🔄 AuthProvider - Calling /users/me endpoint...');
+      // Get fresh data from API instead of cached data
+      final freshUser = await _authService.getFreshUserData();
+      if (freshUser != null) {
+        _user = freshUser;
+        notifyListeners();
+        if (kDebugMode) {
+          print('🔄 AuthProvider - User data refreshed from API: $_user');
+          print('🔄 AuthProvider - User ID: ${freshUser.id}');
+          print('🔄 AuthProvider - User Name: ${freshUser.firstName} ${freshUser.lastName}');
+          print('🔄 AuthProvider - User Email: ${freshUser.email}');
+          print('🔄 AuthProvider - KYC Verified: ${freshUser.kycVerified}');
+        }
+      }
     } catch (e) {
-      print('DEBUG: Error refreshing user data: $e');
+      if (kDebugMode) {
+        print('❌ AuthProvider - Error refreshing user data: $e');
+      }
     }
   }
 }

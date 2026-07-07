@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/kyc_provider.dart';
 import '../../models/kyc_data.dart';
 import '../../widgets/kyc_status_widget.dart';
 import '../kyc/kyc_status_screen.dart';
@@ -13,6 +14,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load KYC status when profile screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      Provider.of<KycProvider>(
+        context,
+        listen: false,
+      ).loadKycStatus(authProvider: authProvider);
+    });
+  }
+
   void _onKycStatusChanged() {
     // Refresh the UI when KYC status changes
     setState(() {});
@@ -118,19 +132,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  Consumer<AuthProvider>(
-                    builder: (context, authProvider, child) {
+                  Consumer2<AuthProvider, KycProvider>(
+                    builder: (context, authProvider, kycProvider, child) {
                       final user = authProvider.user;
                       if (user != null) {
-                        // Determine KYC status from user data
-                        KycStatus kycStatus;
-                        if (user.kyc == null) {
-                          kycStatus = KycStatus.notStarted;
-                        } else if (!user.kyc!.verified) {
-                          kycStatus = KycStatus.underReview;
-                        } else {
-                          kycStatus = KycStatus.approved;
-                        }
+                        // Use KycProvider for consistent status - same logic as home screen
+                        final kycStatus = kycProvider.kycStatus;
                         
                         // DEBUG: Print the profile screen KYC status
                         print('👤 PROFILE SCREEN - User KYC: ${user.kyc}');
