@@ -30,24 +30,25 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<PaymentProcessingScreen> createState() => _PaymentProcessingScreenState();
+  ConsumerState<PaymentProcessingScreen> createState() =>
+      _PaymentProcessingScreenState();
 }
 
-class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScreen>
+class _PaymentProcessingScreenState
+    extends ConsumerState<PaymentProcessingScreen>
     with TickerProviderStateMixin {
-  
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotationAnimation;
-  
+
   final ThreeDSService _threeDSService = ThreeDSService();
-  
+
   String _currentStep = 'Initializing payment...';
   bool _isProcessing = true;
   bool _hasError = false;
   String? _errorMessage;
   PaymentResult? _paymentResult;
-  
+
   final List<String> _steps = [
     'Initializing payment...',
     'Validating card details...',
@@ -55,30 +56,30 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
     'Completing payment...',
     'Payment successful!',
   ];
-  
+
   int _currentStepIndex = 0;
   Timer? _stepTimer;
-  
+
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
     _processPayment();
   }
-  
+
   @override
   void dispose() {
     _animationController.dispose();
     _stepTimer?.cancel();
     super.dispose();
   }
-  
+
   void _initializeAnimations() {
     _animationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
     )..repeat();
-    
+
     _scaleAnimation = Tween<double>(
       begin: 0.8,
       end: 1.2,
@@ -86,13 +87,13 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _rotationAnimation = Tween<double>(
       begin: 0,
       end: 1,
     ).animate(_animationController);
   }
-  
+
   Future<void> _processPayment() async {
     try {
       // Start step animation
@@ -101,20 +102,23 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       if (kDebugMode) {
         print('\n🚀 === PAYMENT PROCESSING SCREEN STARTED ===');
       }
-      
+
       // Get form data from provider
       final formData = ref.read(paymentFormProvider);
 
       // Prepare payment data
-      final billingInfo = widget.billingInfo ?? _getBillingInfoFromForm(formData);
-      final recipientInfo = widget.recipientInfo ?? _getRecipientInfoFromForm(formData);
+      final billingInfo =
+          widget.billingInfo ?? _getBillingInfoFromForm(formData);
+      final recipientInfo =
+          widget.recipientInfo ?? _getRecipientInfoFromForm(formData);
       final amount = widget.amount ?? formData.amount;
       final currency = widget.currency ?? formData.currency;
 
       if (kDebugMode) {
         print('💰 Payment Details:');
         print('   💵 Amount: $amount $currency');
-        print('   👤 Billing: ${billingInfo['first_name']} ${billingInfo['last_name']}');
+        print(
+            '   👤 Billing: ${billingInfo['first_name']} ${billingInfo['last_name']}');
         print('   📧 Email: ${billingInfo['email']}');
         print('   📱 Recipient: ${recipientInfo['account_holder']}');
         print('   🎫 Token: ${widget.paymentToken.substring(0, 20)}...');
@@ -146,51 +150,131 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
         print('   ✅ Success: ${paymentResult.success}');
         print('   📋 Status: ${paymentResult.status}');
         print('   🔐 Requires 3DS: ${paymentResult.requires3DS}');
-        print('   🎮 Needs Authentication: ${paymentResult.needsAuthentication}');
-        
+        print(
+            '   🎮 Needs Authentication: ${paymentResult.needsAuthentication}');
+
         if (paymentResult.threeDSEnrollment != null) {
           print('   📊 Enrollment Details:');
-          print('      🔐 Is Enrolled: ${paymentResult.threeDSEnrollment!.isEnrolled}');
-          print('      🔗 Step Up URL: ${paymentResult.threeDSEnrollment!.stepUpUrl != null ? 'Present' : 'Missing'}');
-          print('      🆔 Auth Transaction ID: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+          print(
+              '      🔐 Is Enrolled: ${paymentResult.threeDSEnrollment!.isEnrolled}');
+          print(
+              '      🔗 Step Up URL: ${paymentResult.threeDSEnrollment!.stepUpUrl != null ? 'Present' : 'Missing'}');
+          print(
+              '      🆔 Auth Transaction ID: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
         }
       }
 
       _updateStep(2); // Processing 3D Secure authentication
 
-      // Handle 3DS requirement
-      if (paymentResult.needsAuthentication && paymentResult.threeDSEnrollment != null) {
+      // Handle 3DS requirement - Check if challenge is actually needed
+      if (paymentResult.needsAuthentication &&
+          paymentResult.threeDSEnrollment != null) {
+        // Check if we actually need to show challenge based on enrollment status
+        final enrollmentStatus = paymentResult.threeDSEnrollment!.success;
+        final isEnrolled = paymentResult.threeDSEnrollment!.isEnrolled;
+
         if (kDebugMode) {
-          print('\n🎮 === CHALLENGE REQUIRED - OPENING 3DS SCREEN ===');
-          print('📱 Opening ThreeDSAuthScreen...');
-          print('🔗 stepUpUrl: ${paymentResult.threeDSEnrollment!.stepUpUrl}');
-          print('🆔 authTransactionId: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+          print('\n🎮 === CHALLENGE DECISION LOGIC ===');
+          print('📊 Enrollment Status: $enrollmentStatus');
+          print('🔐 Is Enrolled: $isEnrolled');
+          print(
+              '🔗 Step Up URL: ${paymentResult.threeDSEnrollment!.stepUpUrl != null ? 'Present' : 'Missing'}');
+          print(
+              '🆔 Auth Transaction ID: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
         }
 
-        await _handle3DSAuthentication(paymentResult, billingInfo, recipientInfo);
-        return;
+        // Only show OTP page if status is PENDING_AUTHENTICATION
+        if (enrollmentStatus &&
+            isEnrolled &&
+            paymentResult.threeDSEnrollment!.stepUpUrl != null) {
+          if (kDebugMode) {
+            print('\n🎮 === CHALLENGE REQUIRED - OPENING 3DS SCREEN ===');
+            print('📱 Status is PENDING_AUTHENTICATION - showing OTP page');
+            print('📱 Opening ThreeDSAuthScreen...');
+            print(
+                '🔗 stepUpUrl: ${paymentResult.threeDSEnrollment!.stepUpUrl}');
+            print(
+                '🆔 authTransactionId: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+          }
+
+          await _handle3DSAuthentication(
+              paymentResult, billingInfo, recipientInfo);
+          return;
+        } else {
+          if (kDebugMode) {
+            print('\n📋 === NO CHALLENGE REQUIRED - FRICTIONLESS FLOW ===');
+            print(
+                '🎯 Status is not PENDING_AUTHENTICATION - skipping OTP page');
+            print('✅ Proceeding directly to payment finalization');
+          }
+        }
+      } else {
+        if (kDebugMode) {
+          print('\n📋 === NO 3DS REQUIRED ===');
+          print('🎯 Card does not require 3D Secure authentication');
+          print('✅ Proceeding directly to payment finalization');
+        }
       }
 
-      // Payment completed without 3DS - frictionless flow
+      // Proceed directly to payment finalization (skip OTP)
       if (kDebugMode) {
-        print('\n📋 === NO CHALLENGE REQUIRED - FRICTIONLESS FLOW ===');
-        print('🎯 Proceeding without 3DS authentication');
-        print('✅ Payment will complete directly');
+        print('\n💳 === DIRECT PAYMENT FINALIZATION ===');
+        print('🚀 Calling finalizePayment without 3DS challenge...');
       }
 
-      _updateStep(4); // Payment successful
-      await Future.delayed(const Duration(seconds: 1));
+      _updateStep(3); // Completing payment
 
-      setState(() {
-        _paymentResult = paymentResult;
-        _isProcessing = false;
-      });
+      try {
+        // Call payment finalization directly without 3DS challenge
+        final finalPaymentResult = await _threeDSService.finalizePayment(
+          transientToken: paymentResult.transientToken ?? widget.paymentToken,
+          customerId: paymentResult.customerId ?? '',
+          amount: paymentResult.amount ?? 0,
+          exchangeRate: 1.0,
+          authenticationPayload: {
+            'consumerAuthenticationInformation': {
+              'authenticationTransactionId':
+                  paymentResult.threeDSEnrollment?.authenticationTransactionId,
+              'cavv': null, // No CAVV for frictionless
+              'xid': null, // No XID for frictionless
+              'eciRaw': '07', // Internet transaction
+              'ucafAuthenticationData': null,
+              'ucafCollectionIndicator': null,
+            }
+          },
+        );
 
-      if (kDebugMode) {
-        print('🚀 === PAYMENT PROCESSING COMPLETED ===\n');
+        if (kDebugMode) {
+          print('✅ Direct payment finalization successful!');
+          print('🆔 Final Transaction ID: ${finalPaymentResult.transactionId}');
+        }
+
+        _updateStep(4); // Payment successful
+
+        setState(() {
+          _paymentResult = finalPaymentResult;
+          _isProcessing = false;
+        });
+
+        if (kDebugMode) {
+          print('🎉 === DIRECT PAYMENT FLOW COMPLETED SUCCESSFULLY ===\n');
+        }
+
+        _navigateToSuccess();
+      } catch (e) {
+        if (kDebugMode) {
+          print('\n❌ === DIRECT PAYMENT FINALIZATION FAILED ===');
+          print('💥 Error during direct finalization: $e');
+          print('❌ === DIRECT FINALIZATION ERROR END ===\n');
+        }
+
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Payment finalization failed: ${e.toString()}';
+          _isProcessing = false;
+        });
+        _animationController.stop();
       }
-
-      _navigateToSuccess();
     } catch (e) {
       if (kDebugMode) {
         print('\n❌ === PAYMENT PROCESSING FAILED ===');
@@ -198,7 +282,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
         print('🔍 Check logs above for where the flow stopped');
         print('❌ === PAYMENT PROCESSING ERROR END ===\n');
       }
-      
+
       debugPrint('💳 Payment processing error: $e');
       setState(() {
         _hasError = true;
@@ -208,7 +292,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       _animationController.stop();
     }
   }
-  
+
   Future<void> _handle3DSAuthentication(
     PaymentResult paymentResult,
     Map<String, dynamic> billingInfo,
@@ -221,14 +305,18 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       print('\n🎮 === _handle3DSAuthentication CALLED ===');
       print('📱 About to navigate to ThreeDSAuthScreen');
       print('🔗 stepUpUrl: ${paymentResult.threeDSEnrollment!.stepUpUrl}');
-      print('🆔 authTransactionId: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+      print(
+          '🆔 authTransactionId: ${paymentResult.threeDSEnrollment!.authenticationTransactionId}');
+      print('👤 customerId: ${paymentResult.customerId}');
       print('💰 Amount: ${paymentResult.amount}');
       print('💱 Currency: ${paymentResult.currency}');
-      print('🎫 Payment Token: ${paymentResult.transientToken ?? widget.paymentToken}');
-      print('👤 Billing Name: ${billingInfo['first_name']} ${billingInfo['last_name']}');
+      print(
+          '🎫 Payment Token: ${paymentResult.transientToken ?? widget.paymentToken}');
+      print(
+          '👤 Billing Name: ${billingInfo['first_name']} ${billingInfo['last_name']}');
       print('📱 Recipient: ${recipientInfo['account_holder']}');
     }
-    
+
     final authResult = await Navigator.of(context).push<ThreeDSAuthResult>(
       MaterialPageRoute(
         builder: (context) => ThreeDSAuthScreen(
@@ -238,6 +326,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
           currency: paymentResult.currency ?? 'USD',
           billingInfo: billingInfo,
           recipientInfo: recipientInfo,
+          customerId: paymentResult.customerId ?? '', // Pass the customer ID
           remark: widget.remark,
         ),
       ),
@@ -247,28 +336,30 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       print('\n🔙 === RETURNED FROM ThreeDSAuthScreen ===');
       print('📱 3DS Screen closed, analyzing result...');
       if (authResult != null) {
-        print('✅ Auth Result received:');
+        print(' Auth Result received:');
         print('   🔐 Success: ${authResult.success}');
         print('   📊 Status: ${authResult.status}');
         print('   🎯 Is Authenticated: ${authResult.isAuthenticated}');
         print('   🎲 Is Attempted: ${authResult.isAttempted}');
-        print('   🔑 Auth Transaction ID: ${authResult.authenticationTransactionId}');
+        print(
+            '   🔑 Auth Transaction ID: ${authResult.authenticationTransactionId}');
         print('   🛡️ CAVV: ${authResult.cavv}');
         print('   🔒 ECI: ${authResult.eci}');
       } else {
         print('❌ Auth Result is NULL - user cancelled or error occurred');
       }
     }
-    
-    if (authResult != null && (authResult.isAuthenticated || authResult.isAttempted)) {
+
+    if (authResult != null &&
+        (authResult.isAuthenticated || authResult.isAttempted)) {
       if (kDebugMode) {
-        print('\n✅ === 3DS AUTHENTICATION SUCCESSFUL ===');
+        print('\n === 3DS AUTHENTICATION SUCCESSFUL ===');
         print('🔄 Proceeding to finalize payment...');
       }
 
       // 3DS authentication successful, finalize payment
       _updateStep(3); // Completing payment
-      
+
       try {
         if (kDebugMode) {
           print('💳 Calling finalizePayment with 3DS data...');
@@ -282,7 +373,8 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
           exchangeRate: 1.0, // Get this from your form data
           authenticationPayload: {
             'consumerAuthenticationInformation': {
-              'authenticationTransactionId': authResult.authenticationTransactionId,
+              'authenticationTransactionId':
+                  authResult.authenticationTransactionId,
               'cavv': authResult.cavv,
               'xid': authResult.xid,
               'eciRaw': authResult.eci,
@@ -296,9 +388,9 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
           print('✅ Payment finalization successful!');
           print('🆔 Final Transaction ID: ${finalPaymentResult.transactionId}');
         }
-        
+
         _updateStep(4); // Payment successful
-        
+
         setState(() {
           _paymentResult = finalPaymentResult;
           _isProcessing = false;
@@ -307,9 +399,8 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
         if (kDebugMode) {
           print('🎉 === 3DS PAYMENT FLOW COMPLETED SUCCESSFULLY ===\n');
         }
-        
+
         _navigateToSuccess();
-        
       } catch (e) {
         if (kDebugMode) {
           print('\n❌ === PAYMENT FINALIZATION FAILED ===');
@@ -324,11 +415,11 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
         });
         _animationController.stop();
       }
-      
     } else {
       if (kDebugMode) {
         print('\n❌ === 3DS AUTHENTICATION FAILED ===');
-        print('💥 Reason: ${authResult == null ? 'User cancelled' : 'Authentication not successful'}');
+        print(
+            '💥 Reason: ${authResult == null ? 'User cancelled' : 'Authentication not successful'}');
         print('🔍 Auth result: $authResult');
         print('❌ === 3DS AUTH FAILURE END ===\n');
       }
@@ -342,7 +433,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       _animationController.stop();
     }
   }
-  
+
   Map<String, dynamic> _getBillingInfoFromForm(dynamic formData) {
     return {
       'first_name': formData.firstName ?? '',
@@ -355,7 +446,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       'country': formData.country ?? 'ET',
     };
   }
-  
+
   Map<String, dynamic> _getRecipientInfoFromForm(dynamic formData) {
     return {
       'account_holder': formData.toAccountHolder ?? '',
@@ -364,7 +455,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       'currency': formData.currency ?? 'USD',
     };
   }
-  
+
   void _startStepAnimation() {
     _stepTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (_currentStepIndex < _steps.length - 1 && _isProcessing) {
@@ -374,7 +465,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       }
     });
   }
-  
+
   void _updateStep(int stepIndex) {
     if (stepIndex < _steps.length && mounted) {
       setState(() {
@@ -383,20 +474,25 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       });
     }
   }
-  
+
   void _navigateToSuccess() {
     Timer(const Duration(seconds: 1), () {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => TransferSuccessScreen(
-              transactionId: _paymentResult?.transactionId ?? widget.transactionId ?? 'N/A',
+              transactionId: _paymentResult?.transactionId ??
+                  widget.transactionId ??
+                  'N/A',
               transferType: 'payment',
               amount: _paymentResult?.amount ?? widget.amount ?? 0,
               currency: _paymentResult?.currency ?? widget.currency ?? 'USD',
-              etbAmount: (_paymentResult?.amount ?? widget.amount ?? 0) * 1.0, // exchange rate
-              recipientName: widget.recipientInfo?['account_holder'] ?? 'Recipient',
-              exchangeRate: 1, // You might want to get this from the payment result
+              etbAmount: (_paymentResult?.amount ?? widget.amount ?? 0) *
+                  1.0, // exchange rate
+              recipientName:
+                  widget.recipientInfo?['account_holder'] ?? 'Recipient',
+              exchangeRate:
+                  1, // You might want to get this from the payment result
             ),
           ),
           (route) => route.isFirst,
@@ -404,7 +500,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
       }
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -416,7 +512,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              
+
               // Animation
               if (_isProcessing) ...[
                 AnimatedBuilder(
@@ -477,9 +573,9 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 32),
-              
+
               // Status Text
               Text(
                 _hasError
@@ -493,9 +589,9 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Current Step or Error
               Text(
                 _hasError ? _errorMessage! : _currentStep,
@@ -505,18 +601,19 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               if (_isProcessing) ...[
                 const SizedBox(height: 24),
                 LinearProgressIndicator(
                   value: (_currentStepIndex + 1) / _steps.length,
                   backgroundColor: Colors.grey.shade200,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF37021)),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(Color(0xFFF37021)),
                 ),
               ],
-              
+
               const Spacer(),
-              
+
               // Action Buttons
               if (_hasError) ...[
                 Row(
@@ -578,7 +675,7 @@ class _PaymentProcessingScreenState extends ConsumerState<PaymentProcessingScree
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 32),
             ],
           ),

@@ -19,7 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _pinController = PinInputController();
   final _confirmPinController = PinInputController();
-  
+
   bool _obscurePin = true;
   bool _obscureConfirmPin = true;
   bool _acceptTerms = false;
@@ -38,7 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register() async {
     // ... (your existing validation logic remains unchanged)
     bool isValid = true;
-    
+
     if (!_pinController.validate()) {
       setState(() => _pinError = _pinController.errorText);
       _pinController.shake();
@@ -46,7 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else {
       setState(() => _pinError = null);
     }
-    
+
     if (!_confirmPinController.validate()) {
       setState(() => _confirmPinError = _confirmPinController.errorText);
       _confirmPinController.shake();
@@ -58,7 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else {
       setState(() => _confirmPinError = null);
     }
-    
+
     if (isValid && _formKey.currentState!.validate() && _acceptTerms) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -191,7 +191,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 controller: _firstNameController,
                                 label: "First Name",
                                 icon: Icons.person_outline,
-                                validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                                validator: (value) =>
+                                    value?.isEmpty ?? true ? 'Required' : null,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -200,7 +201,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 controller: _lastNameController,
                                 label: "Last Name",
                                 icon: Icons.person_outline,
-                                validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                                validator: (value) =>
+                                    value?.isEmpty ?? true ? 'Required' : null,
                               ),
                             ),
                           ],
@@ -214,8 +216,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Please enter email';
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                            if (value == null || value.isEmpty)
+                              return 'Please enter email';
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                .hasMatch(value)) {
                               return 'Invalid email';
                             }
                             return null;
@@ -229,7 +233,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: "Phone Number",
                           icon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
-                          validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                          validator: (value) =>
+                              value?.isEmpty ?? true ? 'Required' : null,
                         ),
 
                         const SizedBox(height: 32),
@@ -251,7 +256,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           errorText: _pinError,
                           onChanged: (pin) {
                             _pinController.updatePin(pin);
-                            if (_pinError != null) setState(() => _pinError = null);
+                            if (_pinError != null)
+                              setState(() => _pinError = null);
                           },
                         ),
 
@@ -273,7 +279,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           errorText: _confirmPinError,
                           onChanged: (pin) {
                             _confirmPinController.updatePin(pin);
-                            if (_confirmPinError != null) setState(() => _confirmPinError = null);
+                            if (_confirmPinError != null)
+                              setState(() => _confirmPinError = null);
                           },
                         ),
 
@@ -293,7 +300,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  _obscurePin ? Icons.visibility_off : Icons.visibility,
+                                  _obscurePin
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
                                   color: const Color(0xFFF37021),
                                   size: 20,
                                 ),
@@ -317,9 +326,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           children: [
                             Checkbox(
                               value: _acceptTerms,
-                              onChanged: (value) => setState(() => _acceptTerms = value ?? false),
+                              onChanged: (value) =>
+                                  setState(() => _acceptTerms = value ?? false),
                               activeColor: const Color(0xFFF37021),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4)),
                             ),
                             const Expanded(
                               child: Text(
@@ -336,11 +347,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         Consumer<AuthProvider>(
                           builder: (context, authProvider, child) {
                             return ElevatedButton(
-                              onPressed: authProvider.isLoading ? null : _register,
+                              onPressed:
+                                  authProvider.isLoading ? null : _register,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFF37021),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 18),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 18),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(18),
                                 ),
@@ -350,7 +363,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ? const SizedBox(
                                       height: 24,
                                       width: 24,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2.5),
                                     )
                                   : const Text(
                                       "Create Account",
@@ -400,7 +415,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         filled: true,
         fillColor: Colors.grey.shade50,
-        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       ),
       validator: validator,
     );

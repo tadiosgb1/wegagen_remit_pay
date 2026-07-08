@@ -81,7 +81,8 @@ class ThreeDSService {
       if (kDebugMode) {
         print('✅ Device data collected:');
         print('   🌐 Browser User Agent: ${deviceData['browserUserAgent']}');
-        print('   📏 Screen: ${deviceData['browserScreenWidth']}x${deviceData['browserScreenHeight']}');
+        print(
+            '   📏 Screen: ${deviceData['browserScreenWidth']}x${deviceData['browserScreenHeight']}');
         print('   🌍 Language: ${deviceData['browserLanguage']}');
         print('   ⏰ Timezone: ${deviceData['browserTimeZone']}');
         print('   📨 Accept Header: ${deviceData['browserAcceptHeader']}');
@@ -92,7 +93,8 @@ class ThreeDSService {
         print('   🌐 transactionMode: ${deviceData['transactionMode']}');
         print('   🌍 browserLanguage: ${deviceData['browserLanguage']}');
         print('   🔧 browserUserAgent: ${deviceData['browserUserAgent']}');
-        print('   📨 browserAcceptHeader: ${deviceData['browserAcceptHeader']}');
+        print(
+            '   📨 browserAcceptHeader: ${deviceData['browserAcceptHeader']}');
         print('   📱 Full payload: $deviceData');
       }
 
@@ -119,11 +121,12 @@ class ThreeDSService {
           'phoneNumber': billingInfo['phone_number'] ?? '',
         },
         'browserInfo': deviceData, // Device data with all required fields
-        
+
         // EXPLICIT CyberSource fields (in case backend needs direct access)
         'consumerAuthenticationInformation': {
           'deviceChannel': 'BROWSER',
-          'returnUrl': 'https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/return',
+          'returnUrl':
+              'https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/return',
           'challengeWindowSize': '02',
         }
       };
@@ -131,11 +134,16 @@ class ThreeDSService {
       if (kDebugMode) {
         print('📤 FULL REQUEST PAYLOAD BEING SENT TO BACKEND:');
         print('   🔗 URL: ${UrlContainer.checkEnrollment}');
-        print('   📋 Payload size: ${enrollmentPayload.toString().length} chars');
+        print(
+            '   📋 Payload size: ${enrollmentPayload.toString().length} chars');
         print('   🌐 Browser fields count: ${deviceData.length}');
-        
+
         // Log the critical fields that CyberSource requires
-        final criticalFields = ['browserUserAgent', 'browserLanguage', 'browserAcceptHeader'];
+        final criticalFields = [
+          'browserUserAgent',
+          'browserLanguage',
+          'browserAcceptHeader'
+        ];
         for (final field in criticalFields) {
           print('   ✅ $field: ${deviceData[field]}');
         }
@@ -206,23 +214,38 @@ class ThreeDSService {
       if (kDebugMode) {
         print('🔄 Getting 3DS authentication results');
         print('🆔 Auth Transaction ID: $authenticationTransactionId');
+        print('👤 Customer ID being sent: "$customerId"');
+        print('💰 Amount: $amount $currency');
+      }
+
+      final requestPayload = {
+        'customer_id': customerId,
+        'amount': amount,
+        'currency': currency,
+        'authenticationTransactionId': authenticationTransactionId,
+      };
+
+      if (kDebugMode) {
+        print('📤 Full request payload: $requestPayload');
       }
 
       final response = await _apiService.post(
         UrlContainer.authenticationResults,
-        {
-          'customer_id': customerId,
-          'amount': amount,
-          'currency': currency,
-          'authenticationTransactionId': authenticationTransactionId,
-        },
+        requestPayload,
         includeAuth: true,
       );
+
+      if (kDebugMode) {
+        print('✅ Authentication results response received');
+      }
 
       return ThreeDSAuthResult.fromJson(response);
     } catch (e) {
       if (kDebugMode) {
         print('❌ 3DS authentication results error: $e');
+        print('🔍 Customer ID that was sent: "$customerId"');
+        print(
+            '🔍 Auth Transaction ID that was sent: "$authenticationTransactionId"');
       }
       throw Exception('Failed to get authentication results: $e');
     }
@@ -386,6 +409,9 @@ class ThreeDSService {
         print('   🔐 requires3DS: ${regularResult.requires3DS}');
         print(
             '   🎮 needsAuthentication: ${regularResult.needsAuthentication}');
+        print('   👤 customerId: "${regularResult.customerId}"');
+        print(
+            '   🎫 transientToken: ${regularResult.transientToken?.substring(0, 20)}...');
         print(
             '   📱 Challenge screen will ${regularResult.needsAuthentication ? 'SHOW' : 'NOT SHOW'}');
         print('💳 === 3DS PAYMENT FLOW COMPLETED ===\n');
@@ -410,13 +436,15 @@ class ThreeDSService {
         print('🌐 Using BROWSER-compatible mode (mobile app as browser)');
         print('📱 Generating CyberSource-compliant browser fields...');
       }
-      
+
       return {
         // CRITICAL: Exact field names CyberSource expects (from error message)
         'browserLanguage': 'en-US',
-        'browserUserAgent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36 WegagenRemitApp/1.0.0',
-        'browserAcceptHeader': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        
+        'browserUserAgent':
+            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36 WegagenRemitApp/1.0.0',
+        'browserAcceptHeader':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+
         // Additional REQUIRED browser fields for CyberSource
         'browserColorDepth': '24',
         'browserScreenHeight': '800',
@@ -424,17 +452,20 @@ class ThreeDSService {
         'browserTimeZone': '180', // Ethiopian timezone (+3 hours = 180 minutes)
         'browserJavaEnabled': false,
         'browserJavaScriptEnabled': true,
-        
+
         // Device and transaction mode for mobile
         'browserIP': '127.0.0.1', // Mobile app local IP
-        'deviceChannel': 'BROWSER',  // Keep as BROWSER for compatibility
-        'transactionMode': 'eCommerce',  // Keep as eCommerce for compatibility
-        'returnUrl': 'https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/return',
+        'deviceChannel': 'BROWSER', // Keep as BROWSER for compatibility
+        'transactionMode': 'eCommerce', // Keep as eCommerce for compatibility
+        'returnUrl':
+            'https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/return',
         'challengeWindowSize': '02', // 390x400 mobile window
-        
+
         // HTTP-prefixed versions (backend might need both)
-        'httpAcceptBrowserValue': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'httpUserAgent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36',
+        'httpAcceptBrowserValue':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'httpUserAgent':
+            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36',
         'httpBrowserLanguage': 'en-US',
         'httpBrowserColorDepth': '24',
         'httpBrowserScreenHeight': '800',
@@ -442,11 +473,12 @@ class ThreeDSService {
         'httpBrowserTimeDifference': '180',
         'httpBrowserJavaEnabled': 'false',
         'httpBrowserJavaScriptEnabled': 'true',
-        
+
         // Device fingerprinting data
-        'deviceFingerprintID': 'mobile_${DateTime.now().millisecondsSinceEpoch}',
+        'deviceFingerprintID':
+            'mobile_${DateTime.now().millisecondsSinceEpoch}',
         'clientEnvironment': 'BROWSER',
-        
+
         // 3DS 2.0 specific fields
         'threeDSRequestorChallengeInd': '01', // No preference
         'threeDSCompInd': 'Y', // 3DS Requestor is authenticated
@@ -459,10 +491,12 @@ class ThreeDSService {
       // CRITICAL: Fallback with ALL required fields
       return {
         // These 3 are MANDATORY according to the error
-        'browserUserAgent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 WegagenRemitApp/1.0.0',
+        'browserUserAgent':
+            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 WegagenRemitApp/1.0.0',
         'browserLanguage': 'en-US',
-        'browserAcceptHeader': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        
+        'browserAcceptHeader':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+
         // Additional required fields
         'browserColorDepth': '24',
         'browserScreenHeight': '800',
@@ -581,9 +615,14 @@ class ThreeDSAuthResult {
   factory ThreeDSAuthResult.fromJson(Map<String, dynamic> json) {
     final consumerAuth = json['consumerAuthenticationInformation'] ?? {};
 
+    // Handle both COMPLETED and AUTHENTICATION_SUCCESSFUL status values
+    final status = json['status'] ?? 'unknown';
+    final isSuccessStatus =
+        status == 'COMPLETED' || status == 'AUTHENTICATION_SUCCESSFUL';
+
     return ThreeDSAuthResult(
-      success: json['status'] == 'COMPLETED',
-      status: json['status'] ?? 'unknown',
+      success: isSuccessStatus,
+      status: status,
       authResult: consumerAuth['authenticationResult'],
       cavv: consumerAuth['cavv'],
       eci: consumerAuth['eciRaw'],
@@ -596,9 +635,14 @@ class ThreeDSAuthResult {
     );
   }
 
-  bool get isAuthenticated => success && authResult == 'SUCCESS';
+  bool get isAuthenticated =>
+      success &&
+      (authResult == 'SUCCESS' || status == 'AUTHENTICATION_SUCCESSFUL');
   bool get isAttempted =>
-      success && (authResult == 'ATTEMPTED' || authResult == 'SUCCESS');
+      success &&
+      (authResult == 'ATTEMPTED' ||
+          authResult == 'SUCCESS' ||
+          status == 'AUTHENTICATION_SUCCESSFUL');
   bool get isNotEnrolled => success && authResult == 'NOT_ENROLLED';
 }
 
