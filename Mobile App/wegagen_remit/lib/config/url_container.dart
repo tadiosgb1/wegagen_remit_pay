@@ -34,20 +34,22 @@ class UrlContainer {
   static String get cancelTransfer => '$baseUrl/transfers/cancel';
   static String get transferStatus => '$baseUrl/transfers/status';
   static String get accountInfo => '$baseUrl/internal-transfer/account-info';
-  static String get validateRecipient => '$baseUrl/internal-transfer/validate-recipient';
+  static String get validateRecipient =>
+      '$baseUrl/internal-transfer/validate-recipient';
   static String get sendTransfer => '$baseUrl/internal-transfer/send';
-  
+
   // Payment and 3DS endpoints
   static String get processPayment => '$baseUrl/payments/process-payment';
   static String get checkEnrollment => '$baseUrl/payments/check-enrollment';
-  static String get authenticationResults => '$baseUrl/payments/authentication-results';
+  static String get authenticationResults =>
+      '$baseUrl/payments/authentication-results';
   static String get processPaymentWith3DS => '$baseUrl/payments/pay';
-
-
-
 
   // Exchange rate endpoints
   static String get getExchangeRate => '$baseUrl/internal-transfer/rate';
+
+  // Bonuses endpoints
+  static String get getBonuses => '$baseUrl/bonus';
 
   // Recipients endpoints
   static String get recipients => '$baseUrl/recipients';
@@ -58,7 +60,6 @@ class UrlContainer {
   static String get generateCaptureContext =>
       '$baseUrl/payments/generate-capture-context';
 
-  
   static String get paymentPage => '${Environment.backendUrl}/payment-page';
   static String get paymentSession =>
       '${Environment.backendUrl}/payments/session'; // New CVV and card page endpoint

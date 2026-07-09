@@ -6,14 +6,16 @@ class ThreeDSChallengeScreen extends StatefulWidget {
   final String accessToken;
   final String? merchantData;
   final VoidCallback onCompleted;
+  final VoidCallback? onCancelled; // Add cancellation callback
 
   const ThreeDSChallengeScreen({
-    Key? key,
+    super.key,
     required this.stepUpUrl,
     required this.accessToken,
     this.merchantData,
     required this.onCompleted,
-  }) : super(key: key);
+    this.onCancelled, // Optional cancellation handler
+  });
 
   @override
   State<ThreeDSChallengeScreen> createState() => _ThreeDSChallengeScreenState();
@@ -225,49 +227,15 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
         });
         
         // Log that we're relying on backend completion detection
-        console.log('🔐 Relying on backend /3ds/return endpoint for completion detection');
-        console.log('🔗 Backend endpoint will send 3DS_CHALLENGE_COMPLETE message');
-        
-        // Add manual completion button as backup - show after 10 seconds
-        setTimeout(function() {
-            console.log('🔐 Adding manual completion button as backup');
-            const button = document.createElement('button');
-            button.innerHTML = '';
-            button.style.cssText = \`
-                position: fixed !important;
-                bottom: 20px !important;
-                right: 20px !important;
-                background: #4CAF50 !important;
-                color: white !important;
-                border: none !important;
-                padding: 15px 25px !important;
-                border-radius: 8px !important;
-                font-size: 16px !important;
-                font-weight: bold !important;
-                cursor: pointer !important;
-                z-index: 99999 !important;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
-            \`;
-            button.onclick = function() {
-                console.log('🔐 Manual completion triggered by user');
-                if (confirm('Did you complete the OTP verification successfully?')) {
-                    console.log('🔐 User confirmed OTP completion - sending completion signal');
-                    if (window['3DSComplete']) {
-                        window['3DSComplete'].postMessage('3DS_CHALLENGE_COMPLETE');
-                    }
-                } else {
-                    console.log('🔐 User cancelled manual completion');
-                }
-            };
-            document.body.appendChild(button);
-            console.log('🔐 Manual completion button added successfully');
-        }, 10000); // Show button after 10 seconds
+        console.log('🔐 Relying ONLY on backend /3ds/return endpoint for completion detection');
+        console.log('🔗 Backend endpoint will send 3DS_CHALLENGE_COMPLETE message when iframe actually completes');
+        console.log('🚫 NO manual buttons - iframe handles its own submission and validation');
         
         // Handle iframe load events
         const iframe = document.getElementById('step-up-iframe');
         if (iframe) {
             iframe.addEventListener('load', function() {
-                console.log('🔐 3DS Challenge iframe loaded');
+                console.log('🔐 3DS Challenge iframe loaded - waiting for user to complete OTP...');
             });
         }
     </script>
@@ -283,12 +251,14 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
     return WillPopScope(
       onWillPop: () async {
         // Prevent accidental back button presses during OTP entry
-        debugPrint('🔐 Back button pressed during 3DS challenge - showing confirmation');
+        debugPrint(
+            '🔐 Back button pressed during 3DS challenge - showing confirmation');
         final shouldPop = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Cancel 3D Secure Verification?'),
-            content: const Text('Are you sure you want to cancel the payment verification? This will cancel your payment.'),
+            content: const Text(
+                'Are you sure you want to cancel the payment verification? This will cancel your payment.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -296,12 +266,24 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Cancel Payment', style: TextStyle(color: Colors.red)),
+                child: const Text('Cancel Payment',
+                    style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
         );
-        return shouldPop ?? false;
+
+        if (shouldPop == true) {
+          debugPrint(
+              '🚫 User confirmed back button cancellation - calling cancellation handler');
+          if (widget.onCancelled != null) {
+            widget.onCancelled!();
+            return false; // Don't pop - let cancellation handler manage navigation
+          }
+          return true; // Pop if no cancellation handler
+        }
+
+        return false; // Don't pop - user chose to stay
       },
       child: Scaffold(
         backgroundColor: Colors.black54,
@@ -353,21 +335,32 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
                                 context: context,
                                 builder: (context) => AlertDialog(
                                   title: const Text('Cancel Verification?'),
-                                  content: const Text('This will cancel your payment. Are you sure?'),
+                                  content: const Text(
+                                      'This will cancel your payment. Are you sure?'),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.of(context).pop(false),
-                                      child: const Text('Continue Verification'),
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(false),
+                                      child:
+                                          const Text('Continue Verification'),
                                     ),
                                     TextButton(
-                                      onPressed: () => Navigator.of(context).pop(true),
-                                      child: const Text('Cancel Payment', style: TextStyle(color: Colors.red)),
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(true),
+                                      child: const Text('Cancel Payment',
+                                          style: TextStyle(color: Colors.red)),
                                     ),
                                   ],
                                 ),
                               );
                               if (shouldClose == true) {
-                                Navigator.of(context).pop();
+                                debugPrint(
+                                    '🚫 User confirmed cancellation - calling cancellation handler');
+                                if (widget.onCancelled != null) {
+                                  widget.onCancelled!();
+                                } else {
+                                  Navigator.of(context).pop();
+                                }
                               }
                             },
                             icon: const Icon(
@@ -378,7 +371,7 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
                         ],
                       ),
                     ),
-                    
+
                     // WebView content
                     SizedBox(
                       height: MediaQuery.of(context).size.height * 0.7,

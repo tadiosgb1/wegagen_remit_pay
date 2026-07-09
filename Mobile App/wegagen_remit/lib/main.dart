@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
 import 'providers/kyc_provider.dart';
 import 'providers/exchange_rate_provider.dart';
+import 'providers/bonus_provider.dart';
 import 'services/api_service.dart';
 import 'config/environment.dart';
 import 'config/url_container.dart';
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         provider.ChangeNotifierProvider(create: (_) => AuthProvider()),
         provider.ChangeNotifierProvider(create: (_) => KycProvider()),
         provider.ChangeNotifierProvider(create: (_) => ExchangeRateProvider()),
+        provider.ChangeNotifierProvider(create: (_) => BonusProvider()),
       ],
       child: MaterialApp(
         title: 'Wegagen Remit',

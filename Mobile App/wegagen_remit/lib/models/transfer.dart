@@ -61,8 +61,8 @@ class Transfer {
         (e) => e.toString() == 'TransferStatus.${json['status']}',
       ),
       createdAt: DateTime.parse(json['createdAt']),
-      completedAt: json['completedAt'] != null 
-          ? DateTime.parse(json['completedAt']) 
+      completedAt: json['completedAt'] != null
+          ? DateTime.parse(json['completedAt'])
           : null,
       pickupCode: json['pickupCode'],
     );

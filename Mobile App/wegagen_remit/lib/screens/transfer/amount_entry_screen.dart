@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/exchange_rate_provider.dart';
+import '../../providers/bonus_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/bonus_calculation_service.dart';
 import '../../widgets/auth_guard.dart';
 import '../../models/kyc_data.dart';
 import '../kyc_requirement_screen.dart';
@@ -26,54 +28,73 @@ class AmountEntryScreen extends StatefulWidget {
 class _AmountEntryScreenState extends State<AmountEntryScreen> {
   final _amountController = TextEditingController();
   double _etbAmount = 0.0;
-  double _fee = 0.0;
+  double _bonusAmount = 0.0;
+  double _baseAmount = 0.0;
   double _exchangeRate = 0.0;
+  TransferCalculationResult? _calculationResult;
 
   @override
   void initState() {
     super.initState();
     _amountController.addListener(_calculateAmount);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadExchangeRate();
+      _loadDataAndCalculate();
     });
   }
 
-  @override
-  void dispose() {
-    _amountController.dispose();
-    super.dispose();
-  }
+  Future<void> _loadDataAndCalculate() async {
+    final bonusProvider = Provider.of<BonusProvider>(context, listen: false);
+    final exchangeProvider = Provider.of<ExchangeRateProvider>(context, listen: false);
 
-  void _loadExchangeRate() {
-    final exchangeProvider = Provider.of<ExchangeRateProvider>(
-      context,
-      listen: false,
-    );
+    // Load bonuses and exchange rates
+    await Future.wait([
+      bonusProvider.loadBonuses(),
+      if (exchangeProvider.exchangeRates.isEmpty) exchangeProvider.loadExchangeRates(),
+    ]);
+
     _exchangeRate = exchangeProvider.getRate(widget.selectedCurrency, 'ETB') ?? 0.0;
     _calculateAmount();
   }
 
   void _calculateAmount() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
-    if (amount > 0 && _exchangeRate > 0) {
+    
+    if (amount > 0) {
+      final bonusProvider = Provider.of<BonusProvider>(context, listen: false);
+      final exchangeProvider = Provider.of<ExchangeRateProvider>(context, listen: false);
+
+      final calculationService = BonusCalculationService(
+        bonusProvider: bonusProvider,
+        exchangeRateProvider: exchangeProvider,
+      );
+
+      final result = calculationService.calculateTransferAmount(
+        foreignAmount: amount,
+        fromCurrency: widget.selectedCurrency,
+        toCurrency: 'ETB',
+      );
+
       setState(() {
-        final baseEtbAmount = amount * _exchangeRate;
-        _fee = _calculateFee(baseEtbAmount);
-        _etbAmount = baseEtbAmount + _fee;
+        _calculationResult = result;
+        if (result.isSuccess) {
+          _baseAmount = result.baseAmountETB;
+          _bonusAmount = result.bonusAmountETB;
+          _etbAmount = result.totalAmountETB;
+          _exchangeRate = result.exchangeRate;
+        } else {
+          _baseAmount = 0.0;
+          _bonusAmount = 0.0;
+          _etbAmount = 0.0;
+        }
       });
     } else {
       setState(() {
+        _calculationResult = null;
+        _baseAmount = 0.0;
+        _bonusAmount = 0.0;
         _etbAmount = 0.0;
-        _fee = 0.0;
       });
     }
-  }
-
-  double _calculateFee(double etbAmount) {
-    double fee = etbAmount * 0.10;
-    if (fee < 10.0) fee = 10.0;
-    if (fee > 500.0) fee = 500.0;
-    return fee;
   }
 
   String get _transferTitle {
@@ -137,7 +158,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                   amount: amount,
                   currency: widget.selectedCurrency,
                   etbAmount: _etbAmount,
-                  fee: _fee,
+                  fee: _bonusAmount,
                   exchangeRate: _exchangeRate,
                   selectedBank: widget.selectedBank,
                 ),
@@ -157,7 +178,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                   amount: amount,
                   currency: widget.selectedCurrency,
                   etbAmount: _etbAmount,
-                  fee: _fee,
+                  fee: _bonusAmount,
                   exchangeRate: _exchangeRate,
                   kycStatus: kycStatus,
                 ),
@@ -174,7 +195,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                       amount: amount,
                       currency: widget.selectedCurrency,
                       etbAmount: _etbAmount,
-                      fee: _fee,
+                      fee: _bonusAmount,
                       exchangeRate: _exchangeRate,
                       selectedBank: widget.selectedBank,
                     ),
@@ -317,7 +338,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Recipient gets', style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
+                                Text('Total Amount', style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
                                 Row(
                                   children: [
                                     Text(
@@ -333,35 +354,6 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                                   ],
                                 ),
                               ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Exchange Rate
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [Colors.blue.shade50, Colors.white]),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.blue.shade100),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.swap_horiz, color: Color(0xFFF37021), size: 28),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Consumer<ExchangeRateProvider>(
-                                builder: (context, provider, _) {
-                                  final rate = provider.getExchangeRate(widget.selectedCurrency);
-                                  return Text(
-                                    '1 ${widget.selectedCurrency} = ${(rate?.buyingRate ?? _exchangeRate).toStringAsFixed(2)} ETB',
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                  );
-                                },
-                              ),
                             ),
                           ],
                         ),
@@ -386,7 +378,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                               const SizedBox(height: 16),
                               _buildFeeRow('You send', '${_amountController.text} ${widget.selectedCurrency}'),
                               const Divider(),
-                              _buildFeeRow('Bones', '${_fee.toStringAsFixed(2)} ETB'),
+                              _buildFeeRow('Bonus', '${_bonusAmount.toStringAsFixed(2)} ETB'),
                               const Divider(),
                               _buildFeeRow('Total (ETB)', _etbAmount.toStringAsFixed(2), isTotal: true),
                             ],
