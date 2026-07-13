@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:country_picker/country_picker.dart';
 import 'modern_confirmation_screen.dart';
 import '../../services/account_service.dart';
 import '../../models/account_info_response.dart';
@@ -686,118 +688,442 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
 
   List<Widget> _buildCashPickupFields() {
     return [
-      // Recipient Phone Number
-      const Text(
-        'Recipient Phone Number',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
+      // Header with icon
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFF37021).withValues(alpha: 0.1),
+              const Color(0xFFF37021).withValues(alpha: 0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFF37021).withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF37021),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.money_outlined,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Cash Pickup Recipient Details',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF37021),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Enter recipient information for cash pickup',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      const SizedBox(height: 12),
-      _buildInputField(
-        controller: _recipientPhoneController,
-        hintText: '09XXXXXXXX',
-        prefixIcon: Icons.phone,
-        keyboardType: TextInputType.phone,
-      ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 32),
 
-      // Name fields row
-      Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'First Name',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  controller: _firstNameController,
-                  hintText: 'First Name',
-                  prefixIcon: Icons.person,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Middle Name',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  controller: _middleNameController,
-                  hintText: 'Middle Name (optional)',
-                  prefixIcon: null,
-                ),
-              ],
-            ),
-          ),
-        ],
+      // Phone Number - Professional styling
+      _buildModernSectionTitle('Recipient Contact', Icons.phone),
+      const SizedBox(height: 16),
+      _buildModernPhoneField(),
+      const SizedBox(height: 32),
+
+      // Personal Information Section
+      _buildModernSectionTitle('Personal Information', Icons.person),
+      const SizedBox(height: 16),
+      
+      // First Name
+      _buildModernTextField(
+        controller: _firstNameController,
+        label: 'First Name',
+        hintText: 'Enter first name',
+        prefixIcon: Icons.person_outline,
+        isRequired: true,
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 20),
+
+      // Middle Name - Full width as requested
+      _buildModernTextField(
+        controller: _middleNameController,
+        label: 'Middle Name',
+        hintText: 'Enter middle name (optional)',
+        prefixIcon: Icons.person_outline,
+        isRequired: false,
+      ),
+      const SizedBox(height: 20),
 
       // Last Name
-      const Text(
-        'Last Name',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
-      _buildInputField(
+      _buildModernTextField(
         controller: _lastNameController,
-        hintText: 'Last Name',
+        label: 'Last Name',
+        hintText: 'Enter last name',
         prefixIcon: Icons.person_outline,
+        isRequired: true,
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: 32),
 
-      // Country and State
-      Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Country',
+      // Location Information Section
+      _buildModernSectionTitle('Location Information', Icons.location_on),
+      const SizedBox(height: 16),
+      
+      // Country Dropdown - Professional
+      _buildModernCountryDropdown(),
+      const SizedBox(height: 20),
+
+      // State/Region
+      _buildModernTextField(
+        controller: _stateController,
+        label: 'State/Region',
+        hintText: 'Enter state or region',
+        prefixIcon: Icons.location_city_outlined,
+        isRequired: true,
+      ),
+      const SizedBox(height: 20),
+
+      // City
+      _buildModernTextField(
+        controller: _cityController,
+        label: 'City',
+        hintText: 'Enter city',
+        prefixIcon: Icons.location_city,
+        isRequired: true,
+      ),
+      const SizedBox(height: 20),
+
+      // Address
+      _buildModernTextField(
+        controller: _addressController,
+        label: 'Address',
+        hintText: 'Street address or area',
+        prefixIcon: Icons.location_on,
+        isRequired: true,
+        maxLines: 2,
+      ),
+      const SizedBox(height: 32),
+
+      // Transfer Purpose Section
+      _buildModernSectionTitle('Transfer Information', Icons.description),
+      const SizedBox(height: 16),
+      
+      _buildModernTextField(
+        controller: _relationshipController,
+        label: 'Purpose of Transfer',
+        hintText: 'Family support, Business payment, Emergency, etc.',
+        prefixIcon: Icons.description_outlined,
+        isRequired: true,
+      ),
+      const SizedBox(height: 32),
+
+      // Summary Card - Enhanced Design
+      if (_recipientPhoneController.text.isNotEmpty && 
+          _firstNameController.text.isNotEmpty && 
+          _lastNameController.text.isNotEmpty) ...[
+        _buildModernSummaryCard(),
+        const SizedBox(height: 24),
+      ],
+    ];
+  }
+
+  Widget _buildModernSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF37021).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xFFF37021),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hintText,
+    required IconData prefixIcon,
+    bool isRequired = true,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    bool readOnly = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            children: [
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  controller: _countryController,
-                  hintText: 'ET',
-                  prefixIcon: Icons.flag,
-                  readOnly: true, // Auto-filled
-                ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            readOnly: readOnly,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 15,
+              ),
+              prefixIcon: Icon(
+                prefixIcon,
+                color: const Color(0xFFF37021),
+                size: 22,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: const Color(0xFFF37021).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 1.5,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: readOnly ? Colors.grey.shade50 : Colors.white,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (isRequired && (value == null || value.trim().isEmpty)) {
+                return '$label is required';
+              }
+              return null;
+            },
+            textCapitalization: TextCapitalization.words,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernPhoneField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: const TextSpan(
+            text: 'Phone Number',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            children: [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: _recipientPhoneController,
+            keyboardType: TextInputType.phone,
+            maxLength: 9, // 9 characters as requested
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: '912345678',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 15,
+              ),
+              prefixIcon: const Icon(
+                Icons.phone,
+                color: Color(0xFFF37021),
+                size: 22,
+              ),
+              prefixText: '+251 ',
+              prefixStyle: const TextStyle(
+                color: Color(0xFFF37021),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              counterText: '', // Hide character counter
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: const Color(0xFFF37021).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 1.5,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Phone number is required';
+              }
+              if (value.trim().length != 9) {
+                return 'Phone number must be exactly 9 digits';
+              }
+              if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+                return 'Phone number must contain only digits';
+              }
+              return null;
+            },
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Ethiopian phone number (9 digits without country code)',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -935,6 +1261,638 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                 fontSize: 14,
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildOtherBankTransferFields() {
+    return [
+      // Selected Bank Info
+      if (widget.selectedBank != null) ...[
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.account_balance_outlined,
+                color: Colors.blue.shade600,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Sending to: ${widget.selectedBank}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+      
+      // Account Number Field
+      Text(
+        '${widget.selectedBank ?? "Bank"} Account Number',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      const SizedBox(height: 12),
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextFormField(
+          controller: _accountNumberController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: '1000123456789',
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            prefixIcon: Icon(Icons.account_balance, color: Colors.grey.shade400),
+            suffixIcon: _isVerifying
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : _isAccountVerified
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter account number';
+            }
+            return null;
+          },
+          onChanged: (value) {
+            _accountVerificationTimer?.cancel();
+            setState(() {
+              _isAccountVerified = false;
+            });
+            if (value.length >= 10) {
+              _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
+                if (mounted) {
+                  _verifyAccount(value.trim());
+                }
+              });
+            }
+          },
+        ),
+      ),
+      const SizedBox(height: 24),
+      if (_isAccountVerified) ...[
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Account Verified',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Name: $_accountHolderName',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Type: $_accountType',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Bank: ${widget.selectedBank}',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ];
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String hintText,
+    IconData? prefixIcon,
+    TextInputType? keyboardType,
+    bool readOnly = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        readOnly: readOnly,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade400) : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        validator: (value) {
+          if (!readOnly && (value == null || value.isEmpty)) {
+            return 'This field is required';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+}         
+     fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 15,
+              ),
+              prefixIcon: Icon(
+                prefixIcon,
+                color: const Color(0xFFF37021),
+                size: 22,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: const Color(0xFFF37021).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 1.5,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: readOnly ? Colors.grey.shade50 : Colors.white,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (isRequired && (value == null || value.trim().isEmpty)) {
+                return '$label is required';
+              }
+              return null;
+            },
+            textCapitalization: TextCapitalization.words,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernPhoneField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: const TextSpan(
+            text: 'Phone Number',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            children: [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: _recipientPhoneController,
+            keyboardType: TextInputType.phone,
+            maxLength: 9, // 9 characters as requested
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: '912345678',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 15,
+              ),
+              prefixIcon: const Icon(
+                Icons.phone,
+                color: Color(0xFFF37021),
+                size: 22,
+              ),
+              prefixText: '+251 ',
+              prefixStyle: const TextStyle(
+                color: Color(0xFFF37021),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              counterText: '', // Hide character counter
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: const Color(0xFFF37021).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 2,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 1.5,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Colors.red,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Phone number is required';
+              }
+              if (value.trim().length != 9) {
+                return 'Phone number must be exactly 9 digits';
+              }
+              if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+                return 'Phone number must contain only digits';
+              }
+              return null;
+            },
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Ethiopian phone number (9 digits without country code)',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernCountryDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: const TextSpan(
+            text: 'Country',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            children: [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: InkWell(
+            onTap: () {
+              showCountryPicker(
+                context: context,
+                showPhoneCode: false,
+                onSelect: (Country country) {
+                  setState(() {
+                    _countryController.text = country.countryCode;
+                  });
+                },
+                favorite: <String>['ET'],
+                showWorldWide: false,
+                countryListTheme: CountryListThemeData(
+                  flagSize: 25,
+                  backgroundColor: Colors.white,
+                  textStyle: const TextStyle(fontSize: 16, color: Colors.blueGrey),
+                  bottomSheetHeight: 500,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20.0),
+                    topRight: Radius.circular(20.0),
+                  ),
+                  inputDecoration: InputDecoration(
+                    labelText: 'Search',
+                    hintText: 'Start typing to search',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: const Color(0xFFF37021).withValues(alpha: 0.3),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFF37021).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.flag,
+                    color: Color(0xFFF37021),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _countryController.text.isEmpty 
+                          ? 'Select Country'
+                          : _getCountryName(_countryController.text),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: _countryController.text.isEmpty 
+                            ? Colors.grey.shade400 
+                            : Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: Color(0xFFF37021),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getCountryName(String countryCode) {
+    switch (countryCode) {
+      case 'ET':
+        return 'Ethiopia';
+      case 'US':
+        return 'United States';
+      case 'CA':
+        return 'Canada';
+      case 'GB':
+        return 'United Kingdom';
+      case 'AU':
+        return 'Australia';
+      default:
+        return countryCode;
+    }
+  }
+
+  Widget _buildModernSummaryCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.blue.shade50,
+            Colors.blue.shade25,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.blue.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade600,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.receipt_long,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Cash Pickup Summary',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSummaryRow('Recipient', '${_firstNameController.text} ${_middleNameController.text} ${_lastNameController.text}'.trim()),
+          _buildSummaryRow('Phone', '+251 ${_recipientPhoneController.text}'),
+          if (_cityController.text.isNotEmpty) 
+            _buildSummaryRow('Location', '${_cityController.text}, ${_stateController.text}'),
+          if (_relationshipController.text.isNotEmpty) 
+            _buildSummaryRow('Purpose', _relationshipController.text),
+          _buildSummaryRow('Amount', '${widget.etbAmount.toStringAsFixed(2)} ETB'),
+          _buildSummaryRow('Exchange Rate', '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(4)} ETB'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    if (value.isEmpty || value.trim() == '') return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
