@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../main_navigation_screen.dart';
@@ -15,61 +14,70 @@ class EnterPinScreen extends StatefulWidget {
 }
 
 class _EnterPinScreenState extends State<EnterPinScreen> {
-  final List<TextEditingController> _pinControllers = List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
-  bool _obscurePin = true;
   String _pin = '';
+  bool _isLoading = false;
+  
+  final List<bool> _filledDots = [false, false, false, false];
 
   @override
   void initState() {
     super.initState();
-    // Clear any existing authentication errors from startup checks
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AuthProvider>(context, listen: false).clearError();
     });
   }
 
-  @override
-  void dispose() {
-    for (var controller in _pinControllers) controller.dispose();
-    for (var node in _focusNodes) node.dispose();
-    super.dispose();
+  void _onNumberPressed(String number) {
+    if (_pin.length < 4) {
+      setState(() {
+        _pin += number;
+        _filledDots[_pin.length - 1] = true;
+      });
+      
+      if (_pin.length == 4) {
+        _login();
+      }
+    }
   }
 
-  void _onPinChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      _focusNodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-
-    _pin = _pinControllers.map((c) => c.text).join();
-
-    if (_pin.length == 4) {
-      _login();
+  void _onDeletePressed() {
+    if (_pin.isNotEmpty) {
+      setState(() {
+        _filledDots[_pin.length - 1] = false;
+        _pin = _pin.substring(0, _pin.length - 1);
+      });
     }
   }
 
   Future<void> _login() async {
-    if (_pin.length != 4) {
-      _showError('Please enter a 4-digit PIN');
-      return;
-    }
-
+    setState(() => _isLoading = true);
+    
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.login(widget.email, _pin);
+
+    setState(() => _isLoading = false);
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
       );
+    } else {
+      // Clear PIN on error
+      setState(() {
+        _pin = '';
+        _filledDots.fillRange(0, 4, false);
+      });
+      
+      // Show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error ?? 'Login failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
   }
 
   @override
@@ -91,267 +99,268 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-
-                // Glowing Logo
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange.withOpacity(0.4),
-                        blurRadius: 40,
-                        spreadRadius: 12,
-                      ),
-                    ],
-                  ),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.account_balance,
-                      size: 85,
-                      color: Color(0xFFF37021),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                const Text(
-                  "Enter Your PIN",
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 8),
-                const Text(
-                  "Welcome back! Please enter your PIN",
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 10),
-
-                // Email Display Card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF37021).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.email_outlined, color: Color(0xFFF37021)),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          widget.email,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // PIN Input Section
-                Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 40,
-                        offset: const Offset(0, 20),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Enter 4-Digit PIN",
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // PIN Fields
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(4, (index) {
-                          return Container(
-                            width: 62,
-                            height: 62,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: _pinControllers[index].text.isNotEmpty
-                                    ? const Color(0xFFF37021)
-                                    : Colors.grey.shade300,
-                                width: 2.5,
-                              ),
-                            ),
-                            child: TextFormField(
-                              controller: _pinControllers[index],
-                              focusNode: _focusNodes[index],
-                              textAlign: TextAlign.center,
-                              keyboardType: TextInputType.number,
-                              maxLength: 1,
-                              obscureText: _obscurePin,
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                counterText: '',
-                              ),
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              onChanged: (value) => setState(() => _onPinChanged(index, value)),
-                            ),
-                          );
-                        }),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Toggle Show/Hide
-                      GestureDetector(
-                        onTap: () => setState(() => _obscurePin = !_obscurePin),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _obscurePin ? "Show PIN" : "Hide PIN",
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFFF37021),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              _obscurePin ? Icons.visibility : Icons.visibility_off,
-                              color: const Color(0xFFF37021),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                // Forgot PIN
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ForgotPinScreen()),
-                    );
-                  },
-                  child: const Text(
-                    "Forgot PIN?",
-                    style: TextStyle(
-                      color: Color(0xFFF37021),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                // Sign In Button
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    // DEBUG: Let's see what's happening
-                    if (authProvider.error != null) {
-                      print('🔍 DEBUG: AuthProvider error detected: "${authProvider.error}"');
-                      print('🔍 DEBUG: Loading state: ${authProvider.isLoading}');
-                      print('🔍 DEBUG: PIN length: ${_pin.length}');
-                      print('🔍 DEBUG: User: ${authProvider.user}');
-                    }
-
-                    // Only show errors for ACTUAL login attempts that failed
-                    // Check if user completed PIN entry AND login failed AND user is null
-                    if (authProvider.error != null && 
-                        !authProvider.isLoading && 
-                        _pin.length == 4 &&
-                        authProvider.user == null) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        print('🚨 SHOWING ERROR: ${authProvider.error}');
-                        _showError(authProvider.error!);
-                        authProvider.clearError();
-                      });
-                    }
-
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      child: ElevatedButton(
-                        onPressed: authProvider.isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF37021),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40),
+                    
+                    // Logo
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange,
+                            blurRadius: 20,
+                            spreadRadius: 2,
                           ),
-                          elevation: 0,
-                        ),
-                        child: authProvider.isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                              )
-                            : const Text(
-                                "Sign In",
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
+                        ],
                       ),
-                    );
-                  },
+                      child: Center(
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.account_balance,
+                            size: 50,
+                            color: Color(0xFFF37021),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // App Name
+                    const Text(
+                      "Get Remit",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Welcome Back
+                    const Text(
+                      "Welcome Back",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Email Display
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.email, color: Colors.white, size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            widget.email,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // PIN Dots
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(4, (index) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _filledDots[index] 
+                                ? Colors.white 
+                                : Colors.white.withValues(alpha: 0.3),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              width: 1,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Enter PIN Text
+                    const Text(
+                      "Enter your 4-digit PIN",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 30),
+                    
+                    // Number Pad
+                    _buildNumberPad(),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Forgot PIN
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ForgotPinScreen()),
+                        );
+                      },
+                      child: const Text(
+                        "Forgot PIN?",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                  ],
                 ),
-
-                const SizedBox(height: 30),
-              ],
+              ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberPad() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          // Row 1: 1, 2, 3
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNumberButton('1'),
+              _buildNumberButton('2'),
+              _buildNumberButton('3'),
+            ],
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Row 2: 4, 5, 6
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNumberButton('4'),
+              _buildNumberButton('5'),
+              _buildNumberButton('6'),
+            ],
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Row 3: 7, 8, 9
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNumberButton('7'),
+              _buildNumberButton('8'),
+              _buildNumberButton('9'),
+            ],
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Row 4: empty, 0, delete
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              const SizedBox(width: 70), // Empty space
+              _buildNumberButton('0'),
+              _buildDeleteButton(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNumberButton(String number) {
+    return GestureDetector(
+      onTap: _isLoading ? null : () => _onNumberPressed(number),
+      child: Container(
+        width: 70,
+        height: 70,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withValues(alpha: 0.15),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.4),
+            width: 2,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            number,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteButton() {
+    return GestureDetector(
+      onTap: _isLoading ? null : _onDeletePressed,
+      child: Container(
+        width: 70,
+        height: 70,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withValues(alpha: 0.2),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.backspace_outlined,
+            color: Colors.white,
+            size: 24,
           ),
         ),
       ),

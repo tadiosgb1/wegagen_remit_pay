@@ -1,6 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../payment/streamlined_billing_screen.dart';
+import '../payment/billing_info_screen.dart';
+import '../payment/payment_processing_screen.dart';
+import '../../services/cash_pickup_service.dart';
+import '../transfer/transfer_success_screen.dart';
 
 class ModernConfirmationScreen extends ConsumerStatefulWidget {
   final String transferType;
@@ -59,45 +64,57 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
   }
 
   Future<void> _processTransfer() async {
-    setState(() => _isProcessing = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isProcessing = false);
+    setState(() {
+      _isProcessing = true;
+    });
 
-    String toAccount = '';
-    String toAccountHolder = '';
-
-    switch (widget.transferType) {
-      case 'wegagen_bank':
-        toAccount = widget.recipientData['accountNumber'] ?? '';
-        toAccountHolder = widget.recipientData['accountHolderName'] ?? '';
-        break;
-      case 'wegagen_ebirr':
-        toAccount = widget.recipientData['phoneNumber'] ?? '';
-        toAccountHolder = widget.recipientData['holderName'] ?? '';
-        break;
-      case 'cash_pickup':
-        toAccount = 'CASH_PICKUP';
-        toAccountHolder = widget.recipientData['fullName'] ?? '';
-        break;
-      case 'school_pay':
-        toAccount = widget.recipientData['accountNumber'] ?? '';
-        toAccountHolder = widget.recipientData['schoolName'] ?? '';
-        break;
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
+    try {
+      // Use StreamlinedBillingScreen for cash pickup (same as Wegagen bank process)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
           builder: (context) => StreamlinedBillingScreen(
-            toAccountHolder: toAccountHolder,
-            toAccount: toAccount,
-            amount: widget.etbAmount,
-            currency: 'ETB',
+            toAccountHolder: _getCashPickupRecipientName(),
+            toAccount: _getCashPickupRecipientDetails(), 
+            amount: widget.etbAmount, // ETB amount recipient receives
+            currency: 'ETB', // Currency recipient receives
             exchangeRate: widget.exchangeRate,
-            originalAmount: widget.amount,
-            originalCurrency: widget.currency,
+            originalAmount: widget.amount, // Original sender amount
+            originalCurrency: widget.currency, // Original sender currency
+            transferType: widget.transferType, // Pass transfer type
+            recipientData: widget.recipientData, // Pass full recipient data
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error processing transfer: $e');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  // Helper to get recipient name for cash pickup
+  String _getCashPickupRecipientName() {
+    final data = widget.recipientData;
+    return '${data['first_name'] ?? ''} ${data['middle_name'] ?? ''} ${data['last_name'] ?? ''}'.trim();
+  }
+
+  // Helper to get recipient details for cash pickup  
+  String _getCashPickupRecipientDetails() {
+    final data = widget.recipientData;
+    return '${data['phone_number'] ?? ''} | ${data['city'] ?? ''}, ${data['country'] ?? 'ET'}';
   }
 
   @override
@@ -331,13 +348,15 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
 
       case 'cash_pickup':
         widgets.addAll([
-          _buildRecipientRow('Full Name', data['fullName'] ?? ''),
+          _buildRecipientRow('Phone Number', data['phone_number'] ?? ''),
           const SizedBox(height: 12),
-          _buildRecipientRow('Phone', data['phoneNumber'] ?? ''),
+          _buildRecipientRow('Full Name', '${data['first_name'] ?? ''} ${data['middle_name'] ?? ''} ${data['last_name'] ?? ''}'.trim()),
           const SizedBox(height: 12),
           _buildRecipientRow('Address', data['address'] ?? ''),
           const SizedBox(height: 12),
-          _buildRecipientRow('City', data['city'] ?? ''),
+          _buildRecipientRow('City', '${data['city'] ?? ''}, ${data['state'] ?? ''}'),
+          const SizedBox(height: 12),
+          _buildRecipientRow('Reason', data['relationship_to_sender'] ?? ''),
         ]);
         break;
 

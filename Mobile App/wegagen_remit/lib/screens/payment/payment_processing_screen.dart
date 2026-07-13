@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/three_ds_service.dart';
 import '../../providers/payment_providers.dart';
+import '../../config/url_container.dart';
 import '../transfer/transfer_success_screen.dart';
 import 'three_ds_auth_screen.dart';
 
@@ -16,6 +17,7 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
   final String? remark;
   final ThreeDSAuthResult? threeDSResult;
   final String? transactionId;
+  final String? transferType; // Add transfer type to detect cash pickup
 
   const PaymentProcessingScreen({
     super.key,
@@ -27,6 +29,7 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
     this.remark,
     this.threeDSResult,
     this.transactionId,
+    this.transferType,
   });
 
   @override
@@ -121,7 +124,7 @@ class _PaymentProcessingScreenState
             '   👤 Billing: ${billingInfo['first_name']} ${billingInfo['last_name']}');
         print('   📧 Email: ${billingInfo['email']}');
         print('   📱 Recipient: ${recipientInfo['account_holder']}');
-        print('   🎫 Token: ${widget.paymentToken.substring(0, 20)}...');
+        print('   🎫 Token: ${widget.paymentToken.length > 20 ? widget.paymentToken.substring(0, 20) + '...' : widget.paymentToken}');
       }
 
       if (amount <= 0) {
@@ -134,7 +137,7 @@ class _PaymentProcessingScreenState
         print('\n🔄 Starting 3DS flow via ThreeDSService...');
       }
 
-      // Process payment with 3DS
+      // Process payment with 3DS - route to correct endpoint based on transfer type
       final paymentResult = await _threeDSService.processPaymentWith3DS(
         paymentToken: widget.paymentToken,
         amount: amount,
@@ -142,6 +145,7 @@ class _PaymentProcessingScreenState
         billingInfo: billingInfo,
         recipientInfo: recipientInfo,
         remark: widget.remark ?? formData.remark,
+        transferType: widget.transferType, // Pass transfer type for endpoint routing
       );
 
       if (kDebugMode) {
@@ -225,27 +229,65 @@ class _PaymentProcessingScreenState
       _updateStep(3); // Completing payment
 
       try {
-        // Call payment finalization directly without 3DS challenge
-        final finalPaymentResult = await _threeDSService.finalizePayment(
-          transientToken: paymentResult.transientToken ?? widget.paymentToken,
-          customerId: paymentResult.customerId ?? '',
-          amount: paymentResult.amount ?? 0,
-          exchangeRate: 1.0,
-          authenticationPayload: {
-            'consumerAuthenticationInformation': {
-              'authenticationTransactionId':
-                  paymentResult.threeDSEnrollment?.authenticationTransactionId,
-              'cavv': null, // No CAVV for frictionless
-              'xid': null, // No XID for frictionless
-              'eciRaw': '07', // Internet transaction
-              'ucafAuthenticationData': null,
-              'ucafCollectionIndicator': null,
-            }
-          },
-        );
+        // Determine if this is a cash pickup transfer
+        final isCashPickup = widget.transferType == 'cash_pickup';
+        
+        if (kDebugMode) {
+          print('💳 Transfer Type: ${widget.transferType}');
+          print('💰 Is Cash Pickup: $isCashPickup');
+          if (isCashPickup) {
+            print('🏪 Using Cash Pickup endpoint: ${UrlContainer.processPaymentWith3DSForCashPicup}');
+          } else {
+            print('🏦 Using Regular endpoint: ${UrlContainer.processPaymentWith3DS}');
+          }
+        }
+
+        // Call appropriate payment finalization method
+        final PaymentResult finalPaymentResult;
+        
+        if (isCashPickup) {
+          // Call cash pickup payment finalization with recipient info
+          finalPaymentResult = await _threeDSService.finalizeCashPickupPayment(
+            transientToken: paymentResult.transientToken ?? widget.paymentToken,
+            customerId: paymentResult.customerId ?? '',
+            amount: paymentResult.amount ?? 0,
+            exchangeRate: 1.0,
+            authenticationPayload: {
+              'consumerAuthenticationInformation': {
+                'authenticationTransactionId':
+                    paymentResult.threeDSEnrollment?.authenticationTransactionId,
+                'cavv': null, // No CAVV for frictionless
+                'xid': null, // No XID for frictionless
+                'eciRaw': '07', // Internet transaction
+                'ucafAuthenticationData': null,
+                'ucafCollectionIndicator': null,
+              }
+            },
+            recipientInfo: recipientInfo, // Pass recipient info for account search
+          );
+        } else {
+          // Call regular payment finalization
+          finalPaymentResult = await _threeDSService.finalizePayment(
+            transientToken: paymentResult.transientToken ?? widget.paymentToken,
+            customerId: paymentResult.customerId ?? '',
+            amount: paymentResult.amount ?? 0,
+            exchangeRate: 1.0,
+            authenticationPayload: {
+              'consumerAuthenticationInformation': {
+                'authenticationTransactionId':
+                    paymentResult.threeDSEnrollment?.authenticationTransactionId,
+                'cavv': null, // No CAVV for frictionless
+                'xid': null, // No XID for frictionless
+                'eciRaw': '07', // Internet transaction
+                'ucafAuthenticationData': null,
+                'ucafCollectionIndicator': null,
+              }
+            },
+          );
+        }
 
         if (kDebugMode) {
-          print('✅ Direct payment finalization successful!');
+          print('✅ Payment finalization successful!');
           print('🆔 Final Transaction ID: ${finalPaymentResult.transactionId}');
         }
 
@@ -365,24 +407,57 @@ class _PaymentProcessingScreenState
           print('💳 Calling finalizePayment with 3DS data...');
         }
 
-        // Call your backend's /payments/pay endpoint with the 3DS authentication data
-        final finalPaymentResult = await _threeDSService.finalizePayment(
-          transientToken: paymentResult.transientToken ?? widget.paymentToken,
-          customerId: paymentResult.customerId ?? '',
-          amount: paymentResult.amount ?? 0,
-          exchangeRate: 1.0, // Get this from your form data
-          authenticationPayload: {
-            'consumerAuthenticationInformation': {
-              'authenticationTransactionId':
-                  authResult.authenticationTransactionId,
-              'cavv': authResult.cavv,
-              'xid': authResult.xid,
-              'eciRaw': authResult.eci,
-              'ucafAuthenticationData': authResult.ucafAuthenticationData,
-              'ucafCollectionIndicator': authResult.ucafCollectionIndicator,
-            }
-          },
-        );
+        // Determine if this is a cash pickup transfer  
+        final isCashPickup = widget.transferType == 'cash_pickup';
+        
+        if (kDebugMode) {
+          print('💳 3DS Auth - Transfer Type: ${widget.transferType}');
+          print('💰 3DS Auth - Is Cash Pickup: $isCashPickup');
+        }
+
+        // Call appropriate payment finalization method with 3DS data
+        final PaymentResult finalPaymentResult;
+        
+        if (isCashPickup) {
+          // Call cash pickup payment finalization with 3DS authentication
+          finalPaymentResult = await _threeDSService.finalizeCashPickupPayment(
+            transientToken: paymentResult.transientToken ?? widget.paymentToken,
+            customerId: paymentResult.customerId ?? '',
+            amount: paymentResult.amount ?? 0,
+            exchangeRate: 1.0,
+            authenticationPayload: {
+              'consumerAuthenticationInformation': {
+                'authenticationTransactionId':
+                    authResult.authenticationTransactionId,
+                'cavv': authResult.cavv,
+                'xid': authResult.xid,
+                'eciRaw': authResult.eci,
+                'ucafAuthenticationData': authResult.ucafAuthenticationData,
+                'ucafCollectionIndicator': authResult.ucafCollectionIndicator,
+              }
+            },
+            recipientInfo: recipientInfo, // Pass recipient info for account search
+          );
+        } else {
+          // Call regular payment finalization with 3DS authentication
+          finalPaymentResult = await _threeDSService.finalizePayment(
+            transientToken: paymentResult.transientToken ?? widget.paymentToken,
+            customerId: paymentResult.customerId ?? '',
+            amount: paymentResult.amount ?? 0,
+            exchangeRate: 1.0,
+            authenticationPayload: {
+              'consumerAuthenticationInformation': {
+                'authenticationTransactionId':
+                    authResult.authenticationTransactionId,
+                'cavv': authResult.cavv,
+                'xid': authResult.xid,
+                'eciRaw': authResult.eci,
+                'ucafAuthenticationData': authResult.ucafAuthenticationData,
+                'ucafCollectionIndicator': authResult.ucafCollectionIndicator,
+              }
+            },
+          );
+        }
 
         if (kDebugMode) {
           print('✅ Payment finalization successful!');

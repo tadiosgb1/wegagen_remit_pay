@@ -45,6 +45,9 @@ class UrlContainer {
       '$baseUrl/payments/authentication-results';
   static String get processPaymentWith3DS => '$baseUrl/payments/pay';
 
+  static String get processPaymentWith3DSForCashPicup =>
+      '$baseUrl/payments/pay/cash-pickup';
+
   // Exchange rate endpoints
   static String get getExchangeRate => '$baseUrl/internal-transfer/rate';
 

@@ -18,6 +18,8 @@ class StreamlinedBillingScreen extends ConsumerStatefulWidget {
   final double exchangeRate; // Hidden from UI but used internally
   final double originalAmount; // Original sender input amount
   final String originalCurrency; // Original sender currency
+  final String? transferType; // Add transfer type parameter
+  final Map<String, dynamic>? recipientData; // Add recipient data parameter
 
   const StreamlinedBillingScreen({
     super.key,
@@ -28,6 +30,8 @@ class StreamlinedBillingScreen extends ConsumerStatefulWidget {
     required this.exchangeRate,
     required this.originalAmount,
     required this.originalCurrency,
+    this.transferType,
+    this.recipientData,
   });
 
   @override
@@ -915,13 +919,19 @@ class _StreamlinedBillingScreenState
       if (kIsWeb) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const PaymentMobileOptimizedScreen()),
+          MaterialPageRoute(builder: (context) => PaymentMobileOptimizedScreen(
+            transferType: widget.transferType,
+            recipientData: widget.recipientData,
+          )),
         );
       } else {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const PaymentMobileOptimizedScreen(),
+            builder: (context) => PaymentMobileOptimizedScreen(
+              transferType: widget.transferType,
+              recipientData: widget.recipientData,
+            ),
           ),
         );
       }

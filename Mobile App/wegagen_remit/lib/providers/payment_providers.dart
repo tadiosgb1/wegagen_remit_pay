@@ -19,38 +19,42 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
 });
 
 // State providers
-final paymentFormProvider = StateNotifierProvider<PaymentFormNotifier, PaymentFormData>((ref) {
+final paymentFormProvider =
+    StateNotifierProvider<PaymentFormNotifier, PaymentFormData>((ref) {
   return PaymentFormNotifier();
 });
 
-final captureContextProvider = FutureProvider<CaptureContextResponse>((ref) async {
+final captureContextProvider =
+    FutureProvider<CaptureContextResponse>((ref) async {
   final repository = ref.watch(paymentRepositoryProvider);
   return repository.getCaptureContext();
 });
 
-final paymentProcessingProvider = StateNotifierProvider<PaymentProcessingNotifier, AsyncValue<PaymentResponse?>>((ref) {
+final paymentProcessingProvider = StateNotifierProvider<
+    PaymentProcessingNotifier, AsyncValue<PaymentResponse?>>((ref) {
   final repository = ref.watch(paymentRepositoryProvider);
   return PaymentProcessingNotifier(repository);
 });
 
 // Payment form state notifier
 class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
-  PaymentFormNotifier() : super(const PaymentFormData(
-    toAccountHolder: '',
-    toAccount: '',
-    amount: 0.0,
-    currency: 'ETB',
-    remark: '',
-    exchangeRate: 0.0,
-    firstName: '',
-    lastName: '',
-    address1: '',
-    locality: '',
-    administrativeArea: '',
-    postalCode: '',
-    country: '',
-    email: '',
-  ));
+  PaymentFormNotifier()
+      : super(const PaymentFormData(
+          toAccountHolder: '',
+          toAccount: '',
+          amount: 0.0,
+          currency: 'ETB',
+          remark: '',
+          exchangeRate: 0.0,
+          firstName: '',
+          lastName: '',
+          address1: '',
+          locality: '',
+          administrativeArea: '',
+          postalCode: '',
+          country: '',
+          email: '',
+        ));
 
   void updateAccountHolder(String value) {
     state = state.copyWith(toAccountHolder: value);
@@ -78,7 +82,7 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
     state = state.copyWith(exchangeRate: value);
     _calculateBonus();
   }
-  
+
   /// Calculate bonus in ETB only (regardless of sender currency)
   void _calculateBonus() {
     if (state.amount <= 0 || state.exchangeRate <= 0) {
@@ -86,20 +90,20 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
       state = state.copyWith(bonusCalculation: null);
       return;
     }
-    
+
     // Only calculate bonus if sender is NOT using ETB
     if (!BonusCalculator.bonusApplies(state.currency)) {
       state = state.copyWith(bonusCalculation: null);
       return;
     }
-    
+
     try {
       final bonusCalculation = BonusCalculator.calculateBonus(
         senderAmount: state.amount,
         senderCurrency: state.currency,
         exchangeRate: state.exchangeRate,
       );
-      
+
       state = state.copyWith(bonusCalculation: bonusCalculation);
     } catch (e) {
       // In case of error, clear bonus
@@ -160,12 +164,15 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormData> {
 }
 
 // Payment processing state notifier
-class PaymentProcessingNotifier extends StateNotifier<AsyncValue<PaymentResponse?>> {
+class PaymentProcessingNotifier
+    extends StateNotifier<AsyncValue<PaymentResponse?>> {
   final PaymentRepository _repository;
 
-  PaymentProcessingNotifier(this._repository) : super(const AsyncValue.data(null));
+  PaymentProcessingNotifier(this._repository)
+      : super(const AsyncValue.data(null));
 
-  Future<void> processPayment(PaymentFormData formData, String paymentToken) async {
+  Future<void> processPayment(
+      PaymentFormData formData, String paymentToken) async {
     state = const AsyncValue.loading();
 
     try {

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'modern_confirmation_screen.dart';
-import '../../services/account_service.dart'; // Updated import
-import '../../models/account_info_response.dart'; // Updated import
+import '../../services/account_service.dart';
+import '../../models/account_info_response.dart';
 
 class RecipientDetailsScreen extends StatefulWidget {
   final String transferType;
@@ -42,15 +42,34 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   bool _isPhoneVerified = false;
   String _ebirrHolderName = '';
 
-  final AccountService _accountService = AccountService(); // Updated service
+  final AccountService _accountService = AccountService();
   bool _isVerifying = false;
   Timer? _accountVerificationTimer;
   String _lastVerifiedAccountNumber = '';
+  
+  // Cash pickup fields - all required API fields
   final _recipientPhoneController = TextEditingController();
-  final _fullNameController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _middleNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _countryController = TextEditingController();
+  final _stateController = TextEditingController();
   final _cityController = TextEditingController();
-  final _regionController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _relationshipController = TextEditingController();
+  final _currencyController = TextEditingController();
+  final _expectedAmountController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill cash pickup fields
+    if (widget.transferType == 'cash_pickup') {
+      _countryController.text = 'ET';
+      _currencyController.text = widget.currency;
+      _expectedAmountController.text = widget.etbAmount.toString();
+    }
+  }
 
   @override
   void dispose() {
@@ -58,10 +77,16 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     _accountNumberController.dispose();
     _phoneNumberController.dispose();
     _recipientPhoneController.dispose();
-    _fullNameController.dispose();
-    _addressController.dispose();
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _lastNameController.dispose();
+    _countryController.dispose();
+    _stateController.dispose();
     _cityController.dispose();
-    _regionController.dispose();
+    _addressController.dispose();
+    _relationshipController.dispose();
+    _currencyController.dispose();
+    _expectedAmountController.dispose();
     super.dispose();
   }
 
@@ -75,8 +100,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         return 'Cash Pickup Transfer';
       case 'other_banks':
         return 'Other Banks Transfer';
-      case 'school_pay':
-        return 'School Payment';
       default:
         return 'Money Transfer';
     }
@@ -89,11 +112,9 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       case 'wegagen_ebirr':
         return Icons.phone_android;
       case 'cash_pickup':
-        return Icons.send;
+        return Icons.local_atm;
       case 'other_banks':
         return Icons.account_balance_outlined;
-      case 'school_pay':
-        return Icons.school;
       default:
         return Icons.send;
     }
@@ -105,7 +126,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
         children: [
-          // Step 1 - Active
           Expanded(
             child: Container(
               height: 4,
@@ -115,7 +135,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
               ),
             ),
           ),
-          // Step 2 - Active
           Expanded(
             child: Container(
               height: 4,
@@ -125,7 +144,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
               ),
             ),
           ),
-          // Step 3 - Active
           Expanded(
             child: Container(
               height: 4,
@@ -135,7 +153,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
               ),
             ),
           ),
-          // Step 4 - Inactive
           Expanded(
             child: Container(
               height: 4,
@@ -150,6 +167,15 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     );
   }
 
+  void _verifyPhone() {
+    if (_phoneNumberController.text.isNotEmpty) {
+      setState(() {
+        _isPhoneVerified = true;
+        _ebirrHolderName = 'KIDUS ATSBIH';
+      });
+    }
+  }
+
   Future<void> _verifyAccount([String? accountNumberArg]) async {
     final accountNumber = accountNumberArg?.trim() ?? _accountNumberController.text.trim();
     if (accountNumber.isEmpty) return;
@@ -161,32 +187,13 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     });
 
     try {
-      print('🔍 Starting account verification for: $accountNumber');
-      
-      // Use the new AccountService instead of TransferService
-      final response = await _accountService.getAccountInfo(
-        accountNumber,
-      );
-
-      print('📱 Received response: ${response.success}');
-      if (response.account != null) {
-        print('👤 Account holder: ${response.account!.accountHolderName}');
-        print('🏦 Account type: ${response.account!.accountTypeDescription}');
-        print('✅ Can receive: ${response.account!.canReceiveMoney}');
-        print('🔴 Is active: ${response.account!.isActive}');
-      }
+      final response = await _accountService.getAccountInfo(accountNumber);
 
       if (mounted) {
-        // Check if response is successful AND has valid account data
         if (response.success && response.account != null) {
           final accountData = response.account!;
           
-          // Validate that the account data is actually valid (not empty)
-          final isValidAccount = _isValidAccountData(accountData);
-          
-          print('🎯 Account validation result: $isValidAccount');
-          
-          if (isValidAccount) {
+          if (_isValidAccountData(accountData)) {
             setState(() {
               _isAccountVerified = true;
               _accountHolderName = accountData.accountHolderName;
@@ -194,19 +201,12 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
               _isVerifying = false;
             });
             _lastVerifiedAccountNumber = accountNumber;
-
-            print('✅ Account verified successfully!');
-            print('👤 Display name: $_accountHolderName');
-            print('🏦 Display type: $_accountType');
-            
           } else {
-            // Backend returned empty/invalid account data
             setState(() {
               _isAccountVerified = false;
               _isVerifying = false;
             });
             _lastVerifiedAccountNumber = '';
-            print('❌ Account data validation failed');
             _showErrorMessage('Account not found. Please verify the account number and try again.');
           }
         } else {
@@ -215,15 +215,12 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             _isVerifying = false;
           });
           _lastVerifiedAccountNumber = '';
-          print('❌ Response unsuccessful or no account data');
           _showErrorMessage(response.message?.isNotEmpty == true
               ? response.message! 
               : 'Account not found. Please verify the account number.');
         }
       }
     } catch (e) {
-      print('❌ Account verification error: $e');
-      
       if (mounted) {
         setState(() {
           _isAccountVerified = false;
@@ -235,41 +232,14 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     }
   }
 
-  /// Validate that account data contains actual valid information
-  /// Updated to work with the new AccountInfo model
   bool _isValidAccountData(AccountInfo accountData) {
-    print('🔍 VALIDATING ACCOUNT DATA:');
-    print('   Account Holder Name: "${accountData.accountHolderName}"');
-    print('   Account Holder Name Length: ${accountData.accountHolderName.length}');
-    print('   Account Holder Name Trimmed: "${accountData.accountHolderName.trim()}"');
-    print('   Is Active: ${accountData.isActive}');
-    print('   Can Receive Money: ${accountData.canReceiveMoney}');
-    print('   Account Status: ${accountData.accountStatus}');
-    print('   Is Frozen: ${accountData.frozen}');
+    if (accountData.accountHolderName.trim().isEmpty) return false;
     
-    // Check if account holder name is empty or null
-    if (accountData.accountHolderName.trim().isEmpty) {
-      print('❌ VALIDATION FAILED: Account holder name is empty');
-      return false;
-    }
-    
-    // Check if account holder name is just whitespace or placeholder text
     final name = accountData.accountHolderName.trim().toLowerCase();
-    if (name == 'null' || name == 'n/a' || name == 'unknown' || name.length < 2) {
-      print('❌ VALIDATION FAILED: Account holder name is invalid: "$name"');
-      return false;
-    }
+    if (name == 'null' || name == 'n/a' || name == 'unknown' || name.length < 2) return false;
     
-    // Check if account is active and can receive money
-    if (!accountData.isActive || !accountData.canReceiveMoney) {
-      print('❌ VALIDATION FAILED: Account not active or cannot receive money');
-      print('   Is Active: ${accountData.isActive} (status: ${accountData.accountStatus}, frozen: ${accountData.frozen})');
-      print('   Can Receive: ${accountData.canReceiveMoney}');
-      return false;
-    }
+    if (!accountData.isActive || !accountData.canReceiveMoney) return false;
     
-    print('✅ VALIDATION PASSED: Account data is valid');
-    // Account data looks valid
     return true;
   }
 
@@ -289,15 +259,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
-  }
-
-  void _verifyPhone() {
-    if (_phoneNumberController.text.isNotEmpty) {
-      setState(() {
-        _isPhoneVerified = true;
-        _ebirrHolderName = 'KIDUS ATSBIH';
-      });
-    }
   }
 
   void _proceedToConfirmation() {
@@ -322,11 +283,17 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
           break;
         case 'cash_pickup':
           recipientData = {
-            'phoneNumber': _recipientPhoneController.text,
-            'fullName': _fullNameController.text,
-            'address': _addressController.text,
+            'phone_number': _recipientPhoneController.text,
+            'first_name': _firstNameController.text,
+            'middle_name': _middleNameController.text,
+            'last_name': _lastNameController.text,
+            'country': _countryController.text,
+            'state': _stateController.text,
             'city': _cityController.text,
-            'region': _regionController.text,
+            'address': _addressController.text,
+            'relationship_to_sender': _relationshipController.text,
+            'currency': _currencyController.text,
+            'expected_amount': _expectedAmountController.text,
           };
           break;
         case 'other_banks':
@@ -364,10 +331,11 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         return _isPhoneVerified;
       case 'cash_pickup':
         return _recipientPhoneController.text.isNotEmpty &&
-            _fullNameController.text.isNotEmpty &&
-            _addressController.text.isNotEmpty &&
+            _firstNameController.text.isNotEmpty &&
+            _lastNameController.text.isNotEmpty &&
             _cityController.text.isNotEmpty &&
-            _regionController.text.isNotEmpty;
+            _addressController.text.isNotEmpty &&
+            _relationshipController.text.isNotEmpty;
       case 'other_banks':
         return _isAccountVerified;
       default:
@@ -378,7 +346,8 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    const double _extraBottomPadding = 12.0; // raise button a little above inset
+    const double extraBottomPadding = 12.0;
+    
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       resizeToAvoidBottomInset: true,
@@ -411,7 +380,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Column(
           children: [
-            // Progress Indicator
             _buildProgressIndicator(),
             Expanded(
               child: SingleChildScrollView(
@@ -440,19 +408,17 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                       const SizedBox(height: 32),
-                      // Dynamic content based on transfer type
                       ..._buildTransferSpecificFields(),
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox.shrink(),
           ],
         ),
       ),
       bottomNavigationBar: SafeArea(
-        minimum: EdgeInsets.fromLTRB(24, 8, 24, bottomInset + _extraBottomPadding),
+        minimum: EdgeInsets.fromLTRB(24, 8, 24, bottomInset + extraBottomPadding),
         child: Padding(
           padding: const EdgeInsets.only(bottom: 0),
           child: SizedBox(
@@ -492,12 +458,11 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       default:
         return [];
     }
-  }
-
-  List<Widget> _buildBankTransferFields() {
+  }  List
+<Widget> _buildBankTransferFields() {
     return [
       const Text(
-        'Wegagen Bank Account Number',
+        'Bank Account Number',
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -521,24 +486,21 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
           controller: _accountNumberController,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
-            hintText: '1000000099839',
+            hintText: '1000123456789',
             hintStyle: TextStyle(color: Colors.grey.shade400),
-            prefixIcon: Icon(Icons.credit_card, color: Colors.grey.shade400),
+            prefixIcon: Icon(Icons.account_balance, color: Colors.grey.shade400),
             suffixIcon: _isVerifying
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFFF37021),
-                      ),
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
                 : _isAccountVerified
-                ? const Icon(Icons.check_circle, color: Colors.green)
-                : null,
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -558,7 +520,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             setState(() {
               _isAccountVerified = false;
             });
-            if (value.trim().length >= 10) {
+            if (value.length >= 10) {
               _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
                 if (mounted) {
                   _verifyAccount(value.trim());
@@ -622,7 +584,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   List<Widget> _buildEbirrTransferFields() {
     return [
       const Text(
-        'Wegagen Birr Phone Number',
+        'Wegagen E-birr Phone Number',
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -741,9 +703,60 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         keyboardType: TextInputType.phone,
       ),
       const SizedBox(height: 24),
-      // Full Name
+
+      // Name fields row
+      Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'First Name',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildInputField(
+                  controller: _firstNameController,
+                  hintText: 'First Name',
+                  prefixIcon: Icons.person,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Middle Name',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildInputField(
+                  controller: _middleNameController,
+                  hintText: 'Middle Name (optional)',
+                  prefixIcon: null,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 24),
+
+      // Last Name
       const Text(
-        'Full Name',
+        'Last Name',
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -752,11 +765,80 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       ),
       const SizedBox(height: 12),
       _buildInputField(
-        controller: _fullNameController,
-        hintText: 'Enter recipient\'s full name',
-        prefixIcon: Icons.person,
+        controller: _lastNameController,
+        hintText: 'Last Name',
+        prefixIcon: Icons.person_outline,
       ),
       const SizedBox(height: 24),
+
+      // Country and State
+      Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Country',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildInputField(
+                  controller: _countryController,
+                  hintText: 'ET',
+                  prefixIcon: Icons.flag,
+                  readOnly: true, // Auto-filled
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'State/Region',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildInputField(
+                  controller: _stateController,
+                  hintText: 'State/Region',
+                  prefixIcon: Icons.location_city_outlined,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 24),
+
+      // City
+      const Text(
+        'City',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      const SizedBox(height: 12),
+      _buildInputField(
+        controller: _cityController,
+        hintText: 'Addis Ababa',
+        prefixIcon: Icons.location_city,
+      ),
+      const SizedBox(height: 24),
+
       // Address
       const Text(
         'Address',
@@ -769,59 +851,106 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       const SizedBox(height: 12),
       _buildInputField(
         controller: _addressController,
-        hintText: 'Ethiopia',
+        hintText: 'Street address or area',
         prefixIcon: Icons.location_on,
       ),
       const SizedBox(height: 24),
-      // City and Region
-      Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'City',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+
+      // Reason for Transfer
+      const Text(
+        'Reason for Transfer',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      const SizedBox(height: 12),
+      _buildInputField(
+        controller: _relationshipController,
+        hintText: 'Family support, Business payment, Emergency, etc.',
+        prefixIcon: Icons.description,
+      ),
+      const SizedBox(height: 24),
+
+      // Summary Card - Display full info
+      if (_recipientPhoneController.text.isNotEmpty && 
+          _firstNameController.text.isNotEmpty && 
+          _lastNameController.text.isNotEmpty) ...[
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.receipt_long,
+                    color: Colors.blue.shade600,
+                    size: 20,
                   ),
-                ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  controller: _cityController,
-                  hintText: 'City',
-                  prefixIcon: null,
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    'Cash Pickup Summary',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildSummaryRow('Recipient', '${_firstNameController.text} ${_middleNameController.text} ${_lastNameController.text}'.trim()),
+              _buildSummaryRow('Phone', _recipientPhoneController.text),
+              if (_cityController.text.isNotEmpty) _buildSummaryRow('Location', '${_cityController.text}, ${_stateController.text}'),
+              if (_relationshipController.text.isNotEmpty) _buildSummaryRow('Reason', _relationshipController.text),
+              _buildSummaryRow('Amount', '${widget.etbAmount.toStringAsFixed(2)} ${widget.currency}'),
+              _buildSummaryRow('Exchange Rate', widget.exchangeRate.toStringAsFixed(4)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    ];
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    if (value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-          const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Region',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  controller: _regionController,
-                  hintText: 'Region',
-                  prefixIcon: null,
-                ),
-              ],
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ),
         ],
       ),
-    ];
+    );
   }
 
   List<Widget> _buildOtherBankTransferFields() {
@@ -885,24 +1014,21 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
           controller: _accountNumberController,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
-            hintText: 'Enter account number',
+            hintText: '1000123456789',
             hintStyle: TextStyle(color: Colors.grey.shade400),
-            prefixIcon: Icon(Icons.credit_card, color: Colors.grey.shade400),
+            prefixIcon: Icon(Icons.account_balance, color: Colors.grey.shade400),
             suffixIcon: _isVerifying
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFFF37021),
-                      ),
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
                 : _isAccountVerified
-                ? const Icon(Icons.check_circle, color: Colors.green)
-                : null,
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -922,7 +1048,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
             setState(() {
               _isAccountVerified = false;
             });
-            if (value.trim().length >= 10) {
+            if (value.length >= 10) {
               _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
                 if (mounted) {
                   _verifyAccount(value.trim());
@@ -993,6 +1119,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     required String hintText,
     IconData? prefixIcon,
     TextInputType? keyboardType,
+    bool readOnly = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -1009,30 +1136,24 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        readOnly: readOnly,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: TextStyle(color: Colors.grey.shade400),
-          prefixIcon: prefixIcon != null
-              ? Icon(prefixIcon, color: Colors.grey.shade400)
-              : null,
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade400) : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
           contentPadding: const EdgeInsets.all(16),
         ),
         validator: (value) {
-          if (value == null || value.isEmpty) {
+          if (!readOnly && (value == null || value.isEmpty)) {
             return 'This field is required';
           }
           return null;
-        },
-        onChanged: (value) {
-          setState(() {
-            // Trigger rebuild to update button state
-          });
         },
       ),
     );

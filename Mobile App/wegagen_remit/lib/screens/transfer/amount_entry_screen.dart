@@ -44,24 +44,28 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
 
   Future<void> _loadDataAndCalculate() async {
     final bonusProvider = Provider.of<BonusProvider>(context, listen: false);
-    final exchangeProvider = Provider.of<ExchangeRateProvider>(context, listen: false);
+    final exchangeProvider =
+        Provider.of<ExchangeRateProvider>(context, listen: false);
 
     // Load bonuses and exchange rates
     await Future.wait([
       bonusProvider.loadBonuses(),
-      if (exchangeProvider.exchangeRates.isEmpty) exchangeProvider.loadExchangeRates(),
+      if (exchangeProvider.exchangeRates.isEmpty)
+        exchangeProvider.loadExchangeRates(),
     ]);
 
-    _exchangeRate = exchangeProvider.getRate(widget.selectedCurrency, 'ETB') ?? 0.0;
+    _exchangeRate =
+        exchangeProvider.getRate(widget.selectedCurrency, 'ETB') ?? 0.0;
     _calculateAmount();
   }
 
   void _calculateAmount() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
-    
+
     if (amount > 0) {
       final bonusProvider = Provider.of<BonusProvider>(context, listen: false);
-      final exchangeProvider = Provider.of<ExchangeRateProvider>(context, listen: false);
+      final exchangeProvider =
+          Provider.of<ExchangeRateProvider>(context, listen: false);
 
       final calculationService = BonusCalculationService(
         bonusProvider: bonusProvider,
@@ -99,34 +103,52 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
 
   String get _transferTitle {
     switch (widget.transferType) {
-      case 'wegagen_bank': return 'Bank Account Transfer';
-      case 'wegagen_ebirr': return 'Wegagen E-birr Transfer';
-      case 'cash_pickup': return 'Cash Pickup Transfer';
-      case 'other_banks': return 'Other Banks Transfer';
-      case 'school_pay': return 'School Payment';
-      default: return 'Money Transfer';
+      case 'wegagen_bank':
+        return 'Bank Account Transfer';
+      case 'wegagen_ebirr':
+        return 'Wegagen E-birr Transfer';
+      case 'cash_pickup':
+        return 'Cash Pickup Transfer';
+      case 'other_banks':
+        return 'Other Banks Transfer';
+      case 'school_pay':
+        return 'School Payment';
+      default:
+        return 'Money Transfer';
     }
   }
 
   IconData get _transferIcon {
     switch (widget.transferType) {
-      case 'wegagen_bank': return Icons.account_balance;
-      case 'wegagen_ebirr': return Icons.phone_android;
-      case 'cash_pickup': return Icons.send;
-      case 'other_banks': return Icons.account_balance_outlined;
-      case 'school_pay': return Icons.school;
-      default: return Icons.send;
+      case 'wegagen_bank':
+        return Icons.account_balance;
+      case 'wegagen_ebirr':
+        return Icons.phone_android;
+      case 'cash_pickup':
+        return Icons.send;
+      case 'other_banks':
+        return Icons.account_balance_outlined;
+      case 'school_pay':
+        return Icons.school;
+      default:
+        return Icons.send;
     }
   }
 
   String _getCurrencyFlag(String code) {
     switch (code) {
-      case 'USD': return '🇺🇸';
-      case 'EUR': return '🇪🇺';
-      case 'GBP': return '🇬🇧';
-      case 'SAR': return '🇸🇦';
-      case 'AED': return '🇦🇪';
-      default: return '💱';
+      case 'USD':
+        return '🇺🇸';
+      case 'EUR':
+        return '🇪🇺';
+      case 'GBP':
+        return '🇬🇧';
+      case 'SAR':
+        return '🇸🇦';
+      case 'AED':
+        return '🇦🇪';
+      default:
+        return '💱';
     }
   }
 
@@ -232,7 +254,8 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
               const SizedBox(width: 10),
               Text(
                 _transferTitle,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -277,7 +300,8 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                       const SizedBox(height: 6),
                       Text(
                         'How much would you like to send?',
-                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.grey.shade600),
                       ),
                       const SizedBox(height: 32),
 
@@ -302,17 +326,23 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                                    color: const Color(0xFFF37021)
+                                        .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
-                                  child: Text(currencyFlag, style: const TextStyle(fontSize: 32)),
+                                  child: Text(currencyFlag,
+                                      style: const TextStyle(fontSize: 32)),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: TextField(
                                     controller: _amountController,
-                                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                                    keyboardType:
+                                        TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    style: const TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold),
                                     decoration: InputDecoration(
                                       hintText: '0.00',
                                       hintStyle: TextStyle(
@@ -338,11 +368,16 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Total Amount', style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
+                                Text('Total Amount',
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        color: Colors.grey.shade600)),
                                 Row(
                                   children: [
                                     Text(
-                                      _etbAmount > 0 ? _etbAmount.toStringAsFixed(2) : '0.00',
+                                      _etbAmount > 0
+                                          ? _etbAmount.toStringAsFixed(2)
+                                          : '0.00',
                                       style: const TextStyle(
                                         fontSize: 26,
                                         fontWeight: FontWeight.bold,
@@ -350,7 +385,11 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-                                    const Text('ETB', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey)),
+                                    const Text('ETB',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.grey)),
                                   ],
                                 ),
                               ],
@@ -369,18 +408,28 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
-                              BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4)),
+                              BoxShadow(
+                                  color: Colors.grey.withValues(alpha: 0.1),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4)),
                             ],
                           ),
                           child: Column(
                             children: [
-                              const Text('Breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                              const Text('Breakdown',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600)),
                               const SizedBox(height: 16),
-                              _buildFeeRow('You send', '${_amountController.text} ${widget.selectedCurrency}'),
+                              _buildFeeRow('You send',
+                                  '${_amountController.text} ${widget.selectedCurrency}'),
                               const Divider(),
-                              _buildFeeRow('Bonus', '${_bonusAmount.toStringAsFixed(2)} ETB'),
+                              _buildFeeRow('Bonus',
+                                  '${_bonusAmount.toStringAsFixed(2)} ETB'),
                               const Divider(),
-                              _buildFeeRow('Total (ETB)', _etbAmount.toStringAsFixed(2), isTotal: true),
+                              _buildFeeRow(
+                                  'Total (ETB)', _etbAmount.toStringAsFixed(2),
+                                  isTotal: true),
                             ],
                           ),
                         ),
@@ -395,7 +444,10 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, -4)),
                   ],
                 ),
                 child: SizedBox(
@@ -410,10 +462,13 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF37021),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18)),
                       elevation: 0,
                     ),
-                    child: const Text('Continue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                    child: const Text('Continue',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),

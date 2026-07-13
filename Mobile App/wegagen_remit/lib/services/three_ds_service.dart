@@ -17,15 +17,24 @@ class ThreeDSService {
     required double amount,
     required String currency,
     required double exchangeRate,
+    String? transferType,
   }) async {
     try {
       if (kDebugMode) {
         print('💳 Processing payment token');
         print('💰 Amount: $amount $currency');
+        print('🎯 Transfer Type: $transferType');
+      }
+
+      // Always use regular endpoint for token processing - cash pickup only affects final payment
+      final endpoint = UrlContainer.processPayment;
+
+      if (kDebugMode) {
+        print('🔗 Using endpoint for token processing: $endpoint');
       }
 
       final response = await _apiService.post(
-        UrlContainer.processPayment,
+        endpoint,
         {
           'transientToken': transientToken,
           'firstName': billingInfo['first_name'] ?? '',
@@ -286,7 +295,56 @@ class ThreeDSService {
     }
   }
 
-  /// Complete 3DS payment flow
+  /// Final payment processing for Cash Pickup transfers
+  /// Uses the special cash pickup endpoint with account search fields
+  Future<PaymentResult> finalizeCashPickupPayment({
+    required String transientToken,
+    required String customerId,
+    required double amount,
+    required double exchangeRate,
+    required Map<String, dynamic> authenticationPayload,
+    required Map<String, dynamic> recipientInfo,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print('✅ Finalizing Cash Pickup payment with 3DS authentication');
+        print('📱 Recipient Info: $recipientInfo');
+      }
+
+      final response = await _apiService.post(
+        UrlContainer.processPaymentWith3DSForCashPicup,
+        {
+          'transientToken': transientToken,
+          'payload': authenticationPayload,
+          'amount': amount,
+          'customer_id': customerId,
+          'exchange_rate': exchangeRate,
+          // Cash Pickup specific fields for account search
+          'phone_number': recipientInfo['phone_number'] ?? '',
+          'first_name': recipientInfo['first_name'] ?? '',
+          'middle_name': recipientInfo['middle_name'] ?? '',
+          'last_name': recipientInfo['last_name'] ?? '',
+          'country': recipientInfo['country'] ?? 'ET',
+          'state': recipientInfo['state'] ?? '',
+          'city': recipientInfo['city'] ?? '',
+          'address': recipientInfo['address'] ?? '',
+          'relationship_to_sender': recipientInfo['relationship_to_sender'] ?? '',
+          'currency': recipientInfo['currency'] ?? 'ETB',
+          'expected_amount': recipientInfo['expected_amount'] ?? amount,
+        },
+        includeAuth: true,
+      );
+
+      return PaymentResult.fromJson(response);
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Cash Pickup payment finalization error: $e');
+      }
+      throw Exception('Failed to finalize cash pickup payment: $e');
+    }
+  }
+
+  /// Complete 3DS payment flow with transfer type routing
   /// This orchestrates the full flow using your backend endpoints
   Future<PaymentResult> processPaymentWith3DS({
     required String paymentToken,
@@ -295,21 +353,25 @@ class ThreeDSService {
     required Map<String, dynamic> billingInfo,
     required Map<String, dynamic> recipientInfo,
     String? remark,
+    String? transferType,
   }) async {
     try {
       if (kDebugMode) {
         print('💳 === 3DS PAYMENT FLOW STARTED ===');
-        print('🎫 Payment Token: ${paymentToken.substring(0, 20)}...');
+        print('💳 Transfer Type: $transferType');
+        print('💰 Is Cash Pickup: ${transferType == 'cash_pickup'}');
+        print('🎫 Payment Token: ${paymentToken.length > 20 ? paymentToken.substring(0, 20) + '...' : paymentToken}');
         print('💰 Amount: $amount $currency');
         print(
             '👤 Billing: ${billingInfo['first_name']} ${billingInfo['last_name']}');
         print('📧 Email: ${billingInfo['email']}');
-        print('📱 Recipient: ${recipientInfo['account_holder']}');
+        print('📱 Recipient Info: $recipientInfo');
       }
 
       // Step 1: Process payment token to get customer ID
       if (kDebugMode) {
         print('\n🔄 STEP 1: Processing payment token...');
+        print('🏦 Using Regular endpoint for token processing (all transfer types)');
       }
 
       final tokenResult = await processPaymentToken(
@@ -318,6 +380,7 @@ class ThreeDSService {
         amount: amount,
         currency: currency,
         exchangeRate: 1.0, // You can get this from recipientInfo or form data
+        transferType: transferType, // Pass transfer type to route to correct endpoint
       );
 
       if (!tokenResult.success || tokenResult.customerId == null) {
@@ -391,8 +454,7 @@ class ThreeDSService {
             '🔐 Real enrollment result: isEnrolled = ${enrollmentResult.isEnrolled}');
       }
 
-      // Use real CyberSource enrollment results only
-
+      // Create result with transfer type information and endpoint routing
       final regularResult = PaymentResult(
         success: true,
         status: 'enrollment_checked',
@@ -405,13 +467,18 @@ class ThreeDSService {
       );
 
       if (kDebugMode) {
-        print('📋 REGULAR RESULT:');
+        print('📋 PAYMENT RESULT WITH ENDPOINT ROUTING:');
+        if (transferType == 'cash_pickup') {
+          print('🏪 Using Cash Pickup endpoint: /payments/pay/cash-pickup');
+        } else {
+          print('🏦 Using Regular endpoint: /payments/pay');
+        }
         print('   🔐 requires3DS: ${regularResult.requires3DS}');
         print(
             '   🎮 needsAuthentication: ${regularResult.needsAuthentication}');
         print('   👤 customerId: "${regularResult.customerId}"');
         print(
-            '   🎫 transientToken: ${regularResult.transientToken?.substring(0, 20)}...');
+            '   🎫 transientToken: ${regularResult.transientToken != null && regularResult.transientToken!.length > 20 ? regularResult.transientToken!.substring(0, 20) + '...' : regularResult.transientToken}');
         print(
             '   📱 Challenge screen will ${regularResult.needsAuthentication ? 'SHOW' : 'NOT SHOW'}');
         print('💳 === 3DS PAYMENT FLOW COMPLETED ===\n');

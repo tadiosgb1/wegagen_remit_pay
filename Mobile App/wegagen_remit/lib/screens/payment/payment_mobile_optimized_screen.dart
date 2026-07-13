@@ -10,7 +10,14 @@ import '../../providers/payment_providers.dart';
 import 'payment_processing_screen.dart';
 
 class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
-  const PaymentMobileOptimizedScreen({super.key});
+  final String? transferType; // Add transferType parameter
+  final Map<String, dynamic>? recipientData; // Add recipient data parameter
+
+  const PaymentMobileOptimizedScreen({
+    super.key,
+    this.transferType,
+    this.recipientData,
+  });
 
   @override
   ConsumerState<PaymentMobileOptimizedScreen> createState() =>
@@ -19,7 +26,8 @@ class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
 
 class _PaymentMobileOptimizedScreenState
     extends ConsumerState<PaymentMobileOptimizedScreen> {
-  static const String _paymentUrl = 'https://cybersource.wegagenbanksc.com.et:3001/payments/card-form';
+  static const String _paymentUrl =
+      'https://cybersource.wegagenbanksc.com.et:3001/payments/card-form';
 
   late WebViewController controller;
   bool isLoading = true;
@@ -149,7 +157,7 @@ class _PaymentMobileOptimizedScreenState
 
     // Get payment data from provider - this should now include your $20 amount
     final formData = ref.read(paymentFormProvider);
-    
+
     if (kDebugMode) {
       print('💰 Form Data Retrieved:');
       print('   💵 Amount: ${formData.amount} ${formData.currency}');
@@ -157,14 +165,15 @@ class _PaymentMobileOptimizedScreenState
       print('   📧 Email: ${formData.email}');
       print('   📱 Recipient: ${formData.toAccountHolder}');
     }
-    
-    debugPrint('💰 Amount from form provider: ${formData.amount} ${formData.currency}');
+
+    debugPrint(
+        '💰 Amount from form provider: ${formData.amount} ${formData.currency}');
     debugPrint('👤 Billing info: ${formData.firstName} ${formData.lastName}');
-    
+
     if (kDebugMode) {
       print('🎯 Creating PaymentProcessingScreen...');
     }
-    
+
     // Navigate to payment processing screen which handles 3DS
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -183,11 +192,13 @@ class _PaymentMobileOptimizedScreenState
             'country': formData.country,
             'phone_number': '', // Add if you have phone in form
           },
-          recipientInfo: {
-            'account_holder': formData.toAccountHolder,
-            'account_number': formData.toAccount,
-          },
+          recipientInfo: widget.recipientData ??
+              {
+                'account_holder': formData.toAccountHolder,
+                'account_number': formData.toAccount,
+              },
           remark: formData.remark,
+          transferType: widget.transferType, // ✅ Pass transfer type here!
         ),
       ),
     );
@@ -215,7 +226,8 @@ class _PaymentMobileOptimizedScreenState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const Icon(Icons.error_outline,
+                        size: 64, color: Colors.red),
                     const SizedBox(height: 16),
                     Text(_error!, textAlign: TextAlign.center),
                     const SizedBox(height: 24),
@@ -237,7 +249,8 @@ class _PaymentMobileOptimizedScreenState
                   Container(
                     color: Colors.white,
                     child: const Center(
-                      child: CircularProgressIndicator(color: Color(0xFFF37021)),
+                      child:
+                          CircularProgressIndicator(color: Color(0xFFF37021)),
                     ),
                   ),
               ],
