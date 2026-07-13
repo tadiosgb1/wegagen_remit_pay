@@ -5,6 +5,7 @@ import 'package:country_picker/country_picker.dart';
 import 'modern_confirmation_screen.dart';
 import '../../services/account_service.dart';
 import '../../models/account_info_response.dart';
+import '../../config/url_container.dart';
 
 class RecipientDetailsScreen extends StatefulWidget {
   final String transferType;
@@ -59,8 +60,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   final _cityController = TextEditingController();
   final _addressController = TextEditingController();
   final _relationshipController = TextEditingController();
-  final _currencyController = TextEditingController();
-  final _expectedAmountController = TextEditingController();
 
   @override
   void initState() {
@@ -68,14 +67,11 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     // Pre-fill cash pickup fields
     if (widget.transferType == 'cash_pickup') {
       _countryController.text = 'ET';
-      _currencyController.text = widget.currency;
-      _expectedAmountController.text = widget.etbAmount.toString();
     }
   }
 
   @override
   void dispose() {
-    _accountVerificationTimer?.cancel();
     _accountNumberController.dispose();
     _phoneNumberController.dispose();
     _recipientPhoneController.dispose();
@@ -87,367 +83,119 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     _cityController.dispose();
     _addressController.dispose();
     _relationshipController.dispose();
-    _currencyController.dispose();
-    _expectedAmountController.dispose();
+    _accountVerificationTimer?.cancel();
     super.dispose();
   }
 
-  String get _transferTitle {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: Text(_getTitle()),
+        backgroundColor: const Color(0xFFF37021),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTransferSummary(),
+              const SizedBox(height: 32),
+              ..._buildTransferTypeFields(),
+              const SizedBox(height: 24),
+              _buildContinueButton(),
+              const SizedBox(height: 16), // Extra padding at bottom
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getTitle() {
     switch (widget.transferType) {
       case 'wegagen_bank':
-        return 'Bank Account Transfer';
+        return 'Wegagen Bank Transfer';
       case 'wegagen_ebirr':
         return 'Wegagen E-birr Transfer';
       case 'cash_pickup':
-        return 'Cash Pickup Transfer';
+        return 'Cash Pickup Details';
       case 'other_banks':
-        return 'Other Banks Transfer';
+        return '${widget.selectedBank} Transfer';
       default:
-        return 'Money Transfer';
+        return 'Transfer Details';
     }
   }
 
-  IconData get _transferIcon {
-    switch (widget.transferType) {
-      case 'wegagen_bank':
-        return Icons.account_balance;
-      case 'wegagen_ebirr':
-        return Icons.phone_android;
-      case 'cash_pickup':
-        return Icons.local_atm;
-      case 'other_banks':
-        return Icons.account_balance_outlined;
-      default:
-        return Icons.send;
-    }
-  }
-
-  Widget _buildProgressIndicator() {
+  Widget _buildTransferSummary() {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF37021),
-                borderRadius: BorderRadius.circular(2),
-              ),
+          const Text(
+            'Transfer Summary',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFF37021),
             ),
           ),
-          Expanded(
-            child: Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF37021),
-                borderRadius: BorderRadius.circular(2),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Amount Sending:'),
+              Text(
+                '${widget.amount.toStringAsFixed(2)} ${widget.currency}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            ),
+            ],
           ),
-          Expanded(
-            child: Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF37021),
-                borderRadius: BorderRadius.circular(2),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Recipient Gets:'),
+              Text(
+                '${widget.etbAmount.toStringAsFixed(2)} ETB',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
               ),
-            ),
+            ],
           ),
-          Expanded(
-            child: Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Exchange Rate:'),
+              Text('1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(4)} ETB'),
+            ],
           ),
         ],
       ),
     );
   }
 
-  void _verifyPhone() {
-    if (_phoneNumberController.text.isNotEmpty) {
-      setState(() {
-        _isPhoneVerified = true;
-        _ebirrHolderName = 'KIDUS ATSBIH';
-      });
-    }
-  }
-
-  Future<void> _verifyAccount([String? accountNumberArg]) async {
-    final accountNumber = accountNumberArg?.trim() ?? _accountNumberController.text.trim();
-    if (accountNumber.isEmpty) return;
-    if (_isVerifying && accountNumber == _lastVerifiedAccountNumber) return;
-
-    setState(() {
-      _isVerifying = true;
-      _isAccountVerified = false;
-    });
-
-    try {
-      final response = await _accountService.getAccountInfo(accountNumber);
-
-      if (mounted) {
-        if (response.success && response.account != null) {
-          final accountData = response.account!;
-          
-          if (_isValidAccountData(accountData)) {
-            setState(() {
-              _isAccountVerified = true;
-              _accountHolderName = accountData.accountHolderName;
-              _accountType = accountData.accountTypeDescription;
-              _isVerifying = false;
-            });
-            _lastVerifiedAccountNumber = accountNumber;
-          } else {
-            setState(() {
-              _isAccountVerified = false;
-              _isVerifying = false;
-            });
-            _lastVerifiedAccountNumber = '';
-            _showErrorMessage('Account not found. Please verify the account number and try again.');
-          }
-        } else {
-          setState(() {
-            _isAccountVerified = false;
-            _isVerifying = false;
-          });
-          _lastVerifiedAccountNumber = '';
-          _showErrorMessage(response.message?.isNotEmpty == true
-              ? response.message! 
-              : 'Account not found. Please verify the account number.');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isAccountVerified = false;
-          _isVerifying = false;
-        });
-        _lastVerifiedAccountNumber = '';
-        _showErrorMessage('Failed to verify account. Please check your connection and try again.');
-      }
-    }
-  }
-
-  bool _isValidAccountData(AccountInfo accountData) {
-    if (accountData.accountHolderName.trim().isEmpty) return false;
-    
-    final name = accountData.accountHolderName.trim().toLowerCase();
-    if (name == 'null' || name == 'n/a' || name == 'unknown' || name.length < 2) return false;
-    
-    if (!accountData.isActive || !accountData.canReceiveMoney) return false;
-    
-    return true;
-  }
-
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
-  void _proceedToConfirmation() {
-    if (_formKey.currentState!.validate()) {
-      Map<String, dynamic> recipientData = {};
-
-      switch (widget.transferType) {
-        case 'wegagen_bank':
-          if (!_isAccountVerified) return;
-          recipientData = {
-            'accountNumber': _accountNumberController.text,
-            'accountHolderName': _accountHolderName,
-            'accountType': _accountType,
-          };
-          break;
-        case 'wegagen_ebirr':
-          if (!_isPhoneVerified) return;
-          recipientData = {
-            'phoneNumber': _phoneNumberController.text,
-            'holderName': _ebirrHolderName,
-          };
-          break;
-        case 'cash_pickup':
-          recipientData = {
-            'phone_number': _recipientPhoneController.text,
-            'first_name': _firstNameController.text,
-            'middle_name': _middleNameController.text,
-            'last_name': _lastNameController.text,
-            'country': _countryController.text,
-            'state': _stateController.text,
-            'city': _cityController.text,
-            'address': _addressController.text,
-            'relationship_to_sender': _relationshipController.text,
-            'currency': _currencyController.text,
-            'expected_amount': _expectedAmountController.text,
-          };
-          break;
-        case 'other_banks':
-          if (!_isAccountVerified) return;
-          recipientData = {
-            'accountNumber': _accountNumberController.text,
-            'accountHolderName': _accountHolderName,
-            'accountType': _accountType,
-            'bankName': widget.selectedBank,
-          };
-          break;
-      }
-
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ModernConfirmationScreen(
-            transferType: widget.transferType,
-            amount: widget.amount,
-            currency: widget.currency,
-            etbAmount: widget.etbAmount,
-            fee: widget.fee,
-            exchangeRate: widget.exchangeRate,
-            recipientData: recipientData,
-          ),
-        ),
-      );
-    }
-  }
-
-  bool get _canProceed {
-    switch (widget.transferType) {
-      case 'wegagen_bank':
-        return _isAccountVerified;
-      case 'wegagen_ebirr':
-        return _isPhoneVerified;
-      case 'cash_pickup':
-        return _recipientPhoneController.text.isNotEmpty &&
-            _firstNameController.text.isNotEmpty &&
-            _lastNameController.text.isNotEmpty &&
-            _cityController.text.isNotEmpty &&
-            _addressController.text.isNotEmpty &&
-            _relationshipController.text.isNotEmpty;
-      case 'other_banks':
-        return _isAccountVerified;
-      default:
-        return false;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    const double extraBottomPadding = 12.0;
-    
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(_transferIcon, size: 20, color: Colors.black87),
-            const SizedBox(width: 8),
-            Text(
-              _transferTitle,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-      ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Column(
-          children: [
-            _buildProgressIndicator(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  24,
-                  24,
-                  24 + MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Recipient Details',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Enter the recipient\'s information',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 32),
-                      ..._buildTransferSpecificFields(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum: EdgeInsets.fromLTRB(24, 8, 24, bottomInset + extraBottomPadding),
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 0),
-          child: SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: _canProceed ? _proceedToConfirmation : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF37021),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 4,
-              ),
-              child: const Text(
-                'Continue',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildTransferSpecificFields() {
+  List<Widget> _buildTransferTypeFields() {
     switch (widget.transferType) {
       case 'wegagen_bank':
         return _buildBankTransferFields();
@@ -460,230 +208,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       default:
         return [];
     }
-  }  List
-<Widget> _buildBankTransferFields() {
-    return [
-      const Text(
-        'Bank Account Number',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: TextFormField(
-          controller: _accountNumberController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: '1000123456789',
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            prefixIcon: Icon(Icons.account_balance, color: Colors.grey.shade400),
-            suffixIcon: _isVerifying
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : _isAccountVerified
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.all(16),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter account number';
-            }
-            return null;
-          },
-          onChanged: (value) {
-            _accountVerificationTimer?.cancel();
-            setState(() {
-              _isAccountVerified = false;
-            });
-            if (value.length >= 10) {
-              _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
-                if (mounted) {
-                  _verifyAccount(value.trim());
-                }
-              });
-            }
-          },
-        ),
-      ),
-      const SizedBox(height: 24),
-      if (_isAccountVerified) ...[
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Account Verified',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Name: $_accountHolderName',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Type: $_accountType',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ];
-  }
-
-  List<Widget> _buildEbirrTransferFields() {
-    return [
-      const Text(
-        'Wegagen E-birr Phone Number',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: TextFormField(
-          controller: _phoneNumberController,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            hintText: '09XXXXXXXX',
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            prefixIcon: Icon(Icons.phone, color: Colors.grey.shade400),
-            suffixIcon: _isPhoneVerified
-                ? const Icon(Icons.check_circle, color: Colors.green)
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.all(16),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter phone number';
-            }
-            return null;
-          },
-          onChanged: (value) {
-            setState(() {
-              _isPhoneVerified = false;
-            });
-            if (value.length >= 10) {
-              _verifyPhone();
-            }
-          },
-        ),
-      ),
-      const SizedBox(height: 24),
-      if (_isPhoneVerified) ...[
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Phone Verified',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Name: $_ebirrHolderName',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ];
   }
 
   List<Widget> _buildCashPickupFields() {
@@ -721,11 +245,11 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
               ),
             ),
             const SizedBox(width: 16),
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Cash Pickup Recipient Details',
                     style: TextStyle(
                       fontSize: 18,
@@ -733,12 +257,12 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                       color: Color(0xFFF37021),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     'Enter recipient information for cash pickup',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade600,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
@@ -965,20 +489,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                   width: 2,
                 ),
               ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 1.5,
-                ),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 2,
-                ),
-              ),
               filled: true,
               fillColor: readOnly ? Colors.grey.shade50 : Colors.white,
               contentPadding: const EdgeInsets.all(16),
@@ -1075,575 +585,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(
                   color: Color(0xFFF37021),
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 1.5,
-                ),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 2,
-                ),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.all(16),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Phone number is required';
-              }
-              if (value.trim().length != 9) {
-                return 'Phone number must be exactly 9 digits';
-              }
-              if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
-                return 'Phone number must contain only digits';
-              }
-              return null;
-            },
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Ethiopian phone number (9 digits without country code)',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
-    );
-  }
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'State/Region',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildInputField(
-                  controller: _stateController,
-                  hintText: 'State/Region',
-                  prefixIcon: Icons.location_city_outlined,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 24),
-
-      // City
-      const Text(
-        'City',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
-      _buildInputField(
-        controller: _cityController,
-        hintText: 'Addis Ababa',
-        prefixIcon: Icons.location_city,
-      ),
-      const SizedBox(height: 24),
-
-      // Address
-      const Text(
-        'Address',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
-      _buildInputField(
-        controller: _addressController,
-        hintText: 'Street address or area',
-        prefixIcon: Icons.location_on,
-      ),
-      const SizedBox(height: 24),
-
-      // Reason for Transfer
-      const Text(
-        'Reason for Transfer',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
-      _buildInputField(
-        controller: _relationshipController,
-        hintText: 'Family support, Business payment, Emergency, etc.',
-        prefixIcon: Icons.description,
-      ),
-      const SizedBox(height: 24),
-
-      // Summary Card - Display full info
-      if (_recipientPhoneController.text.isNotEmpty && 
-          _firstNameController.text.isNotEmpty && 
-          _lastNameController.text.isNotEmpty) ...[
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.receipt_long,
-                    color: Colors.blue.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Cash Pickup Summary',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blue.shade700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildSummaryRow('Recipient', '${_firstNameController.text} ${_middleNameController.text} ${_lastNameController.text}'.trim()),
-              _buildSummaryRow('Phone', _recipientPhoneController.text),
-              if (_cityController.text.isNotEmpty) _buildSummaryRow('Location', '${_cityController.text}, ${_stateController.text}'),
-              if (_relationshipController.text.isNotEmpty) _buildSummaryRow('Reason', _relationshipController.text),
-              _buildSummaryRow('Amount', '${widget.etbAmount.toStringAsFixed(2)} ${widget.currency}'),
-              _buildSummaryRow('Exchange Rate', widget.exchangeRate.toStringAsFixed(4)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-      ],
-    ];
-  }
-
-  Widget _buildSummaryRow(String label, String value) {
-    if (value.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildOtherBankTransferFields() {
-    return [
-      // Selected Bank Info
-      if (widget.selectedBank != null) ...[
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.shade200),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.account_balance_outlined,
-                color: Colors.blue.shade600,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Sending to: ${widget.selectedBank}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-      ],
-      
-      // Account Number Field
-      Text(
-        '${widget.selectedBank ?? "Bank"} Account Number',
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: TextFormField(
-          controller: _accountNumberController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: '1000123456789',
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            prefixIcon: Icon(Icons.account_balance, color: Colors.grey.shade400),
-            suffixIcon: _isVerifying
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : _isAccountVerified
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.all(16),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter account number';
-            }
-            return null;
-          },
-          onChanged: (value) {
-            _accountVerificationTimer?.cancel();
-            setState(() {
-              _isAccountVerified = false;
-            });
-            if (value.length >= 10) {
-              _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
-                if (mounted) {
-                  _verifyAccount(value.trim());
-                }
-              });
-            }
-          },
-        ),
-      ),
-      const SizedBox(height: 24),
-      if (_isAccountVerified) ...[
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Account Verified',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Name: $_accountHolderName',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Type: $_accountType',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Bank: ${widget.selectedBank}',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ];
-  }
-
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String hintText,
-    IconData? prefixIcon,
-    TextInputType? keyboardType,
-    bool readOnly = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        readOnly: readOnly,
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade400),
-          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade400) : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
-          contentPadding: const EdgeInsets.all(16),
-        ),
-        validator: (value) {
-          if (!readOnly && (value == null || value.isEmpty)) {
-            return 'This field is required';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-}         
-     fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 15,
-              ),
-              prefixIcon: Icon(
-                prefixIcon,
-                color: const Color(0xFFF37021),
-                size: 22,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFF37021),
-                  width: 1.5,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: const Color(0xFFF37021).withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFF37021),
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 1.5,
-                ),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 2,
-                ),
-              ),
-              filled: true,
-              fillColor: readOnly ? Colors.grey.shade50 : Colors.white,
-              contentPadding: const EdgeInsets.all(16),
-            ),
-            validator: (value) {
-              if (isRequired && (value == null || value.trim().isEmpty)) {
-                return '$label is required';
-              }
-              return null;
-            },
-            textCapitalization: TextCapitalization.words,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildModernPhoneField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: const TextSpan(
-            text: 'Phone Number',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-            children: [
-              TextSpan(
-                text: ' *',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextFormField(
-            controller: _recipientPhoneController,
-            keyboardType: TextInputType.phone,
-            maxLength: 9, // 9 characters as requested
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            decoration: InputDecoration(
-              hintText: '912345678',
-              hintStyle: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 15,
-              ),
-              prefixIcon: const Icon(
-                Icons.phone,
-                color: Color(0xFFF37021),
-                size: 22,
-              ),
-              prefixText: '+251 ',
-              prefixStyle: const TextStyle(
-                color: Color(0xFFF37021),
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-              counterText: '', // Hide character counter
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFF37021),
-                  width: 1.5,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: const Color(0xFFF37021).withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFF37021),
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 1.5,
-                ),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.red,
                   width: 2,
                 ),
               ),
@@ -1727,26 +668,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
                 },
                 favorite: <String>['ET'],
                 showWorldWide: false,
-                countryListTheme: CountryListThemeData(
-                  flagSize: 25,
-                  backgroundColor: Colors.white,
-                  textStyle: const TextStyle(fontSize: 16, color: Colors.blueGrey),
-                  bottomSheetHeight: 500,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20.0),
-                    topRight: Radius.circular(20.0),
-                  ),
-                  inputDecoration: InputDecoration(
-                    labelText: 'Search',
-                    hintText: 'Start typing to search',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: const Color(0xFFF37021).withValues(alpha: 0.3),
-                      ),
-                    ),
-                  ),
-                ),
               );
             },
             child: Container(
@@ -1794,23 +715,6 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     );
   }
 
-  String _getCountryName(String countryCode) {
-    switch (countryCode) {
-      case 'ET':
-        return 'Ethiopia';
-      case 'US':
-        return 'United States';
-      case 'CA':
-        return 'Canada';
-      case 'GB':
-        return 'United Kingdom';
-      case 'AU':
-        return 'Australia';
-      default:
-        return countryCode;
-    }
-  }
-
   Widget _buildModernSummaryCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1818,7 +722,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         gradient: LinearGradient(
           colors: [
             Colors.blue.shade50,
-            Colors.blue.shade25,
+            Colors.blue.shade100,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1911,209 +815,588 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
     );
   }
 
-  List<Widget> _buildOtherBankTransferFields() {
+  String _getCountryName(String countryCode) {
+    switch (countryCode) {
+      case 'ET':
+        return 'Ethiopia';
+      case 'US':
+        return 'United States';
+      case 'CA':
+        return 'Canada';
+      case 'GB':
+        return 'United Kingdom';
+      case 'AU':
+        return 'Australia';
+      default:
+        return countryCode;
+    }
+  }
+
+  // Placeholder methods for other transfer types (simplified)
+  List<Widget> _buildBankTransferFields() {
     return [
-      // Selected Bank Info
-      if (widget.selectedBank != null) ...[
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.shade200),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.account_balance_outlined,
-                color: Colors.blue.shade600,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Sending to: ${widget.selectedBank}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-      ],
-      
-      // Account Number Field
-      Text(
-        '${widget.selectedBank ?? "Bank"} Account Number',
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 12),
+      // Header
       Container(
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: TextFormField(
-          controller: _accountNumberController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: '1000123456789',
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            prefixIcon: Icon(Icons.account_balance, color: Colors.grey.shade400),
-            suffixIcon: _isVerifying
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : _isAccountVerified
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.all(16),
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFF37021).withValues(alpha: 0.1),
+              const Color(0xFFF37021).withValues(alpha: 0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter account number';
-            }
-            return null;
-          },
-          onChanged: (value) {
-            _accountVerificationTimer?.cancel();
-            setState(() {
-              _isAccountVerified = false;
-            });
-            if (value.length >= 10) {
-              _accountVerificationTimer = Timer(const Duration(milliseconds: 600), () {
-                if (mounted) {
-                  _verifyAccount(value.trim());
-                }
-              });
-            }
-          },
-        ),
-      ),
-      const SizedBox(height: 24),
-      if (_isAccountVerified) ...[
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFF37021).withValues(alpha: 0.3),
+            width: 1,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF37021),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.account_balance,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
                   Text(
-                    'Account Verified',
+                    'Wegagen Bank Transfer',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade700,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF37021),
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Enter recipient Wegagen Bank account details',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Name: $_accountHolderName',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Type: $_accountType',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Bank: ${widget.selectedBank}',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+      const SizedBox(height: 32),
+
+      // Account Number Section
+      _buildModernSectionTitle('Account Information', Icons.account_balance),
+      const SizedBox(height: 16),
+      
+      // Account Number Field with Real-time Verification
+      _buildAccountNumberField(),
+      const SizedBox(height: 24),
+
+      // Account Verification Status
+      if (_isVerifying) ...[
+        _buildVerificationProgress(),
+        const SizedBox(height: 24),
+      ] else if (_isAccountVerified) ...[
+        _buildAccountVerifiedCard(),
+        const SizedBox(height: 24),
       ],
     ];
   }
 
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String hintText,
-    IconData? prefixIcon,
-    TextInputType? keyboardType,
-    bool readOnly = false,
-  }) {
+  Widget _buildAccountNumberField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: const TextSpan(
+            text: 'Wegagen Bank Account Number',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            children: [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            controller: _accountNumberController,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: '1000123456789',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 15,
+              ),
+              prefixIcon: const Icon(
+                Icons.account_balance,
+                color: Color(0xFFF37021),
+                size: 22,
+              ),
+              suffixIcon: _isVerifying
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFF37021),
+                        ),
+                      ),
+                    )
+                  : _isAccountVerified
+                      ? const Icon(Icons.check_circle, color: Colors.green, size: 24)
+                      : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF37021),
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: _isAccountVerified 
+                      ? Colors.green 
+                      : const Color(0xFFF37021).withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: _isAccountVerified ? Colors.green : const Color(0xFFF37021),
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Account number is required';
+              }
+              if (value.trim().length < 10) {
+                return 'Account number must be at least 10 digits';
+              }
+              if (!_isAccountVerified) {
+                return 'Please wait for account verification';
+              }
+              return null;
+            },
+            onChanged: (value) {
+              // Cancel previous verification timer
+              _accountVerificationTimer?.cancel();
+              
+              setState(() {
+                _isAccountVerified = false;
+                _accountHolderName = '';
+                _accountType = '';
+              });
+              
+              // Start new verification after user stops typing
+              if (value.trim().length >= 10) {
+                _accountVerificationTimer = Timer(const Duration(milliseconds: 800), () {
+                  if (mounted && value.trim() != _lastVerifiedAccountNumber) {
+                    _verifyAccount(value.trim());
+                  }
+                });
+              }
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Account will be verified automatically',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVerificationProgress() {
     return Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.orange.shade50,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFFF37021),
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Verifying Account...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Please wait while we verify the account details',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountVerifiedCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.green.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        readOnly: readOnly,
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade400),
-          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade400) : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade600,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Account Verified',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
           ),
-          filled: true,
-          fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
-          contentPadding: const EdgeInsets.all(16),
-        ),
-        validator: (value) {
-          if (!readOnly && (value == null || value.isEmpty)) {
-            return 'This field is required';
-          }
-          return null;
-        },
+          const SizedBox(height: 16),
+          _buildVerificationRow('Account Number', _accountNumberController.text),
+          _buildVerificationRow('Account Holder', _accountHolderName),
+          _buildVerificationRow('Account Type', _accountType),
+          _buildVerificationRow('Bank', 'Wegagen Bank S.C.'),
+        ],
       ),
     );
+  }
+
+  Widget _buildVerificationRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _verifyAccount(String accountNumber) async {
+    if (accountNumber.isEmpty || accountNumber.length < 10) {
+      return;
+    }
+
+    setState(() {
+      _isVerifying = true;
+      _isAccountVerified = false;
+      _accountHolderName = '';
+      _accountType = '';
+    });
+
+    try {
+      print('🔍 Verifying Wegagen account: $accountNumber');
+      print('🌐 Using API endpoint: ${UrlContainer.accountInfo}');
+      
+      final response = await _accountService.getAccountInfo(accountNumber);
+      
+      print('📱 Account verification response: success=${response.success}');
+      print('📱 Response message: ${response.message}');
+      print('📱 Response error: ${response.error}');
+      
+      if (response.success && response.account != null) {
+        final account = response.account!;
+        
+        print('📱 Account data received: ${account.accountHolderName}');
+        
+        // Validate that we have valid account data
+        if (_isValidAccountData(account)) {
+          setState(() {
+            _isAccountVerified = true;
+            _accountHolderName = account.accountHolderName;
+            _accountType = account.accountTypeDescription;
+            _lastVerifiedAccountNumber = accountNumber;
+            _isVerifying = false;
+          });
+          
+          print('✅ Account verified: ${account.accountHolderName}');
+        } else {
+          _showAccountError('Invalid account data received');
+        }
+      } else {
+        // Handle specific error cases
+        String errorMessage = 'Account not found or invalid';
+        
+        if (response.error?.contains('Request failed') == true) {
+          errorMessage = 'Connection failed. Please check your internet connection and try again.';
+        } else if (response.message?.isNotEmpty == true) {
+          errorMessage = response.message!;
+        } else if (response.error?.isNotEmpty == true) {
+          errorMessage = response.error!;
+        }
+        
+        print('❌ Account verification failed: $errorMessage');
+        _showAccountError(errorMessage);
+      }
+    } catch (e) {
+      print('❌ Account verification error: $e');
+      
+      String errorMessage = 'Unable to verify account. Please check the number and try again.';
+      
+      // Handle specific error types
+      if (e.toString().contains('Request failed')) {
+        errorMessage = 'Connection failed. Please check your internet connection and try again.';
+      } else if (e.toString().contains('SocketException')) {
+        errorMessage = 'Network connection failed. Please try again.';
+      } else if (e.toString().contains('TimeoutException')) {
+        errorMessage = 'Request timed out. Please try again.';
+      }
+      
+      _showAccountError(errorMessage);
+    }
+  }
+
+  bool _isValidAccountData(AccountInfo accountData) {
+    // Check if account holder name is empty or null
+    if (accountData.accountHolderName.trim().isEmpty) {
+      print('❌ Account holder name is empty');
+      return false;
+    }
+    
+    // Check for placeholder or invalid names
+    final name = accountData.accountHolderName.trim().toLowerCase();
+    if (name == 'null' || name == 'n/a' || name == 'unknown' || name.length < 2) {
+      print('❌ Account holder name is invalid: $name');
+      return false;
+    }
+    
+    return true;
+  }
+
+  void _showAccountError(String message) {
+    setState(() {
+      _isVerifying = false;
+      _isAccountVerified = false;
+      _accountHolderName = '';
+      _accountType = '';
+    });
+
+    print('📱 Showing account error: $message');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            if (message.contains('Connection failed') || message.contains('Request failed'))
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Text(
+                  'Please check your internet connection or try again later.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: message.contains('Connection failed') || message.contains('Request failed')
+            ? SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: () {
+                  if (_accountNumberController.text.length >= 10) {
+                    _verifyAccount(_accountNumberController.text);
+                  }
+                },
+              )
+            : null,
+      ),
+    );
+  }
+
+  List<Widget> _buildEbirrTransferFields() {
+    return [
+      const Text('E-birr transfer fields will go here'),
+    ];
+  }
+
+  List<Widget> _buildOtherBankTransferFields() {
+    return [
+      const Text('Other bank transfer fields will go here'),
+    ];
+  }
+
+  Widget _buildContinueButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _proceedToConfirmation,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF37021),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 3,
+        ),
+        child: const Text(
+          'Continue to Payment',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _proceedToConfirmation() {
+    if (_formKey.currentState!.validate()) {
+      Map<String, dynamic> recipientData = {};
+      
+      switch (widget.transferType) {
+        case 'cash_pickup':
+          recipientData = {
+            'phone_number': _recipientPhoneController.text,
+            'first_name': _firstNameController.text,
+            'middle_name': _middleNameController.text,
+            'last_name': _lastNameController.text,
+            'city': _cityController.text,
+            'country': _countryController.text,
+            'state': _stateController.text,
+            'address': _addressController.text,
+            'relationship': _relationshipController.text,
+          };
+          break;
+        // Add other cases as needed
+      }
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ModernConfirmationScreen(
+            transferType: widget.transferType,
+            amount: widget.amount,
+            currency: widget.currency,
+            etbAmount: widget.etbAmount,
+            fee: widget.fee,
+            exchangeRate: widget.exchangeRate,
+            recipientData: recipientData,
+          ),
+        ),
+      );
+    }
   }
 }
