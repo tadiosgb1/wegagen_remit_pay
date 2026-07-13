@@ -875,7 +875,13 @@ class _StreamlinedBillingScreenState
   }
 
   void _proceedToPayment() {
+    print("🔥 DEBUG: StreamlinedBillingScreen._proceedToPayment called");
+    print("🔥 DEBUG: widget.transferType = ${widget.transferType}");
+    print("🔥 DEBUG: widget.recipientData = ${widget.recipientData}");
+    
     if (_formKey.currentState?.validate() ?? false) {
+      print("🔥 DEBUG: Form validation passed, proceeding to payment");
+      
       // Update all form data in provider
       ref
           .read(paymentFormProvider.notifier)
@@ -915,6 +921,9 @@ class _StreamlinedBillingScreenState
           .read(paymentFormProvider.notifier)
           .updateRemark(_remarkController.text.trim());
 
+      print("🔥 DEBUG: About to navigate to PaymentMobileOptimizedScreen");
+      print("🔥 DEBUG: Passing transferType = ${widget.transferType}");
+
       // Navigate to payment screen
       if (kIsWeb) {
         Navigator.push(
@@ -935,6 +944,8 @@ class _StreamlinedBillingScreenState
           ),
         );
       }
+    } else {
+      print("🔥 DEBUG: Form validation FAILED - button won't work");
     }
   }
 }

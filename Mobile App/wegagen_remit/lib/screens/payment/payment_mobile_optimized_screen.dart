@@ -137,6 +137,35 @@ class _PaymentMobileOptimizedScreenState
     }
   }
 
+  Map<String, dynamic> _formatRecipientInfo(
+      Map<String, dynamic> recipientData) {
+    // For cash pickup, format the recipient information properly
+    if (widget.transferType == 'cash_pickup') {
+      final firstName = recipientData['first_name'] ?? '';
+      final middleName = recipientData['middle_name'] ?? '';
+      final lastName = recipientData['last_name'] ?? '';
+      final fullName = '$firstName $middleName $lastName'.trim();
+      final phoneNumber = recipientData['phone_number'] ?? '';
+
+      return {
+        'account_holder':
+            fullName.isNotEmpty ? fullName : 'Cash Pickup Recipient',
+        'account_number': phoneNumber.isNotEmpty ? phoneNumber : 'Cash Pickup',
+        'full_name': fullName,
+        'phone_number': phoneNumber,
+        'first_name': firstName,
+        'middle_name': middleName,
+        'last_name': lastName,
+        'city': recipientData['city'] ?? '',
+        'country': recipientData['country'] ?? 'ET',
+        'address': recipientData['address'] ?? '',
+      };
+    }
+
+    // For other transfer types, return as-is
+    return recipientData;
+  }
+
   Future<void> _handleTokenReceived(String token) async {
     debugPrint('💳 Received transient token from WebView: $token');
 
@@ -146,6 +175,10 @@ class _PaymentMobileOptimizedScreenState
       print('🚀 === TOKEN RECEIVED - STARTING NAVIGATION ===');
       print('💳 Token: ${token.substring(0, 30)}...');
       print('📱 About to navigate to PaymentProcessingScreen...');
+      print(
+          '🔥 DEBUG: PaymentMobileOptimizedScreen received transferType: ${widget.transferType}');
+      print(
+          '🔥 DEBUG: PaymentMobileOptimizedScreen received recipientData: ${widget.recipientData}');
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -175,6 +208,19 @@ class _PaymentMobileOptimizedScreenState
     }
 
     // Navigate to payment processing screen which handles 3DS
+    if (kDebugMode) {
+      print('🚀 === NAVIGATING TO PAYMENT PROCESSING SCREEN ===');
+      print('📱 Passing transferType: ${widget.transferType}');
+      print('💳 Passing paymentToken: ${token.substring(0, 20)}...');
+      print('💰 Passing amount: ${formData.amount}');
+      print('💱 Passing currency: ${formData.currency}');
+      print('👤 Passing recipientInfo: ${widget.recipientData ?? {
+            'account_holder': formData.toAccountHolder,
+            'account_number': formData.toAccount
+          }}');
+      print('🚀 === NAVIGATION START ===');
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => PaymentProcessingScreen(
@@ -192,11 +238,12 @@ class _PaymentMobileOptimizedScreenState
             'country': formData.country,
             'phone_number': '', // Add if you have phone in form
           },
-          recipientInfo: widget.recipientData ??
-              {
-                'account_holder': formData.toAccountHolder,
-                'account_number': formData.toAccount,
-              },
+          recipientInfo: widget.recipientData != null
+              ? _formatRecipientInfo(widget.recipientData!)
+              : {
+                  'account_holder': formData.toAccountHolder,
+                  'account_number': formData.toAccount,
+                },
           remark: formData.remark,
           transferType: widget.transferType, // ✅ Pass transfer type here!
         ),

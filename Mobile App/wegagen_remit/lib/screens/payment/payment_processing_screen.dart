@@ -66,6 +66,16 @@ class _PaymentProcessingScreenState
   @override
   void initState() {
     super.initState();
+    
+    if (kDebugMode) {
+      print('\n🎯 === PAYMENT PROCESSING SCREEN INIT ===');
+      print('📱 Received transferType: ${widget.transferType}');
+      print('💳 Received paymentToken: ${widget.paymentToken.substring(0, 20)}...');
+      print('💰 Received amount: ${widget.amount}');
+      print('💱 Received currency: ${widget.currency}');
+      print('🎯 === INIT COMPLETE ===\n');
+    }
+    
     _initializeAnimations();
     _processPayment();
   }
