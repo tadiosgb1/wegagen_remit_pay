@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../services/bonus_service.dart';
 import '../main_navigation_screen.dart';
 import '../transactions/transactions_screen.dart';
+import '../../constants/colors.dart';
 
 class TransferSuccessScreen extends StatelessWidget {
   final String transferType;
@@ -33,7 +34,7 @@ class TransferSuccessScreen extends StatelessWidget {
       case 'wegagen_bank':
         return 'Wegagen Bank Transfer';
       case 'wegagen_ebirr':
-        return 'E-birr Transfer';
+        return 'wegagen E-birr Transfer';
       case 'cash_pickup':
         return 'Cash Pickup';
       case 'school_pay':
@@ -231,9 +232,9 @@ class TransferSuccessScreen extends StatelessWidget {
                               width: double.infinity,
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                                color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFF37021).withValues(alpha: 0.3)),
+                                border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 children: [
@@ -242,7 +243,7 @@ class TransferSuccessScreen extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFFF37021),
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -251,7 +252,7 @@ class TransferSuccessScreen extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFFF37021),
+                                      color: AppColors.primary,
                                       letterSpacing: 2,
                                     ),
                                   ),
@@ -348,8 +349,8 @@ class TransferSuccessScreen extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF37021),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textOnPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -373,7 +374,7 @@ class TransferSuccessScreen extends StatelessWidget {
 
   void _shareReceipt() {
     final buffer = StringBuffer();
-    buffer.writeln('Transfer Receipt - Wegagen Remit');
+    buffer.writeln('Transfer Receipt - wegagen Remit');
     buffer.writeln();
     buffer.writeln('Amount Sent: ${amount.toStringAsFixed(2)} $currency');
     buffer.writeln('Recipient: $recipientName');
@@ -387,7 +388,7 @@ class TransferSuccessScreen extends StatelessWidget {
     buffer.writeln('Transaction ID: $transactionId');
     buffer.writeln('Status: Completed');
     buffer.writeln();
-    buffer.writeln('Thank you for using Wegagen Remit!');
+    buffer.writeln('Thank you for using wegagen Remit!');
 
     final receiptText = buffer.toString();
 

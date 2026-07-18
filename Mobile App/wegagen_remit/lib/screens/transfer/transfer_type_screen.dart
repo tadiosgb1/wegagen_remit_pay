@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../constants/colors.dart';
 import '../../widgets/auth_guard.dart';
 import '../../providers/exchange_rate_provider.dart';
 import 'amount_entry_screen.dart';
@@ -104,9 +105,9 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
   String get _transferTitle {
     switch (widget.transferType) {
       case 'wegagen_bank':
-        return 'Bank Account Transfer';
+        return 'Wegagen Bank Transfer';
       case 'wegagen_ebirr':
-        return 'Wegagen E-birr Transfer';
+        return 'wegagen E-birr Transfer';
       case 'cash_pickup':
         return 'Cash Pickup Transfer';
       case 'other_banks':
@@ -140,7 +141,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
       case 'wegagen_bank':
         return 'Send money directly to Wegagen Bank accounts in Ethiopia';
       case 'wegagen_ebirr':
-        return 'Send money to Wegagen E-birr mobile wallets';
+        return 'Send money to wegagen E-birr mobile wallets';
       case 'cash_pickup':
         return 'Send money for cash pickup at authorized locations';
       case 'other_banks':
@@ -229,7 +230,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            CircularProgressIndicator(color: Color(0xFFF37021)),
+                            CircularProgressIndicator(color: AppColors.primary),
                             SizedBox(height: 16),
                             Text('Loading exchange rates...'),
                           ],
@@ -256,7 +257,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                                 icon: const Icon(Icons.refresh),
                                 label: const Text('Retry'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF37021),
+                                  backgroundColor: AppColors.primary,
                                 ),
                               ),
                             ],
@@ -282,7 +283,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFFF37021) : Colors.grey.shade200,
+                              color: isSelected ? AppColors.border : Colors.grey.shade200,
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: [
@@ -300,7 +301,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                               height: 48,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFFF37021).withValues(alpha: 0.1)
+                                    ? AppColors.primary.withValues(alpha: 0.1)
                                     : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -313,7 +314,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w600,
-                                color: isSelected ? const Color(0xFFF37021) : Colors.black87,
+                                color: isSelected ? AppColors.primary : Colors.black87,
                               ),
                             ),
                             subtitle: Column(
@@ -330,7 +331,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFFF37021),
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ],
@@ -339,7 +340,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                               value: currency['code'],
                               groupValue: _selectedCurrency,
                               onChanged: (value) => setState(() => _selectedCurrency = value!),
-                              activeColor: const Color(0xFFF37021),
+                              activeColor: AppColors.primary,
                             ),
                             onTap: () => setState(() => _selectedCurrency = currency['code']),
                           ),
@@ -381,7 +382,7 @@ class _TransferTypeScreenState extends State<TransferTypeScreen> {
                           }
                         : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF37021),
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),

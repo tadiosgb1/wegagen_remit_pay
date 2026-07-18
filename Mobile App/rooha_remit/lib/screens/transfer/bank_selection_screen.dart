@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/auth_guard.dart';
 import 'transfer_type_screen.dart';
+import '../../constants/colors.dart';
 
 class BankSelectionScreen extends StatefulWidget {
   const BankSelectionScreen({super.key});
@@ -104,7 +105,8 @@ class _BankSelectionScreenState extends State<BankSelectionScreen> {
           title: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.account_balance_outlined, size: 20, color: Colors.black87),
+              Icon(Icons.account_balance_outlined,
+                  size: 20, color: Colors.black87),
               SizedBox(width: 8),
               Text(
                 'Select Bank',
@@ -161,7 +163,7 @@ class _BankSelectionScreenState extends State<BankSelectionScreen> {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected
-                            ? const Color(0xFFF37021)
+                            ? AppColors.primary
                             : Colors.grey.shade200,
                         width: isSelected ? 2 : 1,
                       ),
@@ -175,12 +177,17 @@ class _BankSelectionScreenState extends State<BankSelectionScreen> {
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(20),
+                      onTap: () {
+                        setState(() {
+                          _selectedBank = bank['code'];
+                        });
+                      },
                       leading: Container(
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFFF37021).withValues(alpha: 0.1)
+                              ? AppColors.primary
                               : bank['color'].withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -216,13 +223,8 @@ class _BankSelectionScreenState extends State<BankSelectionScreen> {
                             _selectedBank = value;
                           });
                         },
-                        activeColor: const Color(0xFFF37021),
+                        activeColor: AppColors.primary,
                       ),
-                      onTap: () {
-                        setState(() {
-                          _selectedBank = bank['code'];
-                        });
-                      },
                     ),
                   );
                 },
@@ -249,12 +251,12 @@ class _BankSelectionScreenState extends State<BankSelectionScreen> {
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF37021),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    elevation: 0,
+                    elevation: 10,
                   ),
                   child: const Text(
                     'Continue',

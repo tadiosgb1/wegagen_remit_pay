@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../constants/colors.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/kyc_provider.dart';
-import '../../models/kyc_data.dart';
 import '../../widgets/kyc_status_widget.dart';
+import '../security/security_settings_screen.dart';
+import 'personal_info_screen.dart';
 import '../kyc/kyc_status_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -38,8 +40,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('My Account'),
-        backgroundColor: const Color(0xFFF37021),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -49,9 +51,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFF37021), Color(0xFFE55A00)],
+                  colors: [AppColors.primary, AppColors.primaryDark],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -194,7 +196,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icons.person_outline,
                           'Personal Information',
                           'Update your profile details',
-                          () {},
+                          () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const PersonalInfoScreen(),
+                              ),
+                            );
+                          },
                         ),
                         const Divider(height: 1),
                         _buildSettingsItem(
@@ -214,7 +222,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icons.security,
                           'Security Settings',
                           'Change PIN and security options',
-                          () {},
+                          () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const SecuritySettingsScreen(),
+                              ),
+                            );
+                          },
                         ),
                         const Divider(height: 1),
                         _buildSettingsItem(
@@ -303,10 +317,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF37021).withValues(alpha: 0.1),
+          color: AppColors.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: const Color(0xFFF37021), size: 20),
+        child: Icon(icon, color: AppColors.primary, size: 20),
       ),
       title: Text(
         title,

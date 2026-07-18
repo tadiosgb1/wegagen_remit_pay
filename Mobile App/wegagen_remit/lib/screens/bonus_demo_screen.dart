@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/bonus_service.dart';
 import '../widgets/bonus_display_widget.dart';
 import '../providers/exchange_rate_provider.dart';
+import '../constants/colors.dart';
 
 /// Demo screen to showcase the ETB bonus system
 class BonusDemoScreen extends ConsumerStatefulWidget {
@@ -44,8 +45,8 @@ class _BonusDemoScreenState extends ConsumerState<BonusDemoScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Bonus Calculator Demo'),
-        backgroundColor: const Color(0xFFF37021),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -201,7 +202,7 @@ class _BonusDemoScreenState extends ConsumerState<BonusDemoScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFF37021),
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -269,7 +270,7 @@ class _BonusDemoScreenState extends ConsumerState<BonusDemoScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF37021).withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: _buildSummaryRow(
@@ -334,7 +335,7 @@ class _BonusDemoScreenState extends ConsumerState<BonusDemoScreen> {
           style: TextStyle(
             fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            color: isTotal ? const Color(0xFFF37021) : Colors.grey.shade600,
+            color: isTotal ? AppColors.primary : Colors.grey.shade600,
           ),
         ),
         Row(
@@ -353,7 +354,7 @@ class _BonusDemoScreenState extends ConsumerState<BonusDemoScreen> {
                 fontSize: isTotal ? 16 : 14,
                 fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
                 color: isTotal 
-                  ? const Color(0xFFF37021) 
+                  ? AppColors.primary 
                   : isBonus 
                     ? Colors.green.shade600 
                     : Colors.black87,

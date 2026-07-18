@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:rooha_remit/constants/colors.dart';
+import '../../constants/colors.dart';
 enum LivenessStep { lookStraight, turnHeadLeft, turnHeadRight, smile, blink }
 
 class LivenessDetectionScreen extends StatefulWidget {
@@ -221,7 +222,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionScreen> with 
                           child: ElevatedButton(
                             onPressed: _isProcessing ? null : _nextChallenge,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF37021),
+                              backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),

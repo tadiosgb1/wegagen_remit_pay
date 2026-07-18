@@ -11,6 +11,7 @@ import '../../services/kyc_service.dart';
 import '../../providers/kyc_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'liveness_detection_screen.dart';
+import '../../constants/colors.dart';
 
 class KycScreen extends StatefulWidget {
   const KycScreen({super.key});
@@ -132,7 +133,7 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       elevation: 0,
-      backgroundColor: const Color(0xFFF37021),
+      backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       title: const Text(
         'KYC Verification',
@@ -148,7 +149,7 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
   Widget _buildHeader() {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFFF37021),
+        color: AppColors.primary,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
@@ -219,7 +220,7 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
           ),
           child: Icon(
             icon,
-            color: const Color(0xFFF37021),
+            color: AppColors.primary,
             size: 20,
           ),
         ),
@@ -378,7 +379,7 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(16),
         gradient: _isFormComplete()
             ? const LinearGradient(
-                colors: [Color(0xFFF37021), Color(0xFFFF8A4D)],
+                colors: [AppColors.primary, AppColors.primaryLight],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               )
@@ -611,7 +612,7 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
                     ),
                     child: Icon(
                       icon,
-                      color: const Color(0xFFF37021),
+                      color: AppColors.primary,
                       size: 30,
                     ),
                   ),
@@ -638,7 +639,7 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF37021),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
@@ -788,7 +789,7 @@ class _KycScreenState extends State<KycScreen> with TickerProviderStateMixin {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF37021),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(

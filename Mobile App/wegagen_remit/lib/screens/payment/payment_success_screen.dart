@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../constants/colors.dart';
 import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
 
@@ -294,7 +295,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen>
           child: ElevatedButton(
             onPressed: _shareTransaction,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF37021),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
@@ -318,8 +319,8 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen>
           child: OutlinedButton(
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFF37021),
-              side: const BorderSide(color: Color(0xFFF37021)),
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.border),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -344,7 +345,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFFF37021),
+              color: AppColors.primary,
             ),
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/colors.dart';
 import 'auth/login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -27,7 +28,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       description:
           'Experience lightning-fast money transfers with bank-level security.',
     ),
-    OnboardingData(
+  OnboardingData(
       image: 'assets/images/onboard/3.png',
       title: 'Easy KYC Verification',
       description:
@@ -50,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     print('🎨 Building OnboardingScreen - currentPage: $_currentPage');
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -85,7 +86,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
                 itemCount: _onboardingData.length,
                 itemBuilder: (context, index) {
-                  print('🏗️ Building page $index: ${_onboardingData[index].title}');
+                  print(
+                      '🏗️ Building page $index: ${_onboardingData[index].title}');
                   return _buildOnboardingPage(_onboardingData[index]);
                 },
               ),
@@ -99,7 +101,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 count: _onboardingData.length,
                 effect: const WormEffect(
                   dotColor: Colors.grey,
-                  activeDotColor: Color(0xFFFF6B35), // Wegagen orange
+                  activeDotColor: AppColors.primary,
                   dotHeight: 8,
                   dotWidth: 8,
                   spacing: 16,
@@ -118,7 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ? _completeOnboarding
                       : _nextPage,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6B35), // Wegagen orange
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
@@ -169,12 +171,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 data.image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
+                  print('🖼️ Failed to load image: ${data.image}');
+                  print('📋 Error: $error');
+
                   return Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.image,
-                      size: 100,
-                      color: Colors.grey,
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          size: 80,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Image Loading...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },

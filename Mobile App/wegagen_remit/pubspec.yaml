@@ -1,5 +1,5 @@
 name: wegagen_remit
-description: "A new Flutter project."
+description: "Wegagen Remit - Send Money Worldwide"
 publish_to: "none"
 version: 1.0.0+1
 
@@ -65,6 +65,8 @@ flutter_native_splash:
   image: assets/images/logo.png
   android: true
   ios: true
+  web: true
   android_12:
     image: assets/images/logo.png
-    color: "#FFFFFF"
+    color:  "#FFFFFF" # Wegagen orange (primary)
+    icon_background_color:  "#FFFFFF"

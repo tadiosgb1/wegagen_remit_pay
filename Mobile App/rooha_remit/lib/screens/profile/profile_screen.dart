@@ -3,8 +3,9 @@ import '../../constants/colors.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/kyc_provider.dart';
-import '../../models/kyc_data.dart';
 import '../../widgets/kyc_status_widget.dart';
+import '../security/security_settings_screen.dart';
+import 'personal_info_screen.dart';
 import '../kyc/kyc_status_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -195,7 +196,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icons.person_outline,
                           'Personal Information',
                           'Update your profile details',
-                          () {},
+                          () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const PersonalInfoScreen(),
+                              ),
+                            );
+                          },
                         ),
                         const Divider(height: 1),
                         _buildSettingsItem(
@@ -215,7 +222,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icons.security,
                           'Security Settings',
                           'Change PIN and security options',
-                          () {},
+                          () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const SecuritySettingsScreen(),
+                              ),
+                            );
+                          },
                         ),
                         const Divider(height: 1),
                         _buildSettingsItem(

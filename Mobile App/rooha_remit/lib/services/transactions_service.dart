@@ -12,7 +12,7 @@ class TransactionsService {
   }) async {
     try {
       final queryParams = <String, String>{};
-      
+
       if (status != null && status != 'All') {
         queryParams['status'] = status.toLowerCase();
       }
@@ -43,7 +43,8 @@ class TransactionsService {
 
   Future<Transfer> getTransactionById(String id) async {
     try {
-      final response = await _apiService.get(UrlContainer.getTransferById(id));
+      final response =
+          await _apiService.get(UrlContainer.getTransactionDetail(id));
 
       if (response['status'] == 'success' && response['data'] != null) {
         return Transfer.fromJson(response['data'] as Map<String, dynamic>);

@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Wegagen Remit - Send Money Worldwide">
+  <meta name="description" content="wegagen Remit - Send Money Worldwide">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Wegagen Remit">
+  <meta name="apple-mobile-web-app-title" content="wegagenenenen Remit">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
 
-  <title>Wegagen Remit</title>
+  <title>wegagen Remit</title>
   <link rel="manifest" href="manifest.json">
 
   <style>
@@ -24,7 +25,7 @@
       margin: 0;
       background: linear-gradient(135deg, #F37021, #FF8A4D, #FFB07A);
     }
-    
+
     #loading {
       display: flex;
       flex-direction: column;
@@ -34,7 +35,7 @@
       color: white;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    
+
     .logo {
       width: 120px;
       height: 120px;
@@ -44,66 +45,70 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
-    
+
     .spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid rgba(255,255,255,0.3);
+      border: 3px solid rgba(255, 255, 255, 0.3);
       border-radius: 50%;
       border-top-color: white;
       animation: spin 1s ease-in-out infinite;
       margin-top: 20px;
     }
-    
+
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 </head>
+
 <body>
   <div id="loading">
     <div class="logo">
       <svg width="80" height="80" viewBox="0 0 24 24" fill="#F37021">
-        <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
-        <path d="M2 17L12 22L22 17" stroke="#F37021" stroke-width="2" fill="none"/>
-        <path d="M2 12L12 17L22 12" stroke="#F37021" stroke-width="2" fill="none"/>
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+        <path d="M2 17L12 22L22 17" stroke="#F37021" stroke-width="2" fill="none" />
+        <path d="M2 12L12 17L22 12" stroke="#F37021" stroke-width="2" fill="none" />
       </svg>
     </div>
-    <h2>Wegagen Remit</h2>
+    <h2>wegagen Remit</h2>
     <p>Send Money Worldwide</p>
     <div class="spinner"></div>
   </div>
 
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
+      window.addEventListener('load', function () {
         loadMainDartJs();
       });
     } else {
       loadMainDartJs();
     }
-    
+
     function loadMainDartJs() {
       var scriptTag = document.createElement('script');
       scriptTag.src = 'main.dart.js';
       scriptTag.type = 'application/javascript';
-      
-      scriptTag.onload = function() {
-        setTimeout(function() {
+
+      scriptTag.onload = function () {
+        setTimeout(function () {
           document.getElementById('loading').style.display = 'none';
         }, 1000);
       };
-      
-      scriptTag.onerror = function() {
+
+      scriptTag.onerror = function () {
         console.error('Failed to load main.dart.js');
-        document.getElementById('loading').innerHTML = 
+        document.getElementById('loading').innerHTML =
           '<h2 style="color: red;">Failed to load app</h2><p>Please refresh the page</p>';
       };
-      
+
       document.body.appendChild(scriptTag);
     }
   </script>
 </body>
+
 </html>

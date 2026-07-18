@@ -419,7 +419,7 @@ class _PaymentErrorScreenState extends ConsumerState<PaymentErrorScreen>
                 children: [
                   Icon(Icons.email, size: 16),
                   SizedBox(width: 8),
-                  Text('support@wegagenremit.com'),
+                  Text('support@Wegagenremit.com'),
                 ],
               ),
             ],

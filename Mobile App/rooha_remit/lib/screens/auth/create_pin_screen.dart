@@ -223,15 +223,17 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
                         ],
                       ),
                       child: Center(
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 70,
-                          height: 70,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.account_balance,
-                            size: 50,
-                            color: Color(0xFFF37021),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.account_balance,
+                              size: 50,
+                              color: Color(0xFFF37021),
+                            ),
                           ),
                         ),
                       ),

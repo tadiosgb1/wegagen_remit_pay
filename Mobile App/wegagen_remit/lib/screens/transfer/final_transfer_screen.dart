@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../payment/payment_screen.dart';
+import '../../constants/colors.dart';
 
 class FinalTransferScreen extends ConsumerStatefulWidget {
   final String transferType;
@@ -23,7 +24,8 @@ class FinalTransferScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<FinalTransferScreen> createState() => _FinalTransferScreenState();
+  ConsumerState<FinalTransferScreen> createState() =>
+      _FinalTransferScreenState();
 }
 
 class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
@@ -41,7 +43,7 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
       case 'wegagen_bank':
         return 'Wegagen Bank Transfer';
       case 'wegagen_ebirr':
-        return 'Wegagen E-birr Transfer';
+        return 'wegagen E-birr Transfer';
       case 'cash_pickup':
         return 'Cash Pickup Transfer';
       case 'school_pay':
@@ -85,7 +87,7 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
       // Extract account holder name and number
       String accountHolderName = '';
       String accountNumber = '';
-      
+
       switch (widget.transferType) {
         case 'wegagen_bank':
           accountNumber = widget.recipientData['accountNumber'] ?? '';
@@ -212,12 +214,12 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           _transferIcon,
-                          color: const Color(0xFFF37021),
+                          color: AppColors.primary,
                           size: 24,
                         ),
                       ),
@@ -253,12 +255,15 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
                   const SizedBox(height: 16),
 
                   // Amount Details
-                  _buildDetailRow('You Send', '${widget.amount.toStringAsFixed(2)} ${widget.currency}'),
+                  _buildDetailRow('You Send',
+                      '${widget.amount.toStringAsFixed(2)} ${widget.currency}'),
                   const SizedBox(height: 12),
-                  _buildDetailRow('Bones', '${widget.fee.toStringAsFixed(2)} ETB'),
+                  _buildDetailRow(
+                      'Bones', '${widget.fee.toStringAsFixed(2)} ETB'),
                   const SizedBox(height: 12),
-                  _buildDetailRow('Exchange Rate', '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(2)} ETB'),
-                  
+                  _buildDetailRow('Exchange Rate',
+                      '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(2)} ETB'),
+
                   const SizedBox(height: 16),
                   const Divider(),
                   const SizedBox(height: 16),
@@ -280,7 +285,7 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFF37021),
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -402,8 +407,8 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
               child: ElevatedButton(
                 onPressed: _isProcessing ? null : _submitTransfer,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF37021),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -424,13 +429,15 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
                           SizedBox(width: 12),
                           Text(
                             'Processing...',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ],
                       )
                     : const Text(
                         'Send Money',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600),
                       ),
               ),
             ),
@@ -469,9 +476,11 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
     switch (widget.transferType) {
       case 'wegagen_bank':
         details.addAll([
-          _buildDetailRow('Account Number', widget.recipientData['accountNumber']),
+          _buildDetailRow(
+              'Account Number', widget.recipientData['accountNumber']),
           const SizedBox(height: 8),
-          _buildDetailRow('Account Holder', widget.recipientData['accountHolderName']),
+          _buildDetailRow(
+              'Account Holder', widget.recipientData['accountHolderName']),
           const SizedBox(height: 8),
           _buildDetailRow('Account Type', widget.recipientData['accountType']),
         ]);
@@ -493,7 +502,7 @@ class _FinalTransferScreenState extends ConsumerState<FinalTransferScreen> {
           const SizedBox(height: 8),
           _buildDetailRow('City', widget.recipientData['city']),
           const SizedBox(height: 8),
-          _buildDetailRow('Region', widget.recipientData['region']),
+          _buildDetailRow('State/Region', widget.recipientData['state']),
         ]);
         break;
     }

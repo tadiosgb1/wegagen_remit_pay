@@ -97,7 +97,7 @@ class ApiService {
   // ================= COOKIE METHODS =================
   Future<void> clearCookies() async {
     await _cookieJar.deleteAll();
-    
+
     // Also clear any stored preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
@@ -227,6 +227,19 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> patch(
+    String url,
+    Map<String, dynamic> data, {
+    bool includeAuth = true,
+  }) {
+    return _request(
+      'PATCH',
+      url,
+      data: data,
+      includeAuth: includeAuth,
+    );
+  }
+
   Future<Map<String, dynamic>> delete(
     String url, {
     bool includeAuth = true,
@@ -252,32 +265,26 @@ class ApiService {
     );
   }
 
-
-
-  
-
   // ================= FILE UPLOAD =================
   Future<Map<String, dynamic>> uploadFile(
-  String url,
-  File file, {
-  String fieldName = 'file',
-  Map<String, String>? additionalFields,
-  bool includeAuth = true,
-}) async {
-  final formData = FormData();
+    String url,
+    File file, {
+    String fieldName = 'file',
+    Map<String, String>? additionalFields,
+    bool includeAuth = true,
+  }) async {
+    final formData = FormData();
 
-  formData.files.add(
-    MapEntry(fieldName, await MultipartFile.fromFile(file.path)),
-  );
+    formData.files.add(
+      MapEntry(fieldName, await MultipartFile.fromFile(file.path)),
+    );
 
-  additionalFields?.forEach((k, v) {
-    formData.fields.add(MapEntry(k, v));
-  });
+    additionalFields?.forEach((k, v) {
+      formData.fields.add(MapEntry(k, v));
+    });
 
-  return postFormData(url, formData, includeAuth: includeAuth);
-}
-
-
+    return postFormData(url, formData, includeAuth: includeAuth);
+  }
 }
 
 // ================= EXCEPTION =================

@@ -243,7 +243,7 @@ class Native3DSService {
   /// Generate ephemeral public key (simplified for demo)
   String _generateEphemeralPublicKey() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return base64Encode(utf8.encode('WEGAGEN_PUB_KEY_$timestamp'));
+    return base64Encode(utf8.encode('Wegagen_PUB_KEY_$timestamp'));
   }
 
   /// Get native app return URL for 3DS challenges

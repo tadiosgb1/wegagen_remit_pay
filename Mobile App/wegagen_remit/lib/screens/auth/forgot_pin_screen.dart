@@ -14,7 +14,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final AuthService _authService = AuthService();
-  
+
   bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -27,7 +27,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -35,7 +35,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -43,7 +43,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
       parent: _animationController,
       curve: Curves.easeOutCubic,
     ));
-    
+
     _animationController.forward();
   }
 
@@ -64,8 +64,9 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
     });
 
     try {
-      final response = await _authService.forgotPin(_emailController.text.trim());
-      
+      final response =
+          await _authService.forgotPin(_emailController.text.trim());
+
       if (mounted) {
         if (response.success) {
           // Navigate to OTP verification screen
@@ -223,7 +224,8 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
                             prefixIcon: const Icon(Icons.email_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade300),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -320,7 +322,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
             isCompleted: false,
           ),
           _buildStepConnector(isCompleted: false),
-          
+
           // Step 2 - Pending
           _buildStepItem(
             stepNumber: 2,
@@ -329,7 +331,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen>
             isCompleted: false,
           ),
           _buildStepConnector(isCompleted: false),
-          
+
           // Step 3 - Pending
           _buildStepItem(
             stepNumber: 3,

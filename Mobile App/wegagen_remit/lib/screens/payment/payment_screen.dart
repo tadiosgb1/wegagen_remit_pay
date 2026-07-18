@@ -5,6 +5,7 @@ import '../../providers/payment_providers.dart';
 import '../../widgets/activity_tracker.dart';
 import '../../widgets/bonus_display_widget.dart';
 import 'billing_info_screen.dart';
+import '../../constants/colors.dart';
 
 class PaymentScreen extends ConsumerStatefulWidget {
   final String? prefilledAccountHolder;
@@ -88,8 +89,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Send Money'),
-        backgroundColor: const Color(0xFFF37021),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
         elevation: 0,
       ),
       body: ActivityTracker(
@@ -322,7 +323,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -356,7 +357,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: Color(0xFFF37021),
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -392,8 +393,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       child: ElevatedButton(
         onPressed: isBasicInfoValid ? _proceedToPayment : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFF37021),
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

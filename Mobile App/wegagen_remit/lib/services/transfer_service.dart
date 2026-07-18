@@ -73,7 +73,7 @@ class AccountInfo {
       accountNumber: json['account_number'] ?? json['ACC'] ?? json['CLRACNO'] ?? '',
       accountHolderName: json['account_holder_name'] ?? json['CUSTNAME'] ?? json['ADESC'] ?? json['name'] ?? '',
       accountType: json['account_type'] ?? json['ACCTYPE'] ?? json['ACCLSTYP'],
-      bankName: json['bank_name'] ?? json['BRN'] ?? 'Wegagen Bank',
+      bankName: json['bank_name'] ?? json['BRN'] ?? 'Wegagen  bank',
     );
   }
 }

@@ -78,11 +78,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   void _showSuccessAndNavigateToLogin() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            const Expanded(
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(
               child: Text(
                 'Account created successfully! Please sign in to continue.',
                 style: TextStyle(fontSize: 16),
@@ -172,21 +172,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.orange.withOpacity(0.45),
+                        color: Colors.orange.withValues(alpha: 0.45),
                         blurRadius: 45,
                         spreadRadius: 15,
                       ),
                     ],
                   ),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: 105,
-                    height: 105,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.account_balance,
-                      size: 90,
-                      color: AppColors.primary,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 105,
+                      height: 105,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.account_balance,
+                        size: 90,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -220,7 +222,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     borderRadius: BorderRadius.circular(34),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.13),
+                        color: Colors.black.withValues(alpha: 0.13),
                         blurRadius: 55,
                         offset: const Offset(0, 25),
                       ),
@@ -296,7 +298,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                     children: [
                                       Text(
                                         _selectedCountry?.flagEmoji ?? '🇪🇹',
-                                        style: const TextStyle(fontSize: 26),
+                                        style: const TextStyle(fontSize: 20),
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
@@ -315,7 +317,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 1),
                             Expanded(
                               flex: 2,
                               child: _buildModernField(
@@ -332,15 +334,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         const SizedBox(height: 10),
 
                         // Terms Checkbox
-                        CheckboxListTile(
-                          value: _agreeToTerms,
-                          onChanged: (v) =>
-                              setState(() => _agreeToTerms = v ?? false),
-                          activeColor: AppColors.primary,
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text(
-                            "I agree to the Terms & Conditions",
-                          ),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _agreeToTerms,
+                              onChanged: (v) =>
+                                  setState(() => _agreeToTerms = v ?? false),
+                              activeColor: AppColors.primary,
+                            ),
+                            const Expanded(
+                              child: Text(
+                                "I agree to the Terms & Conditions",
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 32),

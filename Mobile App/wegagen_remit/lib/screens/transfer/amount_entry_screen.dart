@@ -8,6 +8,7 @@ import '../../widgets/auth_guard.dart';
 import '../../models/kyc_data.dart';
 import '../kyc_requirement_screen.dart';
 import 'recipient_details_screen.dart';
+import '../../constants/colors.dart';
 
 class AmountEntryScreen extends StatefulWidget {
   final String transferType;
@@ -104,7 +105,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
   String get _transferTitle {
     switch (widget.transferType) {
       case 'wegagen_bank':
-        return 'Bank Account Transfer';
+        return 'Wegagen Bank Transfer';
       case 'wegagen_ebirr':
         return 'Wegagen E-birr Transfer';
       case 'cash_pickup':
@@ -122,7 +123,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
     switch (widget.transferType) {
       case 'wegagen_bank':
         return Icons.account_balance;
-      case 'wegagen_ebirr':
+      case 'Wegagen_ebirr':
         return Icons.phone_android;
       case 'cash_pickup':
         return Icons.send;
@@ -157,7 +158,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
       width: isActive ? 28 : 8,
       height: 4,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFF37021) : Colors.grey.shade300,
+        color: isActive ? AppColors.primary : Colors.grey.shade300,
         borderRadius: BorderRadius.circular(4),
       ),
     );
@@ -326,7 +327,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF37021)
+                                    color: AppColors.primary
                                         .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
@@ -381,7 +382,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                                       style: const TextStyle(
                                         fontSize: 26,
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFFF37021),
+                                        color: AppColors.primary,
                                       ),
                                     ),
                                     const SizedBox(width: 6),
@@ -460,8 +461,8 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                         ? _proceedToRecipientDetails
                         : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF37021),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18)),
                       elevation: 0,
@@ -496,7 +497,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-            color: isTotal ? const Color(0xFFF37021) : Colors.black87,
+            color: isTotal ? AppColors.primary : Colors.black87,
           ),
         ),
       ],

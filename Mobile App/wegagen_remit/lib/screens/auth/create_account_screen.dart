@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
 import 'create_pin_screen.dart';
 import 'login_screen.dart';
+import '../../constants/colors.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -77,11 +78,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   void _showSuccessAndNavigateToLogin() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            const Expanded(
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(
               child: Text(
                 'Account created successfully! Please sign in to continue.',
                 style: TextStyle(fontSize: 16),
@@ -152,7 +153,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF37021), Color(0xFFFF8A4D), Colors.white],
+            colors: [AppColors.primary, AppColors.primaryLight, Colors.white],
             stops: [0.0, 0.28, 1.0],
           ),
         ),
@@ -171,21 +172,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.orange.withOpacity(0.45),
+                        color: Colors.orange.withValues(alpha: 0.45),
                         blurRadius: 45,
                         spreadRadius: 15,
                       ),
                     ],
                   ),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: 105,
-                    height: 105,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.account_balance,
-                      size: 90,
-                      color: Color(0xFFF37021),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 105,
+                      height: 105,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.account_balance,
+                        size: 90,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -219,7 +222,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     borderRadius: BorderRadius.circular(34),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.13),
+                        color: Colors.black.withValues(alpha: 0.13),
                         blurRadius: 55,
                         offset: const Offset(0, 25),
                       ),
@@ -295,7 +298,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                     children: [
                                       Text(
                                         _selectedCountry?.flagEmoji ?? '🇪🇹',
-                                        style: const TextStyle(fontSize: 26),
+                                        style: const TextStyle(fontSize: 20),
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
@@ -314,7 +317,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 1),
                             Expanded(
                               flex: 2,
                               child: _buildModernField(
@@ -331,15 +334,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         const SizedBox(height: 10),
 
                         // Terms Checkbox
-                        CheckboxListTile(
-                          value: _agreeToTerms,
-                          onChanged: (v) =>
-                              setState(() => _agreeToTerms = v ?? false),
-                          activeColor: const Color(0xFFF37021),
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text(
-                            "I agree to the Terms & Conditions",
-                          ),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _agreeToTerms,
+                              onChanged: (v) =>
+                                  setState(() => _agreeToTerms = v ?? false),
+                              activeColor: AppColors.primary,
+                            ),
+                            const Expanded(
+                              child: Text(
+                                "I agree to the Terms & Conditions",
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 32),
@@ -348,8 +357,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         ElevatedButton(
                           onPressed: _continueToPin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF37021),
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.textOnPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -383,7 +392,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       child: const Text(
                         "Sign In",
                         style: TextStyle(
-                          color: Color(0xFFF37021),
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -411,14 +420,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFFF37021)),
+        prefixIcon: Icon(icon, color: AppColors.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFF37021), width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         filled: true,
         fillColor: Colors.grey.shade50,

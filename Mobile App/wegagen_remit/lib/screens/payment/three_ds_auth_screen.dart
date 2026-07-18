@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../constants/colors.dart';
 import '../../services/three_ds_service.dart';
 import '../auth/threeds_challenge_screen.dart';
 
@@ -188,7 +189,7 @@ class _ThreeDSAuthScreenState extends State<ThreeDSAuthScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF37021),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('3D Secure Authentication'),
@@ -297,7 +298,7 @@ class _ThreeDSAuthScreenState extends State<ThreeDSAuthScreen> {
                             // No more polling - just reset and show OTP again
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF37021),
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),

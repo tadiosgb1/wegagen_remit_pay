@@ -56,7 +56,7 @@ class _AccountSearchScreenState extends State<AccountSearchScreen> {
               'accountNumber': accountData.accountNumber,
               'accountHolderName': accountData.accountHolderName,
               'accountType': accountData.accountType ?? 'Savings Account',
-              'bankName': accountData.bankName ?? 'Wegagen Bank',
+              'bankName': accountData.bankName ?? 'Wegagen bank',
               'status': 'Active'
             };
             _errorMessage = null;

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../constants/colors.dart';
 import '../../services/three_ds_service.dart';
 import '../../providers/payment_providers.dart';
 import '../../config/url_container.dart';
@@ -614,8 +615,8 @@ class _PaymentProcessingScreenState
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
                               colors: [
-                                const Color(0xFFF37021),
-                                const Color(0xFFF37021).withValues(alpha: 0.6),
+                                AppColors.primary,
+                                AppColors.primary.withValues(alpha: 0.6),
                               ],
                             ),
                           ),
@@ -693,7 +694,7 @@ class _PaymentProcessingScreenState
                   value: (_currentStepIndex + 1) / _steps.length,
                   backgroundColor: Colors.grey.shade200,
                   valueColor:
-                      const AlwaysStoppedAnimation<Color>(Color(0xFFF37021)),
+                      AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               ],
 
@@ -731,7 +732,7 @@ class _PaymentProcessingScreenState
                           _processPayment();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF37021),
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -749,7 +750,7 @@ class _PaymentProcessingScreenState
                   child: ElevatedButton(
                     onPressed: () => _navigateToSuccess(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF37021),
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

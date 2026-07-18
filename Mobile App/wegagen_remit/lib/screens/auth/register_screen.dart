@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/pin_input_field.dart';
 import 'kyc_screen.dart';
+import '../../constants/colors.dart';
+
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -99,10 +101,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF37021),
-              Color(0xFFFF8A4D),
-              Colors.white,
-            ],
+                AppColors.primary,
+                AppColors.primaryLight,
+                Colors.white,
+              ],
             stops: [0.0, 0.25, 1.0],
           ),
         ),
@@ -135,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.account_balance,
                       size: 85,
-                      color: Color(0xFFF37021),
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -303,14 +305,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   _obscurePin
                                       ? Icons.visibility_off
                                       : Icons.visibility,
-                                  color: const Color(0xFFF37021),
+                                  color: AppColors.primary,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   _obscurePin ? "Show" : "Hide",
                                   style: const TextStyle(
-                                    color: Color(0xFFF37021),
+                                    color: AppColors.primary,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -328,7 +330,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               value: _acceptTerms,
                               onChanged: (value) =>
                                   setState(() => _acceptTerms = value ?? false),
-                              activeColor: const Color(0xFFF37021),
+                              activeColor: AppColors.primary,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(4)),
                             ),
@@ -350,8 +352,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onPressed:
                                   authProvider.isLoading ? null : _register,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF37021),
-                                foregroundColor: Colors.white,
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: AppColors.textOnPrimary,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 18),
                                 shape: RoundedRectangleBorder(
@@ -404,14 +406,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFFF37021)),
+        prefixIcon: Icon(icon, color: AppColors.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFF37021), width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         filled: true,
         fillColor: Colors.grey.shade50,

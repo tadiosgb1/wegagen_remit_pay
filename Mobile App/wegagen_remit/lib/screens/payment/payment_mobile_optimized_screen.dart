@@ -8,6 +8,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../../providers/payment_providers.dart';
 import 'payment_processing_screen.dart';
+import '../../constants/colors.dart';
 
 class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
   final String? transferType; // Add transferType parameter
@@ -251,7 +252,7 @@ class _PaymentMobileOptimizedScreenState
     );
 
     if (kDebugMode) {
-      print('✅ Navigation to PaymentProcessingScreen initiated!');
+      print(' Navigation to PaymentProcessingScreen initiated!');
       print('🚀 === TOKEN NAVIGATION COMPLETE ===\n');
     }
   }
@@ -261,10 +262,10 @@ class _PaymentMobileOptimizedScreenState
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF37021),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Secure Payment'),
+        title: const Text('Card Details'),
       ),
       body: _error != null
           ? Center(

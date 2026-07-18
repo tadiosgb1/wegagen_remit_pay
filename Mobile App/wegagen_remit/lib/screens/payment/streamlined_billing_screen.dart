@@ -9,6 +9,7 @@ import '../../models/user.dart';
 import '../../services/api_service.dart';
 import '../../config/url_container.dart';
 import 'payment_mobile_optimized_screen.dart';
+import '../../constants/colors.dart';
 
 class StreamlinedBillingScreen extends ConsumerStatefulWidget {
   final String toAccountHolder;
@@ -225,8 +226,8 @@ class _StreamlinedBillingScreenState
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Complete Payment'),
-        backgroundColor: const Color(0xFFF37021),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
         elevation: 0,
       ),
       body: ActivityTracker(
@@ -303,7 +304,7 @@ class _StreamlinedBillingScreenState
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF37021).withValues(alpha: 0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -380,7 +381,6 @@ class _StreamlinedBillingScreenState
             ],
           ),
           const SizedBox(height: 16),
-
           TextFormField(
             controller: _remarkController,
             decoration: const InputDecoration(
@@ -436,8 +436,8 @@ class _StreamlinedBillingScreenState
                 Text(
                   _useLoginInfo
                       ? (_currentUser?.kyc != null
-                            ? 'Using your KYC verified information'
-                            : 'Using your account information')
+                          ? 'Using your KYC verified information'
+                          : 'Using your account information')
                       : 'Enter custom billing details',
                   style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
                 ),
@@ -471,7 +471,7 @@ class _StreamlinedBillingScreenState
           Switch(
             value: _useLoginInfo,
             onChanged: _isLoadingUserData ? null : _toggleUserInfo,
-            activeColor: const Color(0xFFF37021),
+            activeColor: AppColors.primary,
           ),
         ],
       ),
@@ -806,8 +806,8 @@ class _StreamlinedBillingScreenState
       child: ElevatedButton(
         onPressed: _isLoadingUserData ? null : _proceedToPayment,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFF37021),
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -862,13 +862,6 @@ class _StreamlinedBillingScreenState
       child: Row(
         children: [
           Icon(Icons.security, color: Colors.green.shade600, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '🔒 Secure payment powered by CyberSource. Your card details are encrypted and never stored.',
-              style: TextStyle(fontSize: 12, color: Colors.green.shade700),
-            ),
-          ),
         ],
       ),
     );
@@ -878,18 +871,22 @@ class _StreamlinedBillingScreenState
     print("🔥 DEBUG: StreamlinedBillingScreen._proceedToPayment called");
     print("🔥 DEBUG: widget.transferType = ${widget.transferType}");
     print("🔥 DEBUG: widget.recipientData = ${widget.recipientData}");
-    
+
     if (_formKey.currentState?.validate() ?? false) {
       print("🔥 DEBUG: Form validation passed, proceeding to payment");
-      
+
       // Update all form data in provider
       ref
           .read(paymentFormProvider.notifier)
           .updateAccountHolder(widget.toAccountHolder);
       ref.read(paymentFormProvider.notifier).updateAccount(widget.toAccount);
       // Ensure provider stores the original sender amount and currency
-      ref.read(paymentFormProvider.notifier).updateAmount(widget.originalAmount);
-      ref.read(paymentFormProvider.notifier).updateCurrency(widget.originalCurrency);
+      ref
+          .read(paymentFormProvider.notifier)
+          .updateAmount(widget.originalAmount);
+      ref
+          .read(paymentFormProvider.notifier)
+          .updateCurrency(widget.originalCurrency);
       ref
           .read(paymentFormProvider.notifier)
           .updateExchangeRate(widget.exchangeRate);
@@ -928,10 +925,11 @@ class _StreamlinedBillingScreenState
       if (kIsWeb) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => PaymentMobileOptimizedScreen(
-            transferType: widget.transferType,
-            recipientData: widget.recipientData,
-          )),
+          MaterialPageRoute(
+              builder: (context) => PaymentMobileOptimizedScreen(
+                    transferType: widget.transferType,
+                    recipientData: widget.recipientData,
+                  )),
         );
       } else {
         Navigator.push(

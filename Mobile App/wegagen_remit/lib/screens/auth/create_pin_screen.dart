@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'login_screen.dart';
-
+import '../../constants/colors.dart';
 class CreatePinScreen extends StatefulWidget {
   final String firstName;
   final String lastName;
@@ -168,9 +168,9 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF37021),
-              Color(0xFFFF8A4D),
-              Colors.white,
+              AppColors.secondary,
+              AppColors.secondary,
+              AppColors.secondary,
             ],
             stops: [0.0, 0.3, 1.0],
           ),
@@ -223,15 +223,17 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
                         ],
                       ),
                       child: Center(
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 70,
-                          height: 70,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.account_balance,
-                            size: 50,
-                            color: Color(0xFFF37021),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.account_balance,
+                              size: 100,
+                              color: Color(0xFFF37021),
+                            ),
                           ),
                         ),
                       ),
@@ -241,7 +243,7 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
 
                     // App Name
                     const Text(
-                      "Get Remit",
+                      "Wegagen  Remit",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,

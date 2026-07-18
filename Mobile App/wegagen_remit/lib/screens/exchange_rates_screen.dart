@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/exchange_rate_provider.dart';
-
+import '../../constants/colors.dart';
 class ExchangeRatesScreen extends StatefulWidget {
   const ExchangeRatesScreen({super.key});
 
@@ -54,7 +54,7 @@ class _ExchangeRatesScreenState extends State<ExchangeRatesScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFF37021), Color(0xFFE55A00)],
+                  colors: [AppColors.primary,AppColors.primaryLight],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../constants/colors.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
@@ -108,7 +109,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 });
               },
               type: BottomNavigationBarType.fixed,
-              selectedItemColor: const Color(0xFFF37021),
+              selectedItemColor: AppColors.primary,
               unselectedItemColor: Colors.grey,
               items: const [
                 BottomNavigationBarItem(

@@ -10,6 +10,8 @@ import 'providers/bonus_provider.dart';
 import 'services/api_service.dart';
 import 'config/environment.dart';
 import 'config/url_container.dart';
+import 'constants/theme.dart';
+import 'constants/colors.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -20,10 +22,10 @@ void main() async {
   try {
     if (kDebugMode) print('🚀 Starting app initialization...');
     if (kDebugMode) print('🌐 API URL: ${Environment.apiUrl}');
-    
+
     await ApiService().initialize();
     if (kDebugMode) print('✅ API service initialized successfully');
-    
+
     runApp(const ProviderScope(child: MyApp()));
   } catch (e) {
     if (kDebugMode) print('❌ App initialization failed: $e');
@@ -45,11 +47,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Wegagen Remit',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF37021)),
-          useMaterial3: true,
-          fontFamily: 'Poppins',
-        ),
+        theme: AppTheme.theme,
         home: const AuthWrapper(),
         debugShowCheckedModeBanner: false,
       ),
@@ -92,7 +90,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       // Check authentication differently for web vs mobile
       // Important: Use direct API calls here, NOT AuthProvider to avoid triggering error states
       bool isAuthenticated = false;
-      
+
       if (kIsWeb) {
         // For web, check if we're logged in via HTTP-only cookie
         // by attempting to access a protected endpoint
@@ -104,13 +102,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
           // Expected behavior when user is not logged in - don't show error
           isAuthenticated = false;
           await prefs.setBool('is_logged_in', false);
-          if (kDebugMode) print('ℹ️ User not authenticated (expected during startup)');
+          if (kDebugMode)
+            print('ℹ️ User not authenticated (expected during startup)');
         }
       } else {
         // For mobile, check both token and login state
         final token = prefs.getString('auth_token');
         final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
-        
+
         if (token != null || isLoggedIn) {
           try {
             await ApiService().get(UrlContainer.profile);
@@ -122,14 +121,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
             await prefs.setBool('is_logged_in', false);
             await ApiService().clearCookies();
             isAuthenticated = false;
-            if (kDebugMode) print('ℹ️ Invalid token cleared (expected during startup)');
+            if (kDebugMode)
+              print('ℹ️ Invalid token cleared (expected during startup)');
           }
         } else {
           if (kDebugMode) print('ℹ️ No stored authentication found');
         }
       }
 
-      setState(() => _status = isAuthenticated ? AuthStatus.home : AuthStatus.login);
+      setState(
+          () => _status = isAuthenticated ? AuthStatus.home : AuthStatus.login);
     } catch (e) {
       if (kDebugMode) print('❌ Error in _initializeApp: $e');
       setState(() => _status = AuthStatus.login);
@@ -158,7 +159,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -193,16 +195,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF37021),
-              Color(0xFFFF8A4D),
-              Color(0xFFFFB07A),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
+          gradient: AppColors.splashGradient,
         ),
         child: Center(
           child: Column(
@@ -228,24 +221,26 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                               spreadRadius: 20,
                             ),
                             BoxShadow(
-                              color: Colors.orange.withValues(alpha: 0.4),
+                              color: AppColors.primary.withValues(alpha: 0.4),
                               blurRadius: 80,
                               spreadRadius: 10,
                             ),
                           ],
                         ),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 130,
-                          height: 130,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.account_balance,
-                              size: 110,
-                              color: Color(0xFFF37021),
-                            );
-                          },
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 130,
+                            height: 130,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.account_balance,
+                                size: 110,
+                                color: AppColors.primary,
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),

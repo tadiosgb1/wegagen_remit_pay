@@ -1,0 +1,298 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import '../models/user.dart';
+import '../services/auth_service.dart';
+
+class AuthProvider with ChangeNotifier {
+  final AuthService _authService = AuthService();
+  
+  User? _user;
+  bool _isLoading = false;
+  String? _error;
+
+  User? get user => _user;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get isAuthenticated => _user != null;
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  Future<bool> login(String email, String pin) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      print('🔍 DEBUG: AuthProvider.login - Starting login for: $email');
+      final authResponse = await _authService.login(email, pin);
+      print('🔍 DEBUG: AuthProvider.login - AuthService returned: $authResponse');
+      print('🔍 DEBUG: AuthProvider.login - User from response: ${authResponse.user}');
+      
+      _user = authResponse.user;
+      
+      _isLoading = false;
+      notifyListeners();
+      print('🔍 DEBUG: AuthProvider.login - SUCCESS! User set to: $_user');
+      return true;
+    } catch (e) {
+      print('🚨 DEBUG: AuthProvider.login - EXCEPTION caught: $e');
+      print('🚨 DEBUG: AuthProvider.login - Exception type: ${e.runtimeType}');
+      print('🚨 DEBUG: AuthProvider.login - Stack trace: ${StackTrace.current}');
+      
+      _error = e.toString().replaceFirst('AuthException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> checkEmailExists(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      print('🔍 DEBUG: AuthProvider.checkEmailExists - Checking email: $email');
+      final exists = await _authService.checkEmailExists(email);
+      
+      _isLoading = false;
+      notifyListeners();
+      
+      print('🔍 DEBUG: AuthProvider.checkEmailExists - Email exists: $exists');
+      return exists;
+    } catch (e) {
+      print('🚨 DEBUG: AuthProvider.checkEmailExists - EXCEPTION caught: $e');
+      
+      _error = e.toString().replaceFirst('ApiException: ', '').replaceFirst('AuthException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phoneNumber,
+    required String pin,
+    required String confirmPin,
+    String? referralCode,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    // PREPARE THE DATA
+    final Map<String, dynamic> registrationData = {
+      "firstName": firstName,
+      "lastName": lastName,
+      "email": email,
+      "phoneNumber": phoneNumber,
+      "pin": pin,
+      "confirmPin": confirmPin,
+      "referralCode": referralCode,
+    };
+
+    // LOG THE PAYLOAD TO INSPECT IT
+    print("DEBUG: Sending payload: $registrationData");
+
+    try {
+      final authResponse = await _authService.register(
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phoneNumber: phoneNumber,
+        pin: pin,
+        confirmPin: confirmPin,
+        referralCode: referralCode,
+      );
+      
+      _user = authResponse.user;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      // The error will now show in the console via the ApiService print
+      _error = e.toString().replaceFirst('ApiException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _authService.logout();
+    } catch (e) {
+      // Continue with logout even if API call fails
+    } finally {
+      _user = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> checkAuthStatus() async {
+    try {
+      if (kDebugMode) {
+        print('DEBUG: Checking auth status...');
+      }
+      final isAuth = await _authService.isAuthenticated();
+      if (kDebugMode) {
+        print('DEBUG: isAuthenticated from service: $isAuth');
+      }
+      
+      if (isAuth) {
+        // Get fresh user data from API instead of cached data
+        _user = await _authService.getFreshUserData();
+        if (kDebugMode) {
+          print('DEBUG: getFreshUserData returned: $_user');
+        }
+        notifyListeners();
+      } else {
+        if (kDebugMode) {
+          print('DEBUG: Not authenticated, clearing user');
+        }
+        _user = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('DEBUG: Error in checkAuthStatus: $e');
+      }
+      _user = null;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> refreshToken() async {
+    try {
+      final authResponse = await _authService.refreshToken();
+      _user = authResponse.user;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _user = null;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> forgotPassword(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _authService.forgotPassword(email);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('AuthException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String email,
+    required String token,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _authService.resetPassword(
+        email: email,
+        token: token,
+        password: password,
+        confirmPassword: confirmPassword,
+      );
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('AuthException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> verifyEmail(String token) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _authService.verifyEmail(token);
+      
+      // Update user verification status
+      if (_user != null) {
+        _user = _user!.copyWith(isVerified: true);
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('AuthException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> resendVerificationEmail() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _authService.resendVerificationEmail();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceFirst('AuthException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Refresh current user data from server
+  Future<void> refreshUser() async {
+    if (!isAuthenticated) return;
+    
+    try {
+      print('🔄 AuthProvider - Calling /users/me endpoint...');
+      // Get fresh data from API instead of cached data
+      final freshUser = await _authService.getFreshUserData();
+      if (freshUser != null) {
+        _user = freshUser;
+        notifyListeners();
+        if (kDebugMode) {
+          print('🔄 AuthProvider - User data refreshed from API: $_user');
+          print('🔄 AuthProvider - User ID: ${freshUser.id}');
+          print('🔄 AuthProvider - User Name: ${freshUser.firstName} ${freshUser.lastName}');
+          print('🔄 AuthProvider - User Email: ${freshUser.email}');
+          print('🔄 AuthProvider - KYC Verified: ${freshUser.kycVerified}');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ AuthProvider - Error refreshing user data: $e');
+      }
+    }
+  }
+}

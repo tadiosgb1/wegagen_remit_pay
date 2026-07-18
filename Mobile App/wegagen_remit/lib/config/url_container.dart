@@ -22,7 +22,9 @@ class UrlContainer {
   static String get profile =>
       '$baseUrl/users/me'; // Current user profile endpoint
   static String get updateProfile => '$baseUrl/users/profile';
+  static String updateUserById(String userId) => '$baseUrl/users/$userId';
   static String get changePassword => '$baseUrl/users/change-password';
+  static String get changePin => '$baseUrl/users/change-pin';
   static String get uploadDocument => '$baseUrl/users/documents';
   static String get getDocuments => '$baseUrl/users/documents';
 
@@ -30,6 +32,7 @@ class UrlContainer {
   static String get createTransfer => '$baseUrl/transfers';
   static String get getTransfers => '$baseUrl/transfers';
   static String get getUserTransactions => '$baseUrl/transactions/me';
+  static String getTransactionDetail(String id) => '$baseUrl/transactions/$id';
   static String getTransferById(String id) => '$baseUrl/transfers/$id';
   static String get cancelTransfer => '$baseUrl/transfers/cancel';
   static String get transferStatus => '$baseUrl/transfers/status';

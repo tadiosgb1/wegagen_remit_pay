@@ -23,13 +23,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'Send money safely and securely to your loved ones worldwide.',
     ),
     OnboardingData(
-      image: 'assets/images/onboard/2.png',
+      image: 'assets/images/onboard/2.jpg',
       title: 'Fast & Secure Transfers',
       description:
           'Experience lightning-fast money transfers with bank-level security.',
     ),
     OnboardingData(
-      image: 'assets/images/onboard/3.png',
+      image: 'assets/images/onboard/3.jpg',
       title: 'Easy KYC Verification',
       description:
           'Complete your verification quickly with our simple KYC process.',
@@ -41,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'You\'re all set! Start sending money to your family and friends.',
     ),
     OnboardingData(
-      image: 'assets/images/onboard/1.png',
+      image: 'assets/images/onboard/5.jpg',
       title: 'Start Sending Money',
       description:
           'You\'re all set! Start sending money to your family and friends.',
@@ -51,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     print('🎨 Building OnboardingScreen - currentPage: $_currentPage');
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -86,7 +86,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
                 itemCount: _onboardingData.length,
                 itemBuilder: (context, index) {
-                  print('🏗️ Building page $index: ${_onboardingData[index].title}');
+                  print(
+                      '🏗️ Building page $index: ${_onboardingData[index].title}');
                   return _buildOnboardingPage(_onboardingData[index]);
                 },
               ),
@@ -170,12 +171,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 data.image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
+                  print('🖼️ Failed to load image: ${data.image}');
+                  print('📋 Error: $error');
+
                   return Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.image,
-                      size: 100,
-                      color: Colors.grey,
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          size: 80,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Image Loading...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },

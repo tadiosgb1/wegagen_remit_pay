@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'enter_pin_screen.dart';
 import 'create_account_screen.dart';
+import '../../constants/colors.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? message;
@@ -100,8 +101,8 @@ class _LoginScreenState extends State<LoginScreen> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFFF37021),
-                Color(0xFFFF8A4D),
+                AppColors.primary,
+                AppColors.primaryLight,
                 Colors.white,
               ],
               stops: [0.0, 0.3, 1.0],
@@ -117,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Logo with glow effect
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -129,17 +130,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      width: 110,
-                      height: 110,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.account_balance,
-                        size: 90,
-                        color: Color(0xFFF37021),
-                      ),
-                    ),
+                  child: CircleAvatar(
+                  radius: 60,  // Half of 110
+                  backgroundImage: AssetImage('assets/images/logo.png'),
+                  onBackgroundImageError: (_, __) {},
+                  child: const Icon(
+                    Icons.account_balance,
+                    size: 5000,
+                    color: AppColors.primary,
+                  ),
+                ),
+
                   ),
 
                   const SizedBox(height: 20),
@@ -193,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               labelStyle:
                                   TextStyle(color: Colors.grey.shade600),
                               prefixIcon: const Icon(Icons.email_rounded,
-                                  color: Color(0xFFF37021)),
+                                  color: AppColors.primary),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide:
@@ -202,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFFF37021), width: 2),
+                                    color: AppColors.primary, width: 2),
                               ),
                               filled: true,
                               fillColor: Colors.grey.shade50,
@@ -216,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ElevatedButton(
                             onPressed: _isCheckingEmail ? null : _continueToPin,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF37021),
+                              backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 18),
                               shape: RoundedRectangleBorder(
@@ -269,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text(
                           "Sign Up",
                           style: TextStyle(
-                            color: Color(0xFFF37021),
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),

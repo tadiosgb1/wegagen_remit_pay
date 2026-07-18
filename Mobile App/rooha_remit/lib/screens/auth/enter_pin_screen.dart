@@ -17,7 +17,7 @@ class EnterPinScreen extends StatefulWidget {
 class _EnterPinScreenState extends State<EnterPinScreen> {
   String _pin = '';
   bool _isLoading = false;
-  
+
   final List<bool> _filledDots = [false, false, false, false];
 
   @override
@@ -34,7 +34,7 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
         _pin += number;
         _filledDots[_pin.length - 1] = true;
       });
-      
+
       if (_pin.length == 4) {
         _login();
       }
@@ -52,7 +52,7 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
 
   Future<void> _login() async {
     setState(() => _isLoading = true);
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.login(widget.email, _pin);
 
@@ -68,7 +68,7 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
         _pin = '';
         _filledDots.fillRange(0, 4, false);
       });
-      
+
       // Show error
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,9 +90,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-                AppColors.primary,
-                AppColors.primaryLight,
-                AppColors.primaryDark,
+              AppColors.primary,
+              AppColors.primaryLight,
+              AppColors.primaryDark,
             ],
             stops: [0.0, 0.3, 1.0],
           ),
@@ -102,13 +102,15 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+                minHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom,
               ),
               child: IntrinsicHeight(
                 child: Column(
                   children: [
                     const SizedBox(height: 40),
-                    
+
                     // Logo
                     Container(
                       width: 100,
@@ -125,22 +127,24 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                         ],
                       ),
                       child: Center(
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 70,
-                          height: 70,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.account_balance,
-                            size: 50,
-                            color: Color(0xFFF37021),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.account_balance,
+                              size: 50,
+                              color: Color(0xFFF37021),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // App Name
                     const Text(
                       "Rooha Remit",
@@ -150,9 +154,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                         color: Colors.white70,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 5),
-                    
+
                     // Welcome Back
                     const Text(
                       "Welcome Back",
@@ -162,21 +166,24 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Email Display
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.email, color: Colors.white, size: 14),
+                          const Icon(Icons.email,
+                              color: Colors.white, size: 14),
                           const SizedBox(width: 6),
                           Text(
                             widget.email,
@@ -188,9 +195,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // PIN Dots
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -201,8 +208,8 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                           height: 14,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _filledDots[index] 
-                                ? Colors.white 
+                            color: _filledDots[index]
+                                ? Colors.white
                                 : Colors.white.withValues(alpha: 0.3),
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.5),
@@ -212,9 +219,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                         );
                       }),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Enter PIN Text
                     const Text(
                       "Enter your 4-digit PIN",
@@ -223,20 +230,21 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                         fontSize: 14,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // Number Pad
                     _buildNumberPad(),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Forgot PIN
                     TextButton(
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ForgotPinScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const ForgotPinScreen()),
                         );
                       },
                       child: const Text(
@@ -248,7 +256,7 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -274,9 +282,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
               _buildNumberButton('3'),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Row 2: 4, 5, 6
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -286,9 +294,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
               _buildNumberButton('6'),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Row 3: 7, 8, 9
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -298,9 +306,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
               _buildNumberButton('9'),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Row 4: empty, 0, delete
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,

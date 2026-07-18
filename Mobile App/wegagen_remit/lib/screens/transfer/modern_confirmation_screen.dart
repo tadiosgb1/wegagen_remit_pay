@@ -6,6 +6,7 @@ import '../payment/billing_info_screen.dart';
 import '../payment/payment_processing_screen.dart';
 import '../../services/cash_pickup_service.dart';
 import '../transfer/transfer_success_screen.dart';
+import '../../constants/colors.dart';
 
 class ModernConfirmationScreen extends ConsumerStatefulWidget {
   final String transferType;
@@ -36,8 +37,8 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
 
   String get _transferTitle {
     switch (widget.transferType) {
-      case 'wegagen_bank': return 'Wegagen Bank Account Transfer';
-      case 'wegagen_ebirr': return 'Wegagen E-birr Transfer';
+      case 'wegagen_bank': return 'Wegagen Bank Transfer';
+      case 'wegagen_ebirr': return 'wegagen E-birr Transfer';
       case 'cash_pickup': return 'Cash Pickup Transfer';
       case 'school_pay': return 'School Payment';
       default: return 'Money Transfer';
@@ -108,13 +109,45 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
   // Helper to get recipient name for cash pickup
   String _getCashPickupRecipientName() {
     final data = widget.recipientData;
-    return '${data['first_name'] ?? ''} ${data['middle_name'] ?? ''} ${data['last_name'] ?? ''}'.trim();
+    
+    // For wegagen_bank transfers
+    if (widget.transferType == 'wegagen_bank') {
+      return data['accountHolderName'] ?? 'Unknown';
+    }
+    
+    // For cash pickup transfers
+    if (widget.transferType == 'cash_pickup') {
+      return data['fullName'] ?? 'Unknown';
+    }
+    
+    // For wegagen_ebirr transfers
+    if (widget.transferType == 'wegagen_ebirr') {
+      return data['holderName'] ?? 'Unknown';
+    }
+    
+    return 'Unknown';
   }
 
   // Helper to get recipient details for cash pickup  
   String _getCashPickupRecipientDetails() {
     final data = widget.recipientData;
-    return '${data['phone_number'] ?? ''} | ${data['city'] ?? ''}, ${data['country'] ?? 'ET'}';
+    
+    // For wegagen_bank transfers
+    if (widget.transferType == 'wegagen_bank') {
+      return data['accountNumber'] ?? 'Unknown';
+    }
+    
+    // For cash pickup transfers
+    if (widget.transferType == 'cash_pickup') {
+      return '${data['phoneNumber'] ?? ''} | ${data['city'] ?? ''}, ${data['country'] ?? 'ET'}';
+    }
+    
+    // For wegagen_ebirr transfers
+    if (widget.transferType == 'wegagen_ebirr') {
+      return data['phoneNumber'] ?? 'Unknown';
+    }
+    
+    return 'Unknown';
   }
 
   @override
@@ -155,7 +188,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                   height: 4,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF37021),
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 )),
@@ -189,7 +222,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                               Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF37021).withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Text(currencyFlag, style: const TextStyle(fontSize: 34)),
@@ -278,7 +311,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                 child: ElevatedButton(
                   onPressed: _isProcessing ? null : _processTransfer,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF37021),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     elevation: 0,
@@ -315,7 +348,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
             style: TextStyle(
               fontSize: 16,
               fontWeight: highlight ? FontWeight.bold : FontWeight.w600,
-              color: highlight ? const Color(0xFFF37021) : Colors.black87,
+              color: highlight ? AppColors.primary : Colors.black87,
             ),
           ),
         ),
@@ -348,15 +381,15 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
 
       case 'cash_pickup':
         widgets.addAll([
-          _buildRecipientRow('Phone Number', data['phone_number'] ?? ''),
+          _buildRecipientRow('Phone Number', data['phoneNumber'] ?? ''),
           const SizedBox(height: 12),
-          _buildRecipientRow('Full Name', '${data['first_name'] ?? ''} ${data['middle_name'] ?? ''} ${data['last_name'] ?? ''}'.trim()),
+          _buildRecipientRow('Full Name', data['fullName'] ?? ''),
           const SizedBox(height: 12),
           _buildRecipientRow('Address', data['address'] ?? ''),
           const SizedBox(height: 12),
           _buildRecipientRow('City', '${data['city'] ?? ''}, ${data['state'] ?? ''}'),
           const SizedBox(height: 12),
-          _buildRecipientRow('Reason', data['relationship_to_sender'] ?? ''),
+          _buildRecipientRow('Purpose', data['relationship'] ?? ''),
         ]);
         break;
 

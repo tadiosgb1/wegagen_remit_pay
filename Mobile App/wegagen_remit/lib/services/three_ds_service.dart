@@ -508,7 +508,7 @@ class ThreeDSService {
         // CRITICAL: Exact field names CyberSource expects (from error message)
         'browserLanguage': 'en-US',
         'browserUserAgent':
-            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36 WegagenRemitApp/1.0.0',
+            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36 wegagenRemitApp/1.0.0',
         'browserAcceptHeader':
             'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
 
@@ -559,7 +559,7 @@ class ThreeDSService {
       return {
         // These 3 are MANDATORY according to the error
         'browserUserAgent':
-            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 WegagenRemitApp/1.0.0',
+            'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 wegagenRemitApp/1.0.0',
         'browserLanguage': 'en-US',
         'browserAcceptHeader':
             'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -748,18 +748,18 @@ class PaymentResult {
   factory PaymentResult.fromJson(Map<String, dynamic> json) {
     return PaymentResult(
       success: json['success'] ?? false,
-      transactionId: json['transaction_id'] ?? json['id'],
-      paymentReference: json['payment_reference'],
-      status: json['status'] ?? 'unknown',
+      transactionId: (json['transaction_id'] ?? json['id'])?.toString(),
+      paymentReference: json['payment_reference']?.toString(),
+      status: json['status']?.toString() ?? 'unknown',
       amount: json['amount']?.toDouble(),
-      currency: json['currency'],
+      currency: json['currency']?.toString(),
       requires3DS: json['requires_3ds'] ?? false,
-      customerId: json['customer_id'],
-      transientToken: json['transient_token'],
-      error: json['error'],
-      message: json['message'],
+      customerId: json['customer_id']?.toString(),
+      transientToken: json['transient_token']?.toString(),
+      error: json['error']?.toString(),
+      message: json['message']?.toString(),
       timestamp:
-          json['timestamp'] != null ? DateTime.parse(json['timestamp']) : null,
+          json['timestamp'] != null ? DateTime.parse(json['timestamp'].toString()) : null,
     );
   }
 

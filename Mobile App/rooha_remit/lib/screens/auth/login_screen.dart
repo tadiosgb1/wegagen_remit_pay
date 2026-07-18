@@ -130,17 +130,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      width: 110,
-                      height: 110,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.account_balance,
-                        size: 90,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                  child: CircleAvatar(
+                  radius: 60,  // Half of 110
+                  backgroundImage: AssetImage('assets/images/logo.png'),
+                  onBackgroundImageError: (_, __) {},
+                  child: const Icon(
+                    Icons.account_balance,
+                    size: 5000,
+                    color: AppColors.primary,
+                  ),
+                ),
+
                   ),
 
                   const SizedBox(height: 20),

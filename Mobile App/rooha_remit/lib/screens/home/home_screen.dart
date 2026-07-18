@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Rooha Remit',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
-              backgroundColor: const Color(0xFFF37021),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               elevation: 0,
               actions: [

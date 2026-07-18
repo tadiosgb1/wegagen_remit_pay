@@ -15,6 +15,7 @@ import '../profile/profile_screen.dart';
 import '../auth/kyc_screen.dart';
 import '../kyc/kyc_status_screen.dart';
 import '../bonus_demo_screen.dart';
+import '../../constants/colors.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
@@ -34,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         listen: false,
       ).loadExchangeRates();
-      
+
       // Load fresh KYC status when home screen opens
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       Provider.of<KycProvider>(
@@ -61,9 +62,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshHomeData() async {
     final kycProvider = Provider.of<KycProvider>(context, listen: false);
-    final exchangeRateProvider = Provider.of<ExchangeRateProvider>(context, listen: false);
+    final exchangeRateProvider =
+        Provider.of<ExchangeRateProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     await Future.wait([
       kycProvider.refreshKycStatus(authProvider: authProvider),
       exchangeRateProvider.loadExchangeRates(),
@@ -80,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Wegagen Remit',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
-              backgroundColor: const Color(0xFFF37021),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               elevation: 0,
               actions: [
@@ -128,318 +130,328 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             )
           : null,
-
       body: ActivityTracker(
         interactionType: 'home_screen',
         child: RefreshIndicator(
           onRefresh: _refreshHomeData,
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh
+            physics:
+                const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // Hero Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 50, 24, 40),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFF37021), Color(0xFFFF8A4D)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                // Hero Header
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(24, 50, 24, 40),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.primaryLight],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Consumer<AuthProvider>(
+                        builder: (context, authProvider, child) {
+                          final user = authProvider.user;
+                          return Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 28,
+                                backgroundColor: Colors.white.withOpacity(0.25),
+                                child: Text(
+                                  user != null && user.firstName.isNotEmpty
+                                      ? user.firstName[0].toUpperCase()
+                                      : 'W',
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Good morning,',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      user?.firstName ?? 'User',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Consumer<AuthProvider>(
-                      builder: (context, authProvider, child) {
-                        final user = authProvider.user;
-                        return Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 28,
-                              backgroundColor: Colors.white.withOpacity(0.25),
-                              child: Text(
-                                user != null && user.firstName.isNotEmpty
-                                    ? user.firstName[0].toUpperCase()
-                                    : 'W',
-                                style: const TextStyle(
-                                  fontSize: 26,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+
+                // KYC Status Card - Using KycProvider for real-time updates
+                Consumer<KycProvider>(
+                  builder: (context, kycProvider, child) {
+                    final kycStatus = kycProvider.kycStatus;
+                    final isKycVerified = kycStatus == KycStatus.approved;
+                    final isLoading = kycProvider.isLoading;
+                    final isPeriodicChecking =
+                        kycProvider.isPeriodicCheckingActive;
+
+                    // DEBUG: Print the current KYC status
+                    print(
+                        '🏠 HOME SCREEN - KYC Status: $kycStatus, Verified: $isKycVerified');
+                    print(
+                        '🏠 HOME SCREEN - Debug: Status enum value: ${kycStatus.toString()}');
+
+                    return GestureDetector(
+                      onTap: isLoading
+                          ? null
+                          : () {
+                              // Navigate based on KYC verification status
+                              if (kycStatus == KycStatus.approved) {
+                                // Verified - show KYC status screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const KycStatusScreen(),
+                                  ),
+                                );
+                              } else if (kycStatus == KycStatus.underReview ||
+                                  kycStatus == KycStatus.inProgress) {
+                                // Under review or in progress - show status screen (NOT form)
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const KycStatusScreen(),
+                                  ),
+                                );
+                              } else {
+                                // Not started - go to KYC submission form
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const KycScreen(),
+                                  ),
+                                );
+                              }
+                            },
+                      child: Stack(
+                        children: [
+                          KycStatusCard(
+                            kycStatus: kycStatus,
+                            isKycVerified: isKycVerified,
+                          ),
+                          // Show loading overlay when refreshing
+                          if (isLoading)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(0xFFF37021),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Good morning,',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
+                          // Show active monitoring indicator for pending KYC
+                          if (isPeriodicChecking &&
+                              (kycStatus == KycStatus.underReview ||
+                                  kycStatus == KycStatus.inProgress))
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF4CAF50)
+                                      .withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    user?.firstName ?? 'User',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      'Auto-checking',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 10),
+
+                // Services Grid - Fixed Overflow
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.15, // Increased to prevent overflow
+                    children: [
+                      _buildServiceCard(
+                        'Wegagen Bank',
+                        'Transfer to Wegagen Account',
+                        Icons.account_balance,
+                        const Color(0xFF2E7D7D),
+                        () => _navigateToTransfer('wegagen_bank'),
+                      ),
+                      _buildServiceCard(
+                        'Other Banks',
+                        'All Ethiopian Banks',
+                        Icons.account_balance_outlined,
+                        const Color(0xFFF37021),
+                        () => _navigateToTransfer('other_banks'),
+                      ),
+                      _buildServiceCard(
+                        'Cash Pickup',
+                        'Agent Locations',
+                        Icons.money,
+                        const Color(0xFF1976D2),
+                        () => _navigateToTransfer('cash_pickup'),
+                      ),
+                      _buildServiceCard(
+                        'Mobile Wallet',
+                        'eBirr & TeleBirr',
+                        Icons.phone_android,
+                        const Color(0xFF8E24AA),
+                        () => _navigateToTransfer('mobile_wallet'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Quick Access
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Quick Access',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.08),
+                              blurRadius: 15,
                             ),
                           ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              // KYC Status Card - Using KycProvider for real-time updates
-              Consumer<KycProvider>(
-                builder: (context, kycProvider, child) {
-                  final kycStatus = kycProvider.kycStatus;
-                  final isKycVerified = kycStatus == KycStatus.approved;
-                  final isLoading = kycProvider.isLoading;
-                  final isPeriodicChecking = kycProvider.isPeriodicCheckingActive;
-                  
-                  // DEBUG: Print the current KYC status
-                  print('🏠 HOME SCREEN - KYC Status: $kycStatus, Verified: $isKycVerified');
-                  print('🏠 HOME SCREEN - Debug: Status enum value: ${kycStatus.toString()}');
-                  
-                  return GestureDetector(
-                    onTap: isLoading ? null : () {
-                      // Navigate based on KYC verification status
-                      if (kycStatus == KycStatus.approved) {
-                        // Verified - show KYC status screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const KycStatusScreen(),
-                          ),
-                        );
-                      } else if (kycStatus == KycStatus.underReview || kycStatus == KycStatus.inProgress) {
-                        // Under review or in progress - show status screen (NOT form)
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const KycStatusScreen(),
-                          ),
-                        );
-                      } else {
-                        // Not started - go to KYC submission form
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const KycScreen(),
-                          ),
-                        );
-                      }
-                    },
-                    child: Stack(
-                      children: [
-                        KycStatusCard(
-                          kycStatus: kycStatus,
-                          isKycVerified: isKycVerified,
                         ),
-                        // Show loading overlay when refreshing
-                        if (isLoading)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(0xFFF37021),
+                        child: Column(
+                          children: [
+                            _buildQuickAccessItem(
+                              Icons.history,
+                              'Transaction History',
+                              'View all transfers',
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const TransactionsScreen(),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
-                          ),
-                        // Show active monitoring indicator for pending KYC
-                        if (isPeriodicChecking && (kycStatus == KycStatus.underReview || kycStatus == KycStatus.inProgress))
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4CAF50).withValues(alpha: 0.9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
+                            const Divider(height: 1, indent: 20, endIndent: 20),
+                            _buildQuickAccessItem(
+                              Icons.swap_horiz,
+                              'Exchange Rates',
+                              'Live currency rates',
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ExchangeRatesScreen(),
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Text(
-                                    'Auto-checking',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 10),
-
-              // Services Grid - Fixed Overflow
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.15, // Increased to prevent overflow
-                  children: [
-                    _buildServiceCard(
-                      'Wegagen Bank',
-                      'Transfer to Wegagen Account',
-                      Icons.account_balance,
-                      const Color(0xFF2E7D7D),
-                      () => _navigateToTransfer('wegagen_bank'),
-                    ),
-                    _buildServiceCard(
-                      'Other Banks',
-                      'All Ethiopian Banks',
-                      Icons.account_balance_outlined,
-                      const Color(0xFFF37021),
-                      () => _navigateToTransfer('other_banks'),
-                    ),
-                    _buildServiceCard(
-                      'Cash Pickup',
-                      'Agent Locations',
-                      Icons.money,
-                      const Color(0xFF1976D2),
-                      () => _navigateToTransfer('cash_pickup'),
-                    ),
-                    _buildServiceCard(
-                      'Mobile Wallet',
-                      'eBirr & TeleBirr',
-                      Icons.phone_android,
-                      const Color(0xFF8E24AA),
-                      () => _navigateToTransfer('mobile_wallet'),
-                    ),
-                  ],
+                            const Divider(height: 1, indent: 20, endIndent: 20),
+                            _buildQuickAccessItem(
+                              Icons.card_giftcard,
+                              'Bonus Calculator',
+                              'See 10% ETB bonus demo',
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const BonusDemoScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 32),
-
-              // Quick Access
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Quick Access',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.08),
-                            blurRadius: 15,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          _buildQuickAccessItem(
-                            Icons.history,
-                            'Transaction History',
-                            'View all transfers',
-                            () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const TransactionsScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          const Divider(height: 1, indent: 20, endIndent: 20),
-                          _buildQuickAccessItem(
-                            Icons.swap_horiz,
-                            'Exchange Rates',
-                            'Live currency rates',
-                            () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ExchangeRatesScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          const Divider(height: 1, indent: 20, endIndent: 20),
-                          _buildQuickAccessItem(
-                            Icons.card_giftcard,
-                            'Bonus Calculator',
-                            'See 10% ETB bonus demo',
-                            () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const BonusDemoScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 50),
-            ],
+                const SizedBox(height: 50),
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );

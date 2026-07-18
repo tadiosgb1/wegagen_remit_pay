@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:wegagen_remit/constants/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user.dart';
 import '../../widgets/activity_tracker.dart';
 import '../auth/kyc_screen.dart';
+import '../../constants/colors.dart';
 
 class KycStatusScreen extends StatefulWidget {
   const KycStatusScreen({super.key});
@@ -20,7 +22,7 @@ class _KycStatusScreenState extends State<KycStatusScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('KYC Status'),
-        backgroundColor: const Color(0xFFF37021),
+        backgroundColor:  AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -550,7 +552,7 @@ class _KycStatusScreenState extends State<KycStatusScreen> {
                 children: [
                   Icon(Icons.email, size: 16),
                   SizedBox(width: 8),
-                  Text('support@wegagenremit.com'),
+                  Text('support@Wegagenremit.com'),
                 ],
               ),
               SizedBox(height: 8),

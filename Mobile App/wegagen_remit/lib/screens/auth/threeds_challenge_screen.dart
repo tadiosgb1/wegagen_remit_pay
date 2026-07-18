@@ -81,7 +81,7 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
         }
         
         .challenge-header {
-            background: #1a237e;
+            background: #0b6335;
             color: #fff;
             padding: 20px 24px 16px;
             text-align: center;
@@ -149,7 +149,7 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
 </head>
 <body>
     <div class="challenge-header">
-        <div class="bank-logo">🏦 Wegagen Bank</div>
+        <div class="bank-logo">🏦 Wegagen bank</div>
         <h2 class="challenge-title">Verify Your Identity</h2>
         <p class="challenge-subtitle">
             Your bank requires additional verification to complete this payment.
@@ -314,7 +314,7 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
                         vertical: 12,
                       ),
                       decoration: const BoxDecoration(
-                        color: Color(0xFF1A237E),
+                        color: Color(0xFF0b6335),
                       ),
                       child: Row(
                         children: [
@@ -385,7 +385,7 @@ class _ThreeDSChallengeScreenState extends State<ThreeDSChallengeScreen> {
                                 children: [
                                   CircularProgressIndicator(
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF1A237E),
+                                      Color(0xFF0b6335),
                                     ),
                                   ),
                                   SizedBox(height: 16),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../constants/colors.dart';
 import '../../models/transfer.dart';
 import '../../services/transactions_service.dart';
 import '../../widgets/activity_tracker.dart';
+import 'transaction_detail_screen.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -85,8 +87,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Transactions'),
-        backgroundColor: const Color(0xFFF37021),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
       ),
       body: ActivityTracker(
         interactionType: 'transactions_screen',
@@ -112,10 +114,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           });
                           _loadTransactions(); // Reload transactions when filter changes
                         },
-                        selectedColor: const Color(0xFFF37021).withValues(alpha: 0.2),
-                        checkmarkColor: const Color(0xFFF37021),
+                        selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                        checkmarkColor: AppColors.primary,
                         labelStyle: TextStyle(
-                          color: isSelected ? const Color(0xFFF37021) : Colors.grey.shade600,
+                          color: isSelected ? AppColors.primary : Colors.grey.shade600,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
@@ -135,7 +137,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ? _buildEmptyState()
                           : RefreshIndicator(
                               onRefresh: _refreshTransactions,
-                              color: const Color(0xFFF37021),
+                              color: AppColors.primary,
                               child: ListView.builder(
                                 padding: const EdgeInsets.all(16),
                                 itemCount: _filteredTransactions.length,
@@ -158,7 +160,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            color: Color(0xFFF37021),
+            color: AppColors.primary,
           ),
           SizedBox(height: 16),
           Text(
@@ -205,8 +207,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ElevatedButton(
             onPressed: _loadTransactions,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF37021),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -255,169 +257,220 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Widget _buildTransactionCard(Transfer transaction) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return InkWell(
+      onTap: () {
+        print('🔄 Transaction card tapped: ID ${transaction.id}');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TransactionDetailScreen(
+              transactionId: transaction.id.toString(),
+            ),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row
-          Row(
-            children: [
-              // Transfer Type Icon
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _getTransferTypeColor(transaction.type).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+        ).then((value) {
+          print('🔙 Returned from transaction detail screen');
+        });
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              children: [
+                // Transfer Type Icon
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _getTransferTypeColor(transaction.type).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _getTransferTypeIcon(transaction.type),
+                    color: _getTransferTypeColor(transaction.type),
+                    size: 20,
+                  ),
                 ),
-                child: Icon(
-                  _getTransferTypeIcon(transaction.type),
-                  color: _getTransferTypeColor(transaction.type),
-                  size: 20,
+                const SizedBox(width: 12),
+                // Transfer Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _getTransferTypeName(transaction.type),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        transaction.recipientName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Transfer Info
-              Expanded(
-                child: Column(
+                _buildStatusChip(transaction.status),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Amount Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getTransferTypeName(transaction.type),
+                      'You Sent',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    Text(
+                      '${transaction.amount.toStringAsFixed(2)} ${transaction.fromCurrency}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
                     Text(
-                      transaction.recipientName,
+                      'Recipient Gets',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    Text(
+                      '${transaction.etbAmount.toStringAsFixed(2)} ETB',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+            
+            // Transaction ID and Date
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ID: ${transaction.id}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                Text(
+                  _formatDate(transaction.createdAt),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+            
+            // Additional info for specific transfer types
+            if (transaction.type == TransferType.cashPickup && transaction.pickupCode != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.qr_code,
+                      color: Colors.blue.shade600,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Pickup Code: ${transaction.pickupCode}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue.shade700,
                       ),
                     ),
                   ],
                 ),
               ),
-              _buildStatusChip(transaction.status),
             ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Amount Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'You Sent',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                  Text(
-                    '${transaction.amount.toStringAsFixed(2)} ${transaction.fromCurrency}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Recipient Gets',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                  Text(
-                    '${transaction.etbAmount.toStringAsFixed(2)} ETB',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFF37021),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-          
-          // Transaction ID and Date
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'ID: ${transaction.id}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-              Text(
-                _formatDate(transaction.createdAt),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ],
-          ),
-          
-          // Additional info for specific transfer types
-          if (transaction.type == TransferType.cashPickup && transaction.pickupCode != null) ...[
+            
+            // Tap indicator with arrow
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: AppColors.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.qr_code,
-                    color: Colors.blue.shade600,
+                    Icons.touch_app,
                     size: 16,
+                    color: AppColors.primary,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Pickup Code: ${transaction.pickupCode}',
+                    'Tap for details',
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blue.shade700,
+                      fontSize: 13,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: AppColors.primary,
                   ),
                 ],
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -475,13 +528,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Color _getTransferTypeColor(TransferType type) {
     switch (type) {
       case TransferType.wegagenBank:
-        return const Color(0xFF2E7D7D);
+        return AppColors.primary;
       case TransferType.wegagenEbirr:
-        return const Color(0xFFF37021);
+        return AppColors.accent;
       case TransferType.cashPickup:
-        return Colors.purple;
+        return AppColors.info;
       case TransferType.schoolPay:
         return Colors.blue;
+      case TransferType.don:
+        return AppColors.primary; // Use primary color for don transfers
     }
   }
 
@@ -490,11 +545,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       case TransferType.wegagenBank:
         return Icons.account_balance;
       case TransferType.wegagenEbirr:
-        return Icons.phone_android;
+        return Icons.mobile_friendly;
       case TransferType.cashPickup:
-        return Icons.send;
+        return Icons.money;
       case TransferType.schoolPay:
         return Icons.school;
+      case TransferType.don:
+        return Icons.send; // Use send icon for don transfers
     }
   }
 
@@ -503,11 +560,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       case TransferType.wegagenBank:
         return 'Wegagen Bank Transfer';
       case TransferType.wegagenEbirr:
-        return 'Wegagen E-birr';
+        return 'Wegagen E-birr Transfer';
       case TransferType.cashPickup:
         return 'Cash Pickup';
       case TransferType.schoolPay:
         return 'School Payment';
+      case TransferType.don:
+        return 'Bank Transfer'; // Generic name for don transfers
     }
   }
 
