@@ -113,7 +113,7 @@
                 log('Fetching capture context with 3DS support from backend...');
                 
                 // Try to get capture context from your backend with 3DS enabled
-                const response = await fetch('https://cybersource.wegagenbanksc.com.et:3001/payments/generate-capture-context', {
+                const response = await fetch('https://donation.wegagenbanksc.com.et/remit/payments/generate-capture-context', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -121,7 +121,7 @@
                     body: JSON.stringify({
                         enable_3ds: true,
                         challenge_window_size: '02', // 390x400
-                        return_url: 'https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/return'
+                        return_url: 'https://donation.wegagenbanksc.com.et/remit/payments/3ds/return'
                     }),
                 });
 

@@ -135,7 +135,7 @@ class ThreeDSService {
         'consumerAuthenticationInformation': {
           'deviceChannel': 'BROWSER',
           'returnUrl':
-              'https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/return',
+              'https://donation.wegagenbanksc.com.et/remit/payments/3ds/return',
           'challengeWindowSize': '02',
         }
       };
@@ -525,7 +525,7 @@ class ThreeDSService {
         'deviceChannel': 'BROWSER', // Keep as BROWSER for compatibility
         'transactionMode': 'eCommerce', // Keep as eCommerce for compatibility
         'returnUrl':
-            'https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/return',
+            'https://donation.wegagenbanksc.com.et/remit/payments/3ds/return',
         'challengeWindowSize': '02', // 390x400 mobile window
 
         // HTTP-prefixed versions (backend might need both)

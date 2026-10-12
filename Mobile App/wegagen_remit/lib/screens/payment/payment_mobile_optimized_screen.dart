@@ -28,7 +28,7 @@ class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
 class _PaymentMobileOptimizedScreenState
     extends ConsumerState<PaymentMobileOptimizedScreen> {
   static const String _paymentUrl =
-      'https://cybersource.wegagenbanksc.com.et:3001/payments/card-form';
+      'https://donation.wegagenbanksc.com.et/remit/payments/card-form';
 
   late WebViewController controller;
   bool isLoading = true;

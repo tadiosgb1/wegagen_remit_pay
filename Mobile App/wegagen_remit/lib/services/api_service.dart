@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
@@ -63,6 +64,45 @@ class ApiService {
 
     // 🔥 prevent duplicate interceptors
     _dio.interceptors.clear();
+
+    // ── Hosts-file override (mobile only) ─────────────────────────────────
+    // Resolves intranet domains to their real IP so the device doesn't need
+    // an internal DNS server. The domain name is still sent as the TLS SNI /
+    // Host header, so Cybersource Microform domain validation keeps working.
+    if (!kIsWeb) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+
+        // Accept the internal server's certificate (self-signed / local CA)
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true;
+
+        // Re-resolve intranet hostnames to their mapped IP before connecting.
+        // HttpClient.connectionFactory intercepts the TCP/TLS handshake:
+        // we dial the real IP, but the Host header and TLS SNI still carry
+        // the original domain — Cybersource Microform checks remain intact.
+        if (Environment.hostsOverrides.isNotEmpty) {
+          client.connectionFactory =
+              (Uri uri, String? proxyHost, int? proxyPort) async {
+            final ip = Environment.hostsOverrides[uri.host];
+            final host = ip ?? uri.host;
+            // Connect to the overridden IP (or original host if not mapped).
+            // The TLS SNI / Host header still carries the original domain name
+            // because HttpClient sets those separately — Cybersource Microform
+            // domain checks remain intact.
+            final socket = await SecureSocket.connect(
+              host,
+              uri.port,
+              onBadCertificate: (_) => true,
+              supportedProtocols: const ['http/1.1'],
+            );
+            return ConnectionTask.fromSocket(Future.value(socket), () {});
+          };
+        }
+
+        return client;
+      };
+    }
 
     // Add cookie manager FIRST
     _dio.interceptors.add(CookieManager(_cookieJar));

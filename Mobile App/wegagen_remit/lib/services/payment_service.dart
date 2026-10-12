@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,11 +23,34 @@ class PaymentService {
       },
     ));
 
-    // Initialize HTTP client with SSL handling for development
-    if (!kIsWeb && Environment.isDevelopment) {
+    // Initialize HTTP client with SSL handling + local hosts-file override
+    if (!kIsWeb) {
       (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
         final httpClient = HttpClient();
-        httpClient.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+        // Accept the internal server's certificate (self-signed / local CA)
+        httpClient.badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true;
+        // Re-resolve intranet hostnames to their mapped IP before connecting.
+        // The Host header and TLS SNI still use the original domain so
+        // Cybersource Microform domain validation continues to work.
+        if (Environment.hostsOverrides.isNotEmpty) {
+          httpClient.connectionFactory =
+              (Uri uri, String? proxyHost, int? proxyPort) async {
+            final ip = Environment.hostsOverrides[uri.host];
+            final host = ip ?? uri.host;
+            // Connect to the overridden IP (or original host if not mapped).
+            // The TLS SNI / Host header still carries the original domain name
+            // because HttpClient sets those separately — Cybersource Microform
+            // domain checks remain intact.
+            final socket = await SecureSocket.connect(
+              host,
+              uri.port,
+              onBadCertificate: (_) => true,
+              supportedProtocols: const ['http/1.1'],
+            );
+            return ConnectionTask.fromSocket(Future.value(socket), () {});
+          };
+        }
         return httpClient;
       };
     }

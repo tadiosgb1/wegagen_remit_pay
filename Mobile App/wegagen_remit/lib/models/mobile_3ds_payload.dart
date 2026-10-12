@@ -279,7 +279,7 @@ class Mobile3DSPayload {
   static String _getDynamicReturnUrl(Map<String, dynamic> deviceData) {
     final platform = deviceData['mobileDeviceType'] ?? 'mobile';
     final sessionId = DateTime.now().millisecondsSinceEpoch;
-    return "https://cybersource.wegagenbanksc.com.et:3001/payments/3ds/$platform/return?session=$sessionId";
+    return "https://donation.wegagenbanksc.com.et/remit/payments/3ds/$platform/return?session=$sessionId";
   }
 
   static String _getDynamicMessageCategory(Map<String, dynamic> deviceData) {
