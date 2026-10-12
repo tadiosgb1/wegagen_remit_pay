@@ -13,7 +13,7 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <application
-        android:label="Wegagenen Remit"
+        android:label="Wegagen Remit"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/LaunchTheme"
         android:exported="true"

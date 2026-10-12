@@ -27,8 +27,6 @@ class AmountEntryScreen extends StatefulWidget {
 }
 
 class _AmountEntryScreenState extends State<AmountEntryScreen> {
-  static const double _minimumTransferAmount = 10.0;
-
   final _amountController = TextEditingController();
   double _etbAmount = 0.0;
   double _bonusAmount = 0.0;
@@ -38,10 +36,10 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
 
   double get _enteredAmount => double.tryParse(_amountController.text) ?? 0.0;
 
-  bool get _hasMinimumTransferAmount => _enteredAmount >= _minimumTransferAmount;
+  bool get _hasPositiveTransferAmount => _enteredAmount > 0;
 
   String get _minimumTransferText =>
-      'Minimum transfer: ${_minimumTransferAmount.toStringAsFixed(2)} ${widget.selectedCurrency}';
+      'Greater than 0 ${widget.selectedCurrency}';
 
   @override
   void initState() {
@@ -177,7 +175,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
   Future<void> _proceedToRecipientDetails() async {
     if (_amountController.text.isNotEmpty && _etbAmount > 0) {
       final amount = _enteredAmount;
-      if (amount >= _minimumTransferAmount) {
+      if (amount > 0) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final user = authProvider.user;
 
@@ -443,18 +441,6 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
 
                       const SizedBox(height: 24),
 
-                      if (_amountController.text.isNotEmpty &&
-                          _enteredAmount > 0 &&
-                          !_hasMinimumTransferAmount)
-                        Text(
-                          'Minimum transfer amount is ${_minimumTransferAmount.toStringAsFixed(2)} ${widget.selectedCurrency}.',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-
                       // Fee Breakdown
                       if (_etbAmount > 0)
                         Container(
@@ -511,7 +497,7 @@ class _AmountEntryScreenState extends State<AmountEntryScreen> {
                   child: ElevatedButton(
                     onPressed: _etbAmount > 0 &&
                             double.tryParse(_amountController.text) != null &&
-                            _enteredAmount >= _minimumTransferAmount
+                            _hasPositiveTransferAmount
                         ? _proceedToRecipientDetails
                         : null,
                     style: ElevatedButton.styleFrom(

@@ -238,9 +238,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               if (amount == null || amount <= 0) {
                 return 'Please enter a valid amount';
               }
-              if (amount < 1) {
-                return 'Minimum amount is 1.00 ';
-              }
               if (amount > 100000) {
                 return 'Maximum amount is 100,000.00';
               }
