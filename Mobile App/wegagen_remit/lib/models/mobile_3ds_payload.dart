@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../config/environment.dart';
 
 /// Mobile-optimized 3DS enrollment payload for CyberSource
 /// Uses real device data for mobile apps
@@ -279,7 +280,7 @@ class Mobile3DSPayload {
   static String _getDynamicReturnUrl(Map<String, dynamic> deviceData) {
     final platform = deviceData['mobileDeviceType'] ?? 'mobile';
     final sessionId = DateTime.now().millisecondsSinceEpoch;
-    return "https://donation.wegagenbanksc.com.et/remit/payments/3ds/$platform/return?session=$sessionId";
+    return "${Environment.backendUrl}/payments/3ds/$platform/return?session=$sessionId";
   }
 
   static String _getDynamicMessageCategory(Map<String, dynamic> deviceData) {

@@ -21,6 +21,7 @@ class StreamlinedBillingScreen extends ConsumerStatefulWidget {
   final String originalCurrency; // Original sender currency
   final String? transferType; // Add transfer type parameter
   final Map<String, dynamic>? recipientData; // Add recipient data parameter
+  final double bonusAmountETB;
 
   const StreamlinedBillingScreen({
     super.key,
@@ -33,6 +34,7 @@ class StreamlinedBillingScreen extends ConsumerStatefulWidget {
     required this.originalCurrency,
     this.transferType,
     this.recipientData,
+    required this.bonusAmountETB,
   });
 
   @override
@@ -929,6 +931,8 @@ class _StreamlinedBillingScreenState
               builder: (context) => PaymentMobileOptimizedScreen(
                     transferType: widget.transferType,
                     recipientData: widget.recipientData,
+                    recipientAmountETB: widget.amount,
+                    bonusAmountETB: widget.bonusAmountETB,
                   )),
         );
       } else {
@@ -938,6 +942,8 @@ class _StreamlinedBillingScreenState
             builder: (context) => PaymentMobileOptimizedScreen(
               transferType: widget.transferType,
               recipientData: widget.recipientData,
+              recipientAmountETB: widget.amount,
+              bonusAmountETB: widget.bonusAmountETB,
             ),
           ),
         );

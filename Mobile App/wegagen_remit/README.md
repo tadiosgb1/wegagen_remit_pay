@@ -2,16 +2,11 @@
 
 A new Flutter project.
 
-## Getting Started
+## Configure the API base URL
 
-This project is a starting point for a Flutter application.
+Set `BASE_URL` in the `.env` file in the project root to the backend address
+reachable from your device. Include any required base path. The app reads that
+single value for API requests, connectivity checks, and payment endpoints.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The app loads `.env` at startup and reports an error if `BASE_URL` is missing
+or empty.

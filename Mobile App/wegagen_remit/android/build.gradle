@@ -23,6 +23,13 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
+    afterEvaluate { project ->
+        if (project.name == "printing") {
+            project.android.compileSdkVersion 36
+        }
+    }
+}
+subprojects {
     project.evaluationDependsOn(':app')
 }
 

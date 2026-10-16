@@ -38,6 +38,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   // Bank transfer fields
   final _accountNumberController = TextEditingController();
   bool _isAccountVerified = false;
+  String _verifiedAccountNumber = '';
   String _accountHolderName = '';
   String _accountType = '';
 
@@ -1028,15 +1029,10 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
               if (value.trim().length < 10) {
                 return 'Account number must be at least 10 digits';
               }
-              // For testing: allow continuing without verification
-              // Remove this condition in production
-              if (!_isAccountVerified && _accountHolderName.isEmpty) {
-                // Auto-fill with placeholder data for testing
-                setState(() {
-                  _accountHolderName = 'Test Account Holder';
-                  _accountType = 'Savings Account';
-                  _isAccountVerified = true;
-                });
+              if (!_isAccountVerified ||
+                  _verifiedAccountNumber.isEmpty ||
+                  _lastVerifiedAccountNumber != value.trim()) {
+                return 'Please wait until the account is verified';
               }
               return null;
             },
@@ -1046,8 +1042,12 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
 
               setState(() {
                 _isAccountVerified = false;
+                _verifiedAccountNumber = '';
                 _accountHolderName = '';
                 _accountType = '';
+                if (value.trim() != _lastVerifiedAccountNumber) {
+                  _lastVerifiedAccountNumber = '';
+                }
               });
 
               // Start new verification after user stops typing
@@ -1238,6 +1238,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
         if (_isValidAccountData(account)) {
           setState(() {
             _isAccountVerified = true;
+            _verifiedAccountNumber = account.accountNumber;
             _accountHolderName = account.accountHolderName;
             _accountType = account.accountTypeDescription;
             _lastVerifiedAccountNumber = accountNumber;
@@ -1285,6 +1286,11 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
   }
 
   bool _isValidAccountData(AccountInfo accountData) {
+    if (accountData.accountNumber.trim().isEmpty) {
+      print('❌ Account number is empty');
+      return false;
+    }
+
     // Check if account holder name is empty or null
     if (accountData.accountHolderName.trim().isEmpty) {
       print('❌ Account holder name is empty');
@@ -1398,7 +1404,7 @@ class _RecipientDetailsScreenState extends State<RecipientDetailsScreen> {
       switch (widget.transferType) {
         case 'wegagen_bank':
           recipientData = {
-            'accountNumber': _accountNumberController.text,
+            'accountNumber': _verifiedAccountNumber,
             'accountHolderName': _accountHolderName,
             'accountType': _accountType,
           };

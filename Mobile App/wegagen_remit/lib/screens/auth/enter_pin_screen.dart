@@ -85,18 +85,7 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.primary,
-              AppColors.primaryLight,
-              AppColors.primaryDark,
-            ],
-            stops: [0.0, 0.3, 1.0],
-          ),
-        ),
+        color: AppColors.secondary,
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -134,9 +123,10 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                             height: 70,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Icon(
-                                Icons.account_balance,
-                                size: 100,
-                                color: AppColors.primary),
+                              Icons.account_balance,
+                              size: 100,
+                              color: Color(0xFFF37021),
+                            ),
                           ),
                         ),
                       ),
@@ -146,7 +136,7 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
 
                     // App Name
                     const Text(
-                      "Wegagen Remit",
+                      "Wegagen  Remit",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -257,7 +247,7 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                               child: const Center(
                                 child: CircularProgressIndicator(
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.secondary,
+                                    AppColors.primary,
                                   ),
                                   strokeWidth: 3,
                                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
+import '../config/environment.dart';
 import '../config/url_container.dart';
 
 class ThreeDSService {
@@ -47,6 +48,7 @@ class ThreeDSService {
           'email': billingInfo['email'] ?? '',
           'phoneNumber': billingInfo['phone_number'] ?? '',
           'amount': amount.toString(),
+          'currency': currency,
           'exchange_rate': exchangeRate,
         },
         includeAuth: true,
@@ -134,8 +136,7 @@ class ThreeDSService {
         // EXPLICIT CyberSource fields (in case backend needs direct access)
         'consumerAuthenticationInformation': {
           'deviceChannel': 'BROWSER',
-          'returnUrl':
-              'https://donation.wegagenbanksc.com.et/remit/payments/3ds/return',
+          'returnUrl': '${Environment.backendUrl}/payments/3ds/return',
           'challengeWindowSize': '02',
         }
       };
@@ -268,20 +269,57 @@ class ThreeDSService {
     required double amount,
     required double exchangeRate,
     required Map<String, dynamic> authenticationPayload,
+    required Map<String, dynamic> billingInfo,
+    required Map<String, dynamic> recipientInfo,
+    required String currency,
+    required String remark,
   }) async {
     try {
       if (kDebugMode) {
         print('✅ Finalizing payment with 3DS authentication');
       }
 
+      final recipientName = recipientInfo['name'] ??
+          recipientInfo['full_name'] ??
+          recipientInfo['fullName'] ??
+          recipientInfo['account_holder'] ??
+          recipientInfo['accountHolderName'] ??
+          '';
+
       final response = await _apiService.post(
         UrlContainer.processPaymentWith3DS,
         {
           'transientToken': transientToken,
           'payload': authenticationPayload,
+          'firstName': billingInfo['first_name'] ?? '',
+          'lastName': billingInfo['last_name'] ?? '',
+          'address1': billingInfo['address1'] ?? '',
+          'locality': billingInfo['locality'] ?? '',
+          'administrativeArea': billingInfo['administrative_area'] ?? '',
+          'postalCode': billingInfo['postal_code'] ?? '',
+          'country': billingInfo['country'] ?? '',
+          'email': billingInfo['email'] ?? '',
+          'phoneNumber': billingInfo['phone_number'] ?? '',
+          'toAccountHolder': recipientInfo['toAccountHolder'] ??
+              recipientInfo['account_holder'] ??
+              recipientInfo['accountHolderName'] ??
+              recipientName,
+          'countryCode': recipientInfo['countryCode'] ??
+              recipientInfo['country_code'] ??
+              recipientInfo['country'] ??
+              '',
+          'name': recipientName,
+          'Fcurrency': recipientInfo['Fcurrency'] ??
+              recipientInfo['currency'] ??
+              currency,
           'amount': amount,
           'customer_id': customerId,
           'exchange_rate': exchangeRate,
+          'toAccount': recipientInfo['toAccount'] ??
+              recipientInfo['account_number'] ??
+              recipientInfo['accountNumber'] ??
+              '',
+          'remark': remark,
         },
         includeAuth: true,
       );
@@ -328,7 +366,8 @@ class ThreeDSService {
           'state': recipientInfo['state'] ?? '',
           'city': recipientInfo['city'] ?? '',
           'address': recipientInfo['address'] ?? '',
-          'relationship_to_sender': recipientInfo['relationship_to_sender'] ?? '',
+          'relationship_to_sender':
+              recipientInfo['relationship_to_sender'] ?? '',
           'currency': recipientInfo['currency'] ?? 'ETB',
           'expected_amount': recipientInfo['expected_amount'] ?? amount,
         },
@@ -350,6 +389,7 @@ class ThreeDSService {
     required String paymentToken,
     required double amount,
     required String currency,
+    required double exchangeRate,
     required Map<String, dynamic> billingInfo,
     required Map<String, dynamic> recipientInfo,
     String? remark,
@@ -360,7 +400,8 @@ class ThreeDSService {
         print('💳 === 3DS PAYMENT FLOW STARTED ===');
         print('💳 Transfer Type: $transferType');
         print('💰 Is Cash Pickup: ${transferType == 'cash_pickup'}');
-        print('🎫 Payment Token: ${paymentToken.length > 20 ? paymentToken.substring(0, 20) + '...' : paymentToken}');
+        print(
+            '🎫 Payment Token: ${paymentToken.length > 20 ? paymentToken.substring(0, 20) + '...' : paymentToken}');
         print('💰 Amount: $amount $currency');
         print(
             '👤 Billing: ${billingInfo['first_name']} ${billingInfo['last_name']}');
@@ -371,7 +412,8 @@ class ThreeDSService {
       // Step 1: Process payment token to get customer ID
       if (kDebugMode) {
         print('\n🔄 STEP 1: Processing payment token...');
-        print('🏦 Using Regular endpoint for token processing (all transfer types)');
+        print(
+            '🏦 Using Regular endpoint for token processing (all transfer types)');
       }
 
       final tokenResult = await processPaymentToken(
@@ -379,8 +421,9 @@ class ThreeDSService {
         billingInfo: billingInfo,
         amount: amount,
         currency: currency,
-        exchangeRate: 1.0, // You can get this from recipientInfo or form data
-        transferType: transferType, // Pass transfer type to route to correct endpoint
+        exchangeRate: exchangeRate,
+        transferType:
+            transferType, // Pass transfer type to route to correct endpoint
       );
 
       if (!tokenResult.success || tokenResult.customerId == null) {
@@ -524,8 +567,7 @@ class ThreeDSService {
         'browserIP': '127.0.0.1', // Mobile app local IP
         'deviceChannel': 'BROWSER', // Keep as BROWSER for compatibility
         'transactionMode': 'eCommerce', // Keep as eCommerce for compatibility
-        'returnUrl':
-            'https://donation.wegagenbanksc.com.et/remit/payments/3ds/return',
+        'returnUrl': '${Environment.backendUrl}/payments/3ds/return',
         'challengeWindowSize': '02', // 390x400 mobile window
 
         // HTTP-prefixed versions (backend might need both)
@@ -653,6 +695,7 @@ class EnrollmentCheckResult {
 
 /// 3DS Authentication Result
 class ThreeDSAuthResult {
+  final Map<String, dynamic> responsePayload;
   final bool success;
   final String status;
   final String? authResult;
@@ -668,6 +711,7 @@ class ThreeDSAuthResult {
   ThreeDSAuthResult({
     required this.success,
     required this.status,
+    this.responsePayload = const {},
     this.authResult,
     this.cavv,
     this.eci,
@@ -690,6 +734,7 @@ class ThreeDSAuthResult {
     return ThreeDSAuthResult(
       success: isSuccessStatus,
       status: status,
+      responsePayload: Map<String, dynamic>.from(json),
       authResult: consumerAuth['authenticationResult'],
       cavv: consumerAuth['cavv'],
       eci: consumerAuth['eciRaw'],
@@ -700,6 +745,26 @@ class ThreeDSAuthResult {
       error: json['errorInformation']?['message'],
       message: json['message'],
     );
+  }
+
+  Map<String, dynamic> toPayload() {
+    if (responsePayload.isNotEmpty) {
+      return responsePayload;
+    }
+
+    return {
+      'status': status,
+      if (authResult != null)
+        'consumerAuthenticationInformation': {
+          'authenticationResult': authResult,
+          'authenticationTransactionId': authenticationTransactionId,
+          'cavv': cavv,
+          'eciRaw': eci,
+          'xid': xid,
+          'ucafAuthenticationData': ucafAuthenticationData,
+          'ucafCollectionIndicator': ucafCollectionIndicator,
+        },
+    };
   }
 
   bool get isAuthenticated =>
@@ -758,8 +823,9 @@ class PaymentResult {
       transientToken: json['transient_token']?.toString(),
       error: json['error']?.toString(),
       message: json['message']?.toString(),
-      timestamp:
-          json['timestamp'] != null ? DateTime.parse(json['timestamp'].toString()) : null,
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'].toString())
+          : null,
     );
   }
 

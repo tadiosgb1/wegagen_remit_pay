@@ -13,6 +13,8 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
   final String paymentToken;
   final double? amount;
   final String? currency;
+  final double? recipientAmountETB;
+  final double? bonusAmountETB;
   final Map<String, dynamic>? billingInfo;
   final Map<String, dynamic>? recipientInfo;
   final String? remark;
@@ -25,6 +27,8 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
     required this.paymentToken,
     this.amount,
     this.currency,
+    this.recipientAmountETB,
+    this.bonusAmountETB,
     this.billingInfo,
     this.recipientInfo,
     this.remark,
@@ -67,16 +71,17 @@ class _PaymentProcessingScreenState
   @override
   void initState() {
     super.initState();
-    
+
     if (kDebugMode) {
       print('\n🎯 === PAYMENT PROCESSING SCREEN INIT ===');
       print('📱 Received transferType: ${widget.transferType}');
-      print('💳 Received paymentToken: ${widget.paymentToken.substring(0, 20)}...');
+      print(
+          '💳 Received paymentToken: ${widget.paymentToken.substring(0, 20)}...');
       print('💰 Received amount: ${widget.amount}');
       print('💱 Received currency: ${widget.currency}');
       print('🎯 === INIT COMPLETE ===\n');
     }
-    
+
     _initializeAnimations();
     _processPayment();
   }
@@ -127,6 +132,8 @@ class _PaymentProcessingScreenState
           widget.recipientInfo ?? _getRecipientInfoFromForm(formData);
       final amount = widget.amount ?? formData.amount;
       final currency = widget.currency ?? formData.currency;
+      final exchangeRate = formData.exchangeRate;
+      final remark = widget.remark ?? formData.remark;
 
       if (kDebugMode) {
         print('💰 Payment Details:');
@@ -135,7 +142,8 @@ class _PaymentProcessingScreenState
             '   👤 Billing: ${billingInfo['first_name']} ${billingInfo['last_name']}');
         print('   📧 Email: ${billingInfo['email']}');
         print('   📱 Recipient: ${recipientInfo['account_holder']}');
-        print('   🎫 Token: ${widget.paymentToken.length > 20 ? widget.paymentToken.substring(0, 20) + '...' : widget.paymentToken}');
+        print(
+            '   🎫 Token: ${widget.paymentToken.length > 20 ? widget.paymentToken.substring(0, 20) + '...' : widget.paymentToken}');
       }
 
       if (amount <= 0) {
@@ -153,10 +161,12 @@ class _PaymentProcessingScreenState
         paymentToken: widget.paymentToken,
         amount: amount,
         currency: currency,
+        exchangeRate: exchangeRate,
         billingInfo: billingInfo,
         recipientInfo: recipientInfo,
-        remark: widget.remark ?? formData.remark,
-        transferType: widget.transferType, // Pass transfer type for endpoint routing
+        remark: remark,
+        transferType:
+            widget.transferType, // Pass transfer type for endpoint routing
       );
 
       if (kDebugMode) {
@@ -242,31 +252,33 @@ class _PaymentProcessingScreenState
       try {
         // Determine if this is a cash pickup transfer
         final isCashPickup = widget.transferType == 'cash_pickup';
-        
+
         if (kDebugMode) {
           print('💳 Transfer Type: ${widget.transferType}');
           print('💰 Is Cash Pickup: $isCashPickup');
           if (isCashPickup) {
-            print('🏪 Using Cash Pickup endpoint: ${UrlContainer.processPaymentWith3DSForCashPicup}');
+            print(
+                '🏪 Using Cash Pickup endpoint: ${UrlContainer.processPaymentWith3DSForCashPicup}');
           } else {
-            print('🏦 Using Regular endpoint: ${UrlContainer.processPaymentWith3DS}');
+            print(
+                '🏦 Using Regular endpoint: ${UrlContainer.processPaymentWith3DS}');
           }
         }
 
         // Call appropriate payment finalization method
         final PaymentResult finalPaymentResult;
-        
+
         if (isCashPickup) {
           // Call cash pickup payment finalization with recipient info
           finalPaymentResult = await _threeDSService.finalizeCashPickupPayment(
             transientToken: paymentResult.transientToken ?? widget.paymentToken,
             customerId: paymentResult.customerId ?? '',
             amount: paymentResult.amount ?? 0,
-            exchangeRate: 1.0,
+            exchangeRate: exchangeRate,
             authenticationPayload: {
               'consumerAuthenticationInformation': {
-                'authenticationTransactionId':
-                    paymentResult.threeDSEnrollment?.authenticationTransactionId,
+                'authenticationTransactionId': paymentResult
+                    .threeDSEnrollment?.authenticationTransactionId,
                 'cavv': null, // No CAVV for frictionless
                 'xid': null, // No XID for frictionless
                 'eciRaw': '07', // Internet transaction
@@ -274,7 +286,8 @@ class _PaymentProcessingScreenState
                 'ucafCollectionIndicator': null,
               }
             },
-            recipientInfo: recipientInfo, // Pass recipient info for account search
+            recipientInfo:
+                recipientInfo, // Pass recipient info for account search
           );
         } else {
           // Call regular payment finalization
@@ -282,11 +295,11 @@ class _PaymentProcessingScreenState
             transientToken: paymentResult.transientToken ?? widget.paymentToken,
             customerId: paymentResult.customerId ?? '',
             amount: paymentResult.amount ?? 0,
-            exchangeRate: 1.0,
+            exchangeRate: exchangeRate,
             authenticationPayload: {
               'consumerAuthenticationInformation': {
-                'authenticationTransactionId':
-                    paymentResult.threeDSEnrollment?.authenticationTransactionId,
+                'authenticationTransactionId': paymentResult
+                    .threeDSEnrollment?.authenticationTransactionId,
                 'cavv': null, // No CAVV for frictionless
                 'xid': null, // No XID for frictionless
                 'eciRaw': '07', // Internet transaction
@@ -294,6 +307,10 @@ class _PaymentProcessingScreenState
                 'ucafCollectionIndicator': null,
               }
             },
+            billingInfo: billingInfo,
+            recipientInfo: recipientInfo,
+            currency: currency,
+            remark: remark,
           );
         }
 
@@ -354,6 +371,12 @@ class _PaymentProcessingScreenState
     // Navigate to 3DS authentication screen
     if (!mounted) return;
 
+    final formData = ref.read(paymentFormProvider);
+    final currency =
+        widget.currency ?? paymentResult.currency ?? formData.currency;
+    final exchangeRate = formData.exchangeRate;
+    final remark = widget.remark ?? formData.remark;
+
     if (kDebugMode) {
       print('\n🎮 === _handle3DSAuthentication CALLED ===');
       print('📱 About to navigate to ThreeDSAuthScreen');
@@ -380,7 +403,7 @@ class _PaymentProcessingScreenState
           billingInfo: billingInfo,
           recipientInfo: recipientInfo,
           customerId: paymentResult.customerId ?? '', // Pass the customer ID
-          remark: widget.remark,
+          remark: remark,
         ),
       ),
     );
@@ -418,9 +441,9 @@ class _PaymentProcessingScreenState
           print('💳 Calling finalizePayment with 3DS data...');
         }
 
-        // Determine if this is a cash pickup transfer  
+        // Determine if this is a cash pickup transfer
         final isCashPickup = widget.transferType == 'cash_pickup';
-        
+
         if (kDebugMode) {
           print('💳 3DS Auth - Transfer Type: ${widget.transferType}');
           print('💰 3DS Auth - Is Cash Pickup: $isCashPickup');
@@ -428,26 +451,17 @@ class _PaymentProcessingScreenState
 
         // Call appropriate payment finalization method with 3DS data
         final PaymentResult finalPaymentResult;
-        
+
         if (isCashPickup) {
           // Call cash pickup payment finalization with 3DS authentication
           finalPaymentResult = await _threeDSService.finalizeCashPickupPayment(
             transientToken: paymentResult.transientToken ?? widget.paymentToken,
             customerId: paymentResult.customerId ?? '',
             amount: paymentResult.amount ?? 0,
-            exchangeRate: 1.0,
-            authenticationPayload: {
-              'consumerAuthenticationInformation': {
-                'authenticationTransactionId':
-                    authResult.authenticationTransactionId,
-                'cavv': authResult.cavv,
-                'xid': authResult.xid,
-                'eciRaw': authResult.eci,
-                'ucafAuthenticationData': authResult.ucafAuthenticationData,
-                'ucafCollectionIndicator': authResult.ucafCollectionIndicator,
-              }
-            },
-            recipientInfo: recipientInfo, // Pass recipient info for account search
+            exchangeRate: exchangeRate,
+            authenticationPayload: authResult.toPayload(),
+            recipientInfo:
+                recipientInfo, // Pass recipient info for account search
           );
         } else {
           // Call regular payment finalization with 3DS authentication
@@ -455,18 +469,12 @@ class _PaymentProcessingScreenState
             transientToken: paymentResult.transientToken ?? widget.paymentToken,
             customerId: paymentResult.customerId ?? '',
             amount: paymentResult.amount ?? 0,
-            exchangeRate: 1.0,
-            authenticationPayload: {
-              'consumerAuthenticationInformation': {
-                'authenticationTransactionId':
-                    authResult.authenticationTransactionId,
-                'cavv': authResult.cavv,
-                'xid': authResult.xid,
-                'eciRaw': authResult.eci,
-                'ucafAuthenticationData': authResult.ucafAuthenticationData,
-                'ucafCollectionIndicator': authResult.ucafCollectionIndicator,
-              }
-            },
+            exchangeRate: exchangeRate,
+            authenticationPayload: authResult.toPayload(),
+            billingInfo: billingInfo,
+            recipientInfo: recipientInfo,
+            currency: currency,
+            remark: remark,
           );
         }
 
@@ -562,6 +570,7 @@ class _PaymentProcessingScreenState
   }
 
   void _navigateToSuccess() {
+    final formData = ref.read(paymentFormProvider);
     Timer(const Duration(seconds: 1), () {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -570,15 +579,19 @@ class _PaymentProcessingScreenState
               transactionId: _paymentResult?.transactionId ??
                   widget.transactionId ??
                   'N/A',
-              transferType: 'payment',
-              amount: _paymentResult?.amount ?? widget.amount ?? 0,
-              currency: _paymentResult?.currency ?? widget.currency ?? 'USD',
-              etbAmount: (_paymentResult?.amount ?? widget.amount ?? 0) *
-                  1.0, // exchange rate
-              recipientName:
-                  widget.recipientInfo?['account_holder'] ?? 'Recipient',
-              exchangeRate:
-                  1, // You might want to get this from the payment result
+              transferType: widget.transferType ?? 'wegagen_bank',
+              amount: widget.amount ?? formData.amount,
+              currency: widget.currency ?? formData.currency,
+              etbAmount: widget.recipientAmountETB ??
+                  ((widget.amount ?? formData.amount) * formData.exchangeRate),
+              bonusAmountETB: widget.bonusAmountETB ?? 0,
+              recipientInfo: widget.recipientInfo ?? const {},
+              recipientName: widget.recipientInfo?['account_holder'] ??
+                  widget.recipientInfo?['accountHolderName'] ??
+                  widget.recipientInfo?['full_name'] ??
+                  widget.recipientInfo?['fullName'] ??
+                  widget.recipientInfo?['holderName'] ??
+                  'Recipient',
             ),
           ),
           (route) => route.isFirst,
@@ -693,8 +706,7 @@ class _PaymentProcessingScreenState
                 LinearProgressIndicator(
                   value: (_currentStepIndex + 1) / _steps.length,
                   backgroundColor: Colors.grey.shade200,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               ],
 

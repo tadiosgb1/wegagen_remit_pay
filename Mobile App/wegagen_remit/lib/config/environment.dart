@@ -1,12 +1,16 @@
-class Environment {
-  static const String _baseUrl = String.fromEnvironment(
-    'BASE_URL',
-    defaultValue: 'https://donation.wegagenbanksc.com.et/remit', // Change to localhost for web development
-  );
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-  static const String _fallbackUrl = String.fromEnvironment(
+class Environment {
+  static String get baseUrl {
+    final configuredUrl = dotenv.env['BASE_URL']?.trim();
+    if (configuredUrl == null || configuredUrl.isEmpty) {
+      throw StateError('BASE_URL is missing or empty in .env');
+    }
+    return configuredUrl;
+  }
+
+  static const String _fallbackUrlOverride = String.fromEnvironment(
     'FALLBACK_URL',
-    defaultValue: 'https://donation.wegagenbanksc.com.et/remit', // Fallback to previous URL
   );
 
   static const String _apiVersion = String.fromEnvironment(
@@ -25,22 +29,14 @@ class Environment {
   );
 
   // Getters
-  static String get baseUrl => _baseUrl;
-  static String get fallbackUrl => _fallbackUrl;
+  static String get fallbackUrl =>
+      _fallbackUrlOverride.isEmpty ? baseUrl : _fallbackUrlOverride;
   static String get apiVersion => _apiVersion;
   static bool get isDevelopment => _isDevelopment;
   static String get apiKey => _apiKey;
 
-  // Multiple backend URLs for failover
-  static const List<String> _backendUrls = [
-    // 'http://localhost:3001',      // Primary - Localhost for web development
-    // 'http://127.0.0.1:3001',      // Alternative localhost
-    'https://donation.wegagenbanksc.com.et/remit',   // Internal IP - Primary backend
-    // 'http://10.195.49.18:3001',   // Internal IP - Secondary backend
-  ];
-  
   // All backend URLs for connectivity testing
-  static List<String> get allBackendUrls => _backendUrls;
+  static List<String> get allBackendUrls => [baseUrl];
 
   // ---------------------------------------------------------------------------
   // Hosts-file override map for local/intranet domains.
@@ -54,12 +50,12 @@ class Environment {
   };
 
   // Full API URL with version
-  static String get apiUrl => '$_baseUrl$_apiVersion';
-  static String get fallbackApiUrl => '$_fallbackUrl$_apiVersion';
+  static String get apiUrl => '$baseUrl$_apiVersion';
+  static String get fallbackApiUrl => '$fallbackUrl$_apiVersion';
 
   // Backend URLs without API prefix for direct endpoints
-  static String get backendUrl => _baseUrl;
-  static String get fallbackBackendUrl => _fallbackUrl;
+  static String get backendUrl => baseUrl;
+  static String get fallbackBackendUrl => fallbackUrl;
 
   // Environment info
   static String get environment =>

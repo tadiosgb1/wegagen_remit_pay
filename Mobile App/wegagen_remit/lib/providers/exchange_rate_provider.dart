@@ -131,7 +131,7 @@ class ExchangeRateProvider with ChangeNotifier {
 
   double? getRate(String fromCurrency, String toCurrency) {
     if (toCurrency == 'ETB' && _exchangeRates.containsKey(fromCurrency)) {
-      return _exchangeRates[fromCurrency]?.rate;
+      return _exchangeRates[fromCurrency]?.buyingRate;
     }
     return null;
   }

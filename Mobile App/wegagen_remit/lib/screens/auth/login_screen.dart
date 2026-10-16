@@ -43,9 +43,10 @@ class _LoginScreenState extends State<LoginScreen> {
           const SnackBar(
             content: Text(
               'No account found. Please create an account first.',
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
             duration: Duration(seconds: 4),
           ),
         );
@@ -69,9 +70,10 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             'Error: ${e.toString()}',
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: 15),
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
         ),
       );
@@ -82,209 +84,227 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) return 'Please enter your email';
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-      return 'Please enter a valid email';
+      return 'Please enter a valid email address';
     }
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Container(
-          height: size.height,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.primary,
-                AppColors.primaryLight,
-                Colors.white,
-              ],
-              stops: [0.0, 0.3, 1.0],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 50),
-
-                  // Logo with glow effect
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                          blurRadius: 30,
-                          spreadRadius: 8,
-                        ),
-                      ],
-                    ),
-                  child: CircleAvatar(
-                  radius: 60,  // Half of 110
-                  backgroundImage: AssetImage('assets/images/logo.png'),
-                  onBackgroundImageError: (_, __) {},
-                  child: const Icon(
-                    Icons.account_balance,
-                    size: 5000,
-                    color: AppColors.primary,
+      backgroundColor: AppColors.primary,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primaryLight,
+                      Colors.white,
+                    ],
+                    stops: [0.0, 0.5, 1.0],
                   ),
                 ),
-
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Welcome Text
-                  const Text(
-                    "Welcome Back",
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Sign in to continue",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white70,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Login Card
-                  Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 40,
-                          offset: const Offset(0, 15),
-                        ),
-                      ],
-                    ),
-                    child: Form(
-                      key: _formKey,
+                child: SafeArea(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Email Field
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            style: const TextStyle(fontSize: 17),
-                            decoration: InputDecoration(
-                              labelText: "Email Address",
-                              labelStyle:
-                                  TextStyle(color: Colors.grey.shade600),
-                              prefixIcon: const Icon(Icons.email_rounded,
-                                  color: AppColors.primary),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide:
-                                    BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                    color: AppColors.primary, width: 2),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey.shade50,
+                          // Single Unified Master White Card Container
+                          Container(
+                            padding: const EdgeInsets.all(28.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(32),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 35,
+                                  offset: const Offset(0, 12),
+                                ),
+                              ],
                             ),
-                            validator: _validateEmail,
-                          ),
-
-                          const SizedBox(height: 28),
-
-                          // Continue Button
-                          ElevatedButton(
-                            onPressed: _isCheckingEmail ? null : _continueToPin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                              disabledBackgroundColor: Colors.grey.shade400,
-                            ),
-                            child: _isCheckingEmail
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                      strokeWidth: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Logo Inside Card (Home icon removed)
+                                Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.primary.withValues(alpha: 0.15),
+                                          blurRadius: 15,
+                                          spreadRadius: 2,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
                                     ),
-                                  )
-                                : const Text(
-                                    "Continue",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
+                                    child: const CircleAvatar(
+                                      radius: 44,
+                                      backgroundColor: Colors.transparent,
+                                      backgroundImage: AssetImage('assets/images/logo.png'),
                                     ),
                                   ),
+                                ),
+
+                                const SizedBox(height: 22),
+
+                                // Welcome Title Inside Card
+                                const Text(
+                                  "Welcome Back",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "Sign in to access your account",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 28),
+
+                                // Form Fields
+                                Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      TextFormField(
+                                        controller: _emailController,
+                                        keyboardType: TextInputType.emailAddress,
+                                        style: const TextStyle(fontSize: 16),
+                                        decoration: InputDecoration(
+                                          labelText: "Email Address",
+                                          labelStyle: TextStyle(color: Colors.grey.shade700, fontSize: 15),
+                                          prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                          ),
+                                          errorBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                            borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.grey.shade50,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                        ),
+                                        validator: _validateEmail,
+                                      ),
+
+                                      const SizedBox(height: 24),
+
+                                      // Continue Button
+                                      ElevatedButton(
+                                        onPressed: _isCheckingEmail ? null : _continueToPin,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                          elevation: 2,
+                                          shadowColor: AppColors.primary.withValues(alpha: 0.4),
+                                          disabledBackgroundColor: Colors.grey.shade300,
+                                        ),
+                                        child: _isCheckingEmail
+                                            ? const SizedBox(
+                                                height: 22,
+                                                width: 22,
+                                                child: CircularProgressIndicator(
+                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                  strokeWidth: 2.5,
+                                                ),
+                                              )
+                                            : const Text(
+                                                "Continue",
+                                                style: TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w600,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                Divider(color: Colors.grey.shade200, thickness: 1),
+
+                                const SizedBox(height: 16),
+
+                                // Sign Up Row Inside Card
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "Don't have an account? ",
+                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 15),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) => const CreateAccountScreen()),
+                                        );
+                                      },
+                                      child: const Text(
+                                        "Sign Up",
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 30),
-
-                  // Sign Up Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Don't have an account? ",
-                        style: TextStyle(color: Colors.black87, fontSize: 16),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const CreateAccountScreen()),
-                          );
-                        },
-                        child: const Text(
-                          "Sign Up",
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

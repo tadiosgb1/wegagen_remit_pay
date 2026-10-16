@@ -148,6 +148,7 @@ class _ThreeDSAuthScreenState extends State<ThreeDSAuthScreen> {
         _handleAuthComplete(ThreeDSAuthResult(
           success: true,
           status: 'COMPLETED',
+          responsePayload: authResult.responsePayload,
           authResult: 'SUCCESS',
           authenticationTransactionId: widget.threeDSEnrollment.authenticationTransactionId,
         ));

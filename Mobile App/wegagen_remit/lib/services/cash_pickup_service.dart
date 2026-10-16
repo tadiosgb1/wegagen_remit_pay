@@ -15,6 +15,7 @@ class CashPickupService {
     required String paymentToken,
     required double amount,
     required String currency,
+    required double exchangeRate,
     required Map<String, dynamic> recipientInfo,
     required Map<String, dynamic> billingInfo, // Add billing info
     String? remark,
@@ -41,7 +42,7 @@ class CashPickupService {
           'amount': amount,
           'currency': currency,
           'remark': remark ?? 'Cash pickup transfer',
-          'exchange_rate': 1.0,
+          'exchange_rate': exchangeRate,
           
           // Billing information (required by backend)
           'firstName': billingInfo['first_name'] ?? '',
