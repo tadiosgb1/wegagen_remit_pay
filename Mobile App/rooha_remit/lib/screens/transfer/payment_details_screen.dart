@@ -32,7 +32,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
   final _cardHolderController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
-  
+
   String _selectedCardType = 'mastercard';
   bool _isProcessing = false;
 
@@ -59,8 +59,9 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
     if (mounted) {
       // Generate transaction ID and pickup code
-      final transactionId = 'WR${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-      final pickupCode = widget.transferType == 'cash_pickup' 
+      final transactionId =
+          'WR${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      final pickupCode = widget.transferType == 'cash_pickup'
           ? DateTime.now().millisecondsSinceEpoch.toString().substring(8, 12)
           : null;
 
@@ -68,7 +69,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
       String recipientName = '';
       switch (widget.transferType) {
         case 'wegagen_bank':
-          recipientName = widget.recipientData['accountHolderName'] ?? 'Unknown';
+          recipientName =
+              widget.recipientData['accountHolderName'] ?? 'Unknown';
           break;
         case 'rooha_ebirr':
           recipientName = widget.recipientData['holderName'] ?? 'Unknown';
@@ -88,6 +90,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
             amount: widget.amount,
             currency: widget.currency,
             etbAmount: widget.etbAmount,
+            bonusAmountETB: widget.fee,
+            recipientInfo: widget.recipientData,
             recipientName: recipientName,
             pickupCode: pickupCode,
             transactionId: transactionId,
@@ -101,13 +105,13 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
     if (value == null || value.isEmpty) {
       return 'Please enter card number';
     }
-    
+
     // Remove spaces and check length
     String cleanValue = value.replaceAll(' ', '');
     if (cleanValue.length < 16) {
       return 'Card number must be 16 digits';
     }
-    
+
     return null;
   }
 
@@ -125,26 +129,26 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
     if (value == null || value.isEmpty) {
       return 'Please enter expiry date';
     }
-    
+
     if (!RegExp(r'^\d{2}/\d{2}$').hasMatch(value)) {
       return 'Please enter valid format MM/YY';
     }
-    
+
     List<String> parts = value.split('/');
     int month = int.parse(parts[0]);
     int year = int.parse('20${parts[1]}');
-    
+
     if (month < 1 || month > 12) {
       return 'Invalid month';
     }
-    
+
     DateTime now = DateTime.now();
     DateTime expiry = DateTime(year, month);
-    
+
     if (expiry.isBefore(DateTime(now.year, now.month))) {
       return 'Card has expired';
     }
-    
+
     return null;
   }
 
@@ -268,20 +272,23 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     Row(
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(() => _selectedCardType = 'visa'),
+                            onTap: () =>
+                                setState(() => _selectedCardType = 'visa'),
                             child: Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: _selectedCardType == 'visa' ? Colors.white : Colors.grey.shade100,
+                                color: _selectedCardType == 'visa'
+                                    ? Colors.white
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: _selectedCardType == 'visa' 
-                                      ? const Color(0xFFF37021) 
+                                  color: _selectedCardType == 'visa'
+                                      ? const Color(0xFFF37021)
                                       : Colors.grey.shade300,
                                   width: _selectedCardType == 'visa' ? 2 : 1,
                                 ),
@@ -322,17 +329,21 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(() => _selectedCardType = 'mastercard'),
+                            onTap: () => setState(
+                                () => _selectedCardType = 'mastercard'),
                             child: Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: _selectedCardType == 'mastercard' ? Colors.white : Colors.grey.shade100,
+                                color: _selectedCardType == 'mastercard'
+                                    ? Colors.white
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: _selectedCardType == 'mastercard' 
-                                      ? const Color(0xFFF37021) 
+                                  color: _selectedCardType == 'mastercard'
+                                      ? const Color(0xFFF37021)
                                       : Colors.grey.shade300,
-                                  width: _selectedCardType == 'mastercard' ? 2 : 1,
+                                  width:
+                                      _selectedCardType == 'mastercard' ? 2 : 1,
                                 ),
                               ),
                               child: Row(
@@ -410,7 +421,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                       decoration: InputDecoration(
                         hintText: '4111 1111 1111 1111',
                         hintStyle: TextStyle(color: Colors.grey.shade400),
-                        prefixIcon: const Icon(Icons.credit_card, color: Colors.grey),
+                        prefixIcon:
+                            const Icon(Icons.credit_card, color: Colors.grey),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -421,7 +433,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFF37021)),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFF37021)),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -457,7 +470,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFF37021)),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFF37021)),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -493,18 +507,22 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                                 validator: _validateExpiry,
                                 decoration: InputDecoration(
                                   hintText: 'MM/YY',
-                                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                                  hintStyle:
+                                      TextStyle(color: Colors.grey.shade400),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey.shade300),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey.shade300),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFFF37021)),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFFF37021)),
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
@@ -538,18 +556,22 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                                 validator: _validateCVV,
                                 decoration: InputDecoration(
                                   hintText: '123',
-                                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                                  hintStyle:
+                                      TextStyle(color: Colors.grey.shade400),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey.shade300),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey.shade300),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFFF37021)),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFFF37021)),
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
@@ -597,7 +619,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                           SizedBox(width: 12),
                           Text(
                             'Processing Payment...',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ],
                       )
@@ -608,7 +631,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                           const SizedBox(width: 8),
                           Text(
                             'Pay Securely - ${widget.amount.toStringAsFixed(2)} ${widget.currency}',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -628,11 +652,11 @@ class _CardNumberInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     final text = newValue.text;
-    
+
     if (text.length <= 4) {
       return newValue;
     }
-    
+
     final buffer = StringBuffer();
     for (int i = 0; i < text.length; i++) {
       buffer.write(text[i]);
@@ -641,7 +665,7 @@ class _CardNumberInputFormatter extends TextInputFormatter {
         buffer.write(' ');
       }
     }
-    
+
     final string = buffer.toString();
     return newValue.copyWith(
       text: string,
@@ -657,11 +681,11 @@ class _ExpiryDateInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     final text = newValue.text;
-    
+
     if (text.length <= 2) {
       return newValue;
     }
-    
+
     final buffer = StringBuffer();
     for (int i = 0; i < text.length; i++) {
       buffer.write(text[i]);
@@ -669,7 +693,7 @@ class _ExpiryDateInputFormatter extends TextInputFormatter {
         buffer.write('/');
       }
     }
-    
+
     final string = buffer.toString();
     return newValue.copyWith(
       text: string,

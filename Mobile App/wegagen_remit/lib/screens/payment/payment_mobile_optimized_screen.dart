@@ -253,6 +253,7 @@ class _PaymentMobileOptimizedScreenState
                 },
           remark: formData.remark,
           transferType: widget.transferType, // ✅ Pass transfer type here!
+          useThreeDSFlow: Environment.useThreeDSFlow,
         ),
       ),
     );

@@ -7,17 +7,22 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import '../../providers/payment_providers.dart';
+import '../../config/environment.dart';
 import 'payment_processing_screen.dart';
 import '../../constants/colors.dart';
 
 class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
   final String? transferType; // Add transferType parameter
   final Map<String, dynamic>? recipientData; // Add recipient data parameter
+  final double? recipientAmountETB;
+  final double? bonusAmountETB;
 
   const PaymentMobileOptimizedScreen({
     super.key,
     this.transferType,
     this.recipientData,
+    this.recipientAmountETB,
+    this.bonusAmountETB,
   });
 
   @override
@@ -27,8 +32,7 @@ class PaymentMobileOptimizedScreen extends ConsumerStatefulWidget {
 
 class _PaymentMobileOptimizedScreenState
     extends ConsumerState<PaymentMobileOptimizedScreen> {
-  static const String _paymentUrl =
-      'https://cybersource.wegagenbanksc.com.et:3001/payments/card-form';
+  String get _paymentUrl => '${Environment.backendUrl}/payments/card-form';
 
   late WebViewController controller;
   bool isLoading = true;
@@ -228,6 +232,8 @@ class _PaymentMobileOptimizedScreenState
           paymentToken: token,
           amount: formData.amount,
           currency: formData.currency,
+          recipientAmountETB: widget.recipientAmountETB,
+          bonusAmountETB: widget.bonusAmountETB,
           billingInfo: {
             'first_name': formData.firstName,
             'last_name': formData.lastName,
@@ -247,6 +253,7 @@ class _PaymentMobileOptimizedScreenState
                 },
           remark: formData.remark,
           transferType: widget.transferType, // ✅ Pass transfer type here!
+          useThreeDSFlow: Environment.useThreeDSFlow,
         ),
       ),
     );

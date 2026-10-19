@@ -21,6 +21,7 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
   final ThreeDSAuthResult? threeDSResult;
   final String? transactionId;
   final String? transferType; // Add transfer type to detect cash pickup
+  final bool useThreeDSFlow;
 
   const PaymentProcessingScreen({
     super.key,
@@ -35,6 +36,7 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
     this.threeDSResult,
     this.transactionId,
     this.transferType,
+    this.useThreeDSFlow = false,
   });
 
   @override
@@ -148,6 +150,42 @@ class _PaymentProcessingScreenState
 
       if (amount <= 0) {
         throw Exception('Invalid payment amount');
+      }
+
+      if (!widget.useThreeDSFlow) {
+        _updateStep(3);
+        final PaymentResult directPaymentResult;
+
+        if (widget.transferType == 'cash_pickup') {
+          directPaymentResult = await _threeDSService.finalizeCashPickupPayment(
+            transientToken: widget.paymentToken,
+            customerId: '',
+            amount: amount,
+            exchangeRate: exchangeRate,
+            authenticationPayload: const {},
+            recipientInfo: recipientInfo,
+          );
+        } else {
+          directPaymentResult = await _threeDSService.finalizePayment(
+            transientToken: widget.paymentToken,
+            customerId: '',
+            amount: amount,
+            exchangeRate: exchangeRate,
+            authenticationPayload: const {},
+            billingInfo: billingInfo,
+            recipientInfo: recipientInfo,
+            currency: currency,
+            remark: remark,
+          );
+        }
+
+        _updateStep(4);
+        setState(() {
+          _paymentResult = directPaymentResult;
+          _isProcessing = false;
+        });
+        _navigateToSuccess();
+        return;
       }
 
       _updateStep(1); // Validating card details

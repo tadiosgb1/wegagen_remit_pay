@@ -9,6 +9,9 @@ class Environment {
     return configuredUrl;
   }
 
+  static bool get useThreeDSFlow =>
+      dotenv.env['USE_3DS_FLOW']?.trim().toLowerCase() == 'true';
+
   static const String _fallbackUrlOverride = String.fromEnvironment(
     'FALLBACK_URL',
   );

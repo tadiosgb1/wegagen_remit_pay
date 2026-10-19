@@ -29,38 +29,54 @@ class ModernConfirmationScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ModernConfirmationScreen> createState() => _ModernConfirmationScreenState();
+  ConsumerState<ModernConfirmationScreen> createState() =>
+      _ModernConfirmationScreenState();
 }
 
-class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScreen> {
+class _ModernConfirmationScreenState
+    extends ConsumerState<ModernConfirmationScreen> {
   bool _isProcessing = false;
 
   String get _transferTitle {
     switch (widget.transferType) {
-      case 'wegagen_bank': return 'Wegagen Bank Account Transfer';
-      case 'rooha_ebirr': return 'Rooha E-birr Transfer';
-      case 'cash_pickup': return 'Cash Pickup Transfer';
-      case 'school_pay': return 'School Payment';
-      default: return 'Money Transfer';
+      case 'wegagen_bank':
+        return 'Wegagen Bank Account Transfer';
+      case 'rooha_ebirr':
+        return 'Rooha E-birr Transfer';
+      case 'cash_pickup':
+        return 'Cash Pickup Transfer';
+      case 'school_pay':
+        return 'School Payment';
+      default:
+        return 'Money Transfer';
     }
   }
 
   IconData get _transferIcon {
     switch (widget.transferType) {
-      case 'wegagen_bank': return Icons.account_balance;
-      case 'rooha_ebirr': return Icons.phone_android;
-      case 'cash_pickup': return Icons.send;
-      case 'school_pay': return Icons.school;
-      default: return Icons.send;
+      case 'wegagen_bank':
+        return Icons.account_balance;
+      case 'rooha_ebirr':
+        return Icons.phone_android;
+      case 'cash_pickup':
+        return Icons.send;
+      case 'school_pay':
+        return Icons.school;
+      default:
+        return Icons.send;
     }
   }
 
   String _getCurrencyFlag(String code) {
     switch (code) {
-      case 'USD': return '🇺🇸';
-      case 'EUR': return '🇪🇺';
-      case 'GBP': return '🇬🇧';
-      default: return '💱';
+      case 'USD':
+        return '🇺🇸';
+      case 'EUR':
+        return '🇪🇺';
+      case 'GBP':
+        return '🇬🇧';
+      default:
+        return '💱';
     }
   }
 
@@ -76,7 +92,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
         MaterialPageRoute(
           builder: (context) => StreamlinedBillingScreen(
             toAccountHolder: _getCashPickupRecipientName(),
-            toAccount: _getCashPickupRecipientDetails(), 
+            toAccount: _getCashPickupRecipientDetails(),
             amount: widget.etbAmount, // ETB amount recipient receives
             currency: 'ETB', // Currency recipient receives
             exchangeRate: widget.exchangeRate,
@@ -84,6 +100,7 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
             originalCurrency: widget.currency, // Original sender currency
             transferType: widget.transferType, // Pass transfer type
             recipientData: widget.recipientData, // Pass full recipient data
+            bonusAmountETB: widget.fee,
           ),
         ),
       );
@@ -109,44 +126,44 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
   // Helper to get recipient name for cash pickup
   String _getCashPickupRecipientName() {
     final data = widget.recipientData;
-    
+
     // For wegagen_bank transfers
     if (widget.transferType == 'wegagen_bank') {
       return data['accountHolderName'] ?? 'Unknown';
     }
-    
+
     // For cash pickup transfers
     if (widget.transferType == 'cash_pickup') {
       return data['fullName'] ?? 'Unknown';
     }
-    
+
     // For rooha_ebirr transfers
     if (widget.transferType == 'rooha_ebirr') {
       return data['holderName'] ?? 'Unknown';
     }
-    
+
     return 'Unknown';
   }
 
-  // Helper to get recipient details for cash pickup  
+  // Helper to get recipient details for cash pickup
   String _getCashPickupRecipientDetails() {
     final data = widget.recipientData;
-    
+
     // For wegagen_bank transfers
     if (widget.transferType == 'wegagen_bank') {
       return data['accountNumber'] ?? 'Unknown';
     }
-    
+
     // For cash pickup transfers
     if (widget.transferType == 'cash_pickup') {
       return '${data['phoneNumber'] ?? ''} | ${data['city'] ?? ''}, ${data['country'] ?? 'ET'}';
     }
-    
+
     // For rooha_ebirr transfers
     if (widget.transferType == 'rooha_ebirr') {
       return data['phoneNumber'] ?? 'Unknown';
     }
-    
+
     return 'Unknown';
   }
 
@@ -169,7 +186,9 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
           children: [
             Icon(_transferIcon, size: 22, color: Colors.black87),
             const SizedBox(width: 10),
-            Text(_transferTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            Text(_transferTitle,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           ],
         ),
         centerTitle: true,
@@ -183,15 +202,17 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) => Container(
-                  width: 28,
-                  height: 4,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                )),
+                children: List.generate(
+                    4,
+                    (index) => Container(
+                          width: 28,
+                          height: 4,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        )),
               ),
             ),
 
@@ -201,9 +222,13 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Confirm Transfer', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                    const Text('Confirm Transfer',
+                        style: TextStyle(
+                            fontSize: 28, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
-                    Text('Review details before sending', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+                    Text('Review details before sending',
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.grey.shade600)),
 
                     const SizedBox(height: 32),
 
@@ -213,7 +238,12 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 6))],
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.grey.withValues(alpha: 0.12),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6))
+                        ],
                       ),
                       child: Column(
                         children: [
@@ -222,29 +252,42 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                               Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: Text(currencyFlag, style: const TextStyle(fontSize: 34)),
+                                child: Text(currencyFlag,
+                                    style: const TextStyle(fontSize: 34)),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('${widget.amount.toStringAsFixed(2)} ${widget.currency}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                                    Text('Amount Sent', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                                    Text(
+                                        '${widget.amount.toStringAsFixed(2)} ${widget.currency}',
+                                        style: const TextStyle(
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.bold)),
+                                    Text('Amount Sent',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade600)),
                                   ],
                                 ),
                               ),
                             ],
                           ),
                           const Divider(height: 32),
-                          _buildDetailRow('Amount Received', '${widget.etbAmount.toStringAsFixed(2)} ETB', highlight: true),
+                          _buildDetailRow('Amount Received',
+                              '${widget.etbAmount.toStringAsFixed(2)} ETB',
+                              highlight: true),
                           const SizedBox(height: 12),
-                          _buildDetailRow('Bonus', '+${widget.fee.toStringAsFixed(2)} ETB'),
+                          _buildDetailRow(
+                              'Bonus', '+${widget.fee.toStringAsFixed(2)} ETB'),
                           const SizedBox(height: 12),
-                          _buildDetailRow('Exchange Rate', '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(2)} ETB'),
+                          _buildDetailRow('Exchange Rate',
+                              '1 ${widget.currency} = ${widget.exchangeRate.toStringAsFixed(2)} ETB'),
                         ],
                       ),
                     ),
@@ -257,12 +300,19 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4))],
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.grey.withValues(alpha: 0.1),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4))
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Sending To', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                          const Text('Sending To',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 20),
                           ..._buildRecipientDetails(),
                         ],
@@ -303,7 +353,12 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 12, offset: const Offset(0, -4))],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.07),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4))
+                ],
               ),
               child: SizedBox(
                 width: double.infinity,
@@ -313,19 +368,28 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18)),
                     elevation: 0,
                   ),
                   child: _isProcessing
                       ? const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)),
+                            SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2.5)),
                             SizedBox(width: 14),
-                            Text('Processing...', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                            Text('Processing...',
+                                style: TextStyle(
+                                    fontSize: 17, fontWeight: FontWeight.w600)),
                           ],
                         )
-                      : const Text('Confirm & Send Money', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                      : const Text('Confirm & Send Money',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600)),
                 ),
               ),
             ),
@@ -339,7 +403,8 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 15, color: Colors.grey.shade700)),
+        Text(label,
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade700)),
         Flexible(
           child: Text(
             value,
@@ -387,7 +452,8 @@ class _ModernConfirmationScreenState extends ConsumerState<ModernConfirmationScr
           const SizedBox(height: 12),
           _buildRecipientRow('Address', data['address'] ?? ''),
           const SizedBox(height: 12),
-          _buildRecipientRow('City', '${data['city'] ?? ''}, ${data['state'] ?? ''}'),
+          _buildRecipientRow(
+              'City', '${data['city'] ?? ''}, ${data['state'] ?? ''}'),
           const SizedBox(height: 12),
           _buildRecipientRow('Purpose', data['relationship'] ?? ''),
         ]);

@@ -20,27 +20,27 @@ class ExchangeRateProvider with ChangeNotifier {
 
     try {
       final response = await _apiService.get(UrlContainer.getExchangeRate);
-      
+
       if (response['status'] == 'success' && response['data'] != null) {
         final ratesData = response['data'] as Map<String, dynamic>;
         final Map<String, ExchangeRate> rates = {};
-        
+
         // Parse the exchange rates from the new API response format
         ratesData.forEach((currency, currencyData) {
           if (currencyData is Map<String, dynamic>) {
             double? buyingRate;
             double? sellingRate;
-            
+
             // Extract rates from TRADESLE (preferred) or CASH (fallback)
             Map<String, dynamic>? rateData;
-            if (currencyData.containsKey('TRADESLE') && 
+            if (currencyData.containsKey('TRADESLE') &&
                 currencyData['TRADESLE'] is Map<String, dynamic>) {
               rateData = currencyData['TRADESLE'] as Map<String, dynamic>;
-            } else if (currencyData.containsKey('CASH') && 
-                       currencyData['CASH'] is Map<String, dynamic>) {
+            } else if (currencyData.containsKey('CASH') &&
+                currencyData['CASH'] is Map<String, dynamic>) {
               rateData = currencyData['CASH'] as Map<String, dynamic>;
             }
-            
+
             if (rateData != null) {
               if (rateData.containsKey('buying')) {
                 buyingRate = (rateData['buying'] as num).toDouble();
@@ -48,7 +48,7 @@ class ExchangeRateProvider with ChangeNotifier {
               if (rateData.containsKey('selling')) {
                 sellingRate = (rateData['selling'] as num).toDouble();
               }
-              
+
               if (buyingRate != null && sellingRate != null) {
                 rates[currency] = ExchangeRate(
                   fromCurrency: currency,
@@ -61,7 +61,7 @@ class ExchangeRateProvider with ChangeNotifier {
             }
           }
         });
-        
+
         if (rates.isNotEmpty) {
           _exchangeRates = rates;
         } else {
@@ -70,15 +70,15 @@ class ExchangeRateProvider with ChangeNotifier {
       } else {
         throw Exception(response['message'] ?? 'Failed to load exchange rates');
       }
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       print('Exchange rate API error: $e');
-      
+
       // Use fallback rates when API fails
       _loadFallbackRates();
-      
+
       // Don't show error to user, just use fallback rates silently
       _error = null;
       _isLoading = false;
@@ -125,13 +125,13 @@ class ExchangeRateProvider with ChangeNotifier {
         lastUpdated: DateTime.now(),
       ),
     };
-    
+
     _exchangeRates = fallbackRates;
   }
 
   double? getRate(String fromCurrency, String toCurrency) {
     if (toCurrency == 'ETB' && _exchangeRates.containsKey(fromCurrency)) {
-      return _exchangeRates[fromCurrency]?.rate;
+      return _exchangeRates[fromCurrency]?.buyingRate;
     }
     return null;
   }

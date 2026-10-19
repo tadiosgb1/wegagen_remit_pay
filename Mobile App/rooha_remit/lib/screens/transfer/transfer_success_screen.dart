@@ -1,5 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../services/bonus_service.dart';
 import '../main_navigation_screen.dart';
 import '../transactions/transactions_screen.dart';
@@ -10,6 +14,8 @@ class TransferSuccessScreen extends StatelessWidget {
   final double amount;
   final String currency;
   final double etbAmount;
+  final double bonusAmountETB;
+  final Map<String, dynamic> recipientInfo;
   final double? exchangeRate;
   final BonusCalculation? bonusCalculation;
   final String recipientName;
@@ -22,6 +28,8 @@ class TransferSuccessScreen extends StatelessWidget {
     required this.amount,
     required this.currency,
     required this.etbAmount,
+    this.bonusAmountETB = 0,
+    this.recipientInfo = const {},
     this.exchangeRate,
     this.bonusCalculation,
     required this.recipientName,
@@ -63,7 +71,7 @@ class TransferSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final formattedDate = '${_getMonthName(now.month)} ${now.day}, ${now.year}';
-    
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: SafeArea(
@@ -75,7 +83,7 @@ class TransferSuccessScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 60),
-                    
+
                     // Success Animation - Concentric Circles with Check
                     Container(
                       width: 120,
@@ -172,28 +180,24 @@ class TransferSuccessScreen extends StatelessWidget {
 
                           // Transfer Details
                           _buildDetailRow('Recipient', recipientName),
-                          const SizedBox(height: 16),
-                          _buildDetailRow('Country', '🇺🇸 United States'),
-                          const SizedBox(height: 16),
-                          _buildDetailRow('Amount Received', '${etbAmount.toStringAsFixed(2)} ETB'),
-                          const SizedBox(height: 16),
-                          if (exchangeRate != null) ...[
-                            _buildDetailRow('Exchange Rate', '1 $currency = ${exchangeRate!.toStringAsFixed(4)} ETB'),
-                          ] else ...[
-                            _buildDetailRow('Exchange Rate', '1 $currency = ${(etbAmount / amount).toStringAsFixed(4)} ETB'),
+                          for (final detail in _recipientDetails) ...[
+                            const SizedBox(height: 16),
+                            _buildDetailRow(detail.key, detail.value),
                           ],
                           const SizedBox(height: 16),
-                          if (bonusCalculation != null) ...[
-                            _buildDetailRow('Bonus (${bonusCalculation!.bonusPercentage.toStringAsFixed(0)}% of converted ETB)', bonusCalculation!.formattedBonusETB),
-                          ] else ...[
-                            _buildDetailRow('Bonus', '0.00 ETB'),
-                          ],
+                          _buildDetailRow('Amount Received',
+                              '${etbAmount.toStringAsFixed(2)} ETB'),
+                          const SizedBox(height: 16),
+                          _buildDetailRow(
+                            'Bonus',
+                            '+${(bonusAmountETB > 0 ? bonusAmountETB : (bonusCalculation?.bonusAmountETB ?? 0)).toStringAsFixed(2)} ETB',
+                          ),
                           const SizedBox(height: 16),
                           _buildDetailRow('Transaction ID', transactionId),
                           const SizedBox(height: 16),
                           _buildDetailRow('Date', formattedDate),
                           const SizedBox(height: 16),
-                          
+
                           // Status
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -206,7 +210,8 @@ class TransferSuccessScreen extends StatelessWidget {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: Colors.green.shade50,
                                   borderRadius: BorderRadius.circular(12),
@@ -224,7 +229,8 @@ class TransferSuccessScreen extends StatelessWidget {
                           ),
 
                           // Pickup Code (for cash pickup only)
-                          if (transferType == 'cash_pickup' && pickupCode != null) ...[
+                          if (transferType == 'cash_pickup' &&
+                              pickupCode != null) ...[
                             const SizedBox(height: 24),
                             const Divider(),
                             const SizedBox(height: 16),
@@ -286,17 +292,9 @@ class TransferSuccessScreen extends StatelessWidget {
                   // Download Button
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement download receipt functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Receipt downloaded successfully'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      },
+                      onPressed: () => _downloadReceipt(context),
                       icon: const Icon(Icons.download, size: 20),
-                      label: const Text('Download'),
+                      label: const Text('Download PDF'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.grey.shade700,
                         side: BorderSide(color: Colors.grey.shade300),
@@ -313,10 +311,7 @@ class TransferSuccessScreen extends StatelessWidget {
                   // Share Button
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement share functionality
-                        _shareReceipt();
-                      },
+                      onPressed: () => _shareReceipt(context),
                       icon: const Icon(Icons.share, size: 20),
                       label: const Text('Share'),
                       style: OutlinedButton.styleFrom(
@@ -372,35 +367,146 @@ class TransferSuccessScreen extends StatelessWidget {
     );
   }
 
-  void _shareReceipt() {
-    final buffer = StringBuffer();
-    buffer.writeln('Transfer Receipt - Rooha Remit');
-    buffer.writeln();
-    buffer.writeln('Amount Sent: ${amount.toStringAsFixed(2)} $currency');
-    buffer.writeln('Recipient: $recipientName');
-    buffer.writeln('Amount Received: ${etbAmount.toStringAsFixed(2)} ETB');
-    if (exchangeRate != null) {
-      buffer.writeln('Exchange Rate: 1 $currency = ${exchangeRate!.toStringAsFixed(4)} ETB');
-    } else {
-      buffer.writeln('Exchange Rate: 1 $currency = ${(etbAmount / amount).toStringAsFixed(4)} ETB');
+  List<MapEntry<String, String>> get _recipientDetails {
+    String valueFor(List<String> keys) {
+      for (final key in keys) {
+        final value = recipientInfo[key]?.toString().trim();
+        if (value != null && value.isNotEmpty) return value;
+      }
+      return '';
     }
-    buffer.writeln('Bonus: ${bonusCalculation?.formattedBonusETB ?? '0.00 ETB'}');
-    buffer.writeln('Transaction ID: $transactionId');
-    buffer.writeln('Status: Completed');
-    buffer.writeln();
-    buffer.writeln('Thank you for using Rooha Remit!');
 
-    final receiptText = buffer.toString();
+    final details = <MapEntry<String, String>>[];
+    void add(String label, List<String> keys) {
+      final value = valueFor(keys);
+      if (value.isNotEmpty) details.add(MapEntry(label, value));
+    }
 
-    Clipboard.setData(ClipboardData(text: receiptText));
-    // In a real app, you would use share_plus package here
-    // Share.share(receiptText);
+    switch (transferType) {
+      case 'wegagen_bank':
+        add('Account Number', ['accountNumber', 'account_number', 'toAccount']);
+        break;
+      case 'rooha_ebirr':
+      case 'wegagen_ebirr':
+        add('Phone Number', ['phoneNumber', 'phone_number']);
+        break;
+      case 'cash_pickup':
+        add('Phone Number', ['phoneNumber', 'phone_number']);
+        add('Address', ['address']);
+        final city = valueFor(['city']);
+        final state = valueFor(['state']);
+        final location =
+            [city, state].where((part) => part.isNotEmpty).join(', ');
+        if (location.isNotEmpty)
+          details.add(MapEntry('City / State', location));
+        add('Country', ['country']);
+        add('Purpose', ['relationship', 'relationship_to_sender']);
+        break;
+    }
+    return details;
+  }
+
+  Future<Uint8List> _buildReceiptPdf() async {
+    final document = pw.Document();
+    final date =
+        '${_getMonthName(DateTime.now().month)} ${DateTime.now().day}, ${DateTime.now().year}';
+    final bonus = bonusAmountETB > 0
+        ? bonusAmountETB
+        : (bonusCalculation?.bonusAmountETB ?? 0);
+
+    document.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (_) => pw.Padding(
+          padding: const pw.EdgeInsets.all(32),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Rooha Remit - Transfer Receipt',
+                  style: pw.TextStyle(
+                      fontSize: 22, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 20),
+              _pdfRow('Transfer Type', _transferTypeTitle),
+              _pdfRow('Status', 'Completed'),
+              _pdfRow('Amount Sent', '${amount.toStringAsFixed(2)} $currency'),
+              _pdfRow('Recipient', recipientName),
+              for (final detail in _recipientDetails)
+                _pdfRow(detail.key, detail.value),
+              _pdfRow('Amount Received', '${etbAmount.toStringAsFixed(2)} ETB'),
+              _pdfRow('Bonus', '+${bonus.toStringAsFixed(2)} ETB'),
+              _pdfRow('Transaction ID', transactionId),
+              _pdfRow('Date', date),
+              if (transferType == 'cash_pickup' && pickupCode != null)
+                _pdfRow('Pickup Code', pickupCode!),
+              pw.Spacer(),
+              pw.Text('Thank you for using Rooha Remit.'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return document.save();
+  }
+
+  pw.Widget _pdfRow(String label, String value) => pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 7),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label),
+            pw.SizedBox(width: 20),
+            pw.Expanded(
+              child: pw.Text(value, textAlign: pw.TextAlign.right),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _downloadReceipt(BuildContext context) async {
+    try {
+      final bytes = await _buildReceiptPdf();
+      await Printing.layoutPdf(onLayout: (_) async => bytes);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not create receipt: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareReceipt(BuildContext context) async {
+    try {
+      final bytes = await _buildReceiptPdf();
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'rooha-transfer-receipt-$transactionId.pdf',
+      );
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not share receipt: $error')),
+        );
+      }
+    }
   }
 
   String _getMonthName(int month) {
     const months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return months[month];
   }

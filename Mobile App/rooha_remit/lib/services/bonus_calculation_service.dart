@@ -12,12 +12,12 @@ class BonusCalculationService {
   });
 
   /// Calculate the complete transfer amount with exchange rate and bonus
-  /// 
+  ///
   /// Formula: Final Amount = (Foreign Amount × Exchange Rate) + (Foreign Amount × Bonus per Unit)
-  /// 
+  ///
   /// Example:
   /// - Send: 100 USD
-  /// - Exchange Rate: 130 ETB per USD  
+  /// - Exchange Rate: 130 ETB per USD
   /// - Bonus: 5 ETB per USD
   /// - Final Amount: (100 × 130) + (100 × 5) = 13,000 + 500 = 13,500 ETB
   TransferCalculationResult calculateTransferAmount({
@@ -27,28 +27,31 @@ class BonusCalculationService {
   }) {
     // Validate inputs
     if (foreignAmount <= 0) {
-      return TransferCalculationResult.error('Amount must be greater than zero');
+      return TransferCalculationResult.error(
+          'Amount must be greater than zero');
     }
 
     if (toCurrency != 'ETB') {
-      return TransferCalculationResult.error('Only transfers to ETB are supported');
+      return TransferCalculationResult.error(
+          'Only transfers to ETB are supported');
     }
 
     // Get exchange rate
     final exchangeRate = exchangeRateProvider.getExchangeRate(fromCurrency);
     if (exchangeRate == null) {
-      return TransferCalculationResult.error('Exchange rate not available for $fromCurrency');
+      return TransferCalculationResult.error(
+          'Exchange rate not available for $fromCurrency');
     }
 
-    // Use selling rate (what bank charges for foreign currency)
-    final rate = exchangeRate.sellingRate;
-    
+    final rate = exchangeRate.buyingRate;
+
     // Calculate base amount in ETB
     final baseAmountETB = foreignAmount * rate;
-    
+
     // Calculate bonus amount in ETB (fixed amount per foreign currency unit)
-    final bonusAmountETB = bonusProvider.calculateBonusAmount(foreignAmount, fromCurrency);
-    
+    final bonusAmountETB =
+        bonusProvider.calculateBonusAmount(foreignAmount, fromCurrency);
+
     // Calculate total
     final totalAmountETB = baseAmountETB + bonusAmountETB;
 
@@ -98,7 +101,8 @@ class BonusCalculationService {
     debugPrint('   🧾 Transfer Fee: ${transferFee.toStringAsFixed(2)} ETB');
     debugPrint('   ⚙️ Processing Fee: ${processingFee.toStringAsFixed(2)} ETB');
     debugPrint('   📊 Total Fees: ${totalFees.toStringAsFixed(2)} ETB');
-    debugPrint('   👤 Recipient Gets: ${finalRecipientAmount.toStringAsFixed(2)} ETB');
+    debugPrint(
+        '   👤 Recipient Gets: ${finalRecipientAmount.toStringAsFixed(2)} ETB');
 
     return TransferCalculationResult.success(
       foreignAmount: result.foreignAmount,
@@ -122,21 +126,24 @@ class BonusCalculationService {
     }
 
     final buffer = StringBuffer();
-    buffer.writeln('💸 Send: ${result.foreignAmount.toStringAsFixed(2)} ${result.fromCurrency}');
-    buffer.writeln('📈 Rate: ${result.exchangeRate.toStringAsFixed(2)} ETB per ${result.fromCurrency}');
+    buffer.writeln(
+        '💸 Send: ${result.foreignAmount.toStringAsFixed(2)} ${result.fromCurrency}');
+    buffer.writeln(
+        '📈 Rate: ${result.exchangeRate.toStringAsFixed(2)} ETB per ${result.fromCurrency}');
     buffer.writeln('💰 Base: ${result.baseAmountETB.toStringAsFixed(2)} ETB');
-    
+
     if (result.hasBonusActive && result.bonusAmountETB > 0) {
-      buffer.writeln('🎁 Bonus: +${result.bonusAmountETB.toStringAsFixed(2)} ETB');
+      buffer.writeln(
+          '🎁 Bonus: +${result.bonusAmountETB.toStringAsFixed(2)} ETB');
     }
-    
+
     if (result.transferFee > 0 || result.processingFee > 0) {
       final totalFees = result.transferFee + result.processingFee;
       buffer.writeln('💸 Fees: -${totalFees.toStringAsFixed(2)} ETB');
     }
-    
+
     buffer.writeln('📥 Total: ${result.totalAmountETB.toStringAsFixed(2)} ETB');
-    
+
     return buffer.toString();
   }
 }
@@ -145,7 +152,7 @@ class BonusCalculationService {
 class TransferCalculationResult {
   final bool isSuccess;
   final String? errorMessage;
-  
+
   final double foreignAmount;
   final String fromCurrency;
   final String toCurrency;
